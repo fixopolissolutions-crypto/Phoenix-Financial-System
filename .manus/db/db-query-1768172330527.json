@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO credentials (username, password, tienda) VALUES ('admin', '1234', 'admin') ON DUPLICATE KEY UPDATE password = '1234', tienda = 'admin'; INSERT INTO credentials (username, password, tienda) VALUES ('sucursal', '1234', 'sucursal') ON DUPLICATE KEY UPDATE password = '1234', tienda = 'sucursal';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2LYzPyy7GZ1yCUs.root --database X6j5H3yFdvvRg3NzaLoryH --execute INSERT INTO credentials (username, password, tienda) VALUES ('admin', '1234', 'admin') ON DUPLICATE KEY UPDATE password = '1234', tienda = 'admin'; INSERT INTO credentials (username, password, tienda) VALUES ('sucursal', '1234', 'sucursal') ON DUPLICATE KEY UPDATE password = '1234', tienda = 'sucursal';",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 145
+}
