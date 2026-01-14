@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
-import { Plus, DollarSign, Calendar, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { Plus, DollarSign, Calendar, Pencil, Trash2, Loader2, CalendarIcon } from 'lucide-react';
 
 type PaymentMethod = 'efectivo' | 'banco';
 
@@ -33,6 +33,10 @@ export default function Ingresos() {
   const [monto, setMonto] = useState('');
   const [metodo, setMetodo] = useState<PaymentMethod>('efectivo');
   const [descripcion, setDescripcion] = useState('');
+  const [fechaSeleccionada, setFechaSeleccionada] = useState<string>(() => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  });
   
   // Estados para edición
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -61,6 +65,8 @@ export default function Ingresos() {
       setMonto('');
       setDescripcion('');
       setMetodo('efectivo');
+      const today = new Date();
+      setFechaSeleccionada(today.toISOString().split('T')[0]);
     },
     onError: () => {
       toast.error('Error al registrar el ingreso');
@@ -105,6 +111,7 @@ export default function Ingresos() {
       metodo,
       descripcion: descripcion || undefined,
       tienda: user.role as 'admin' | 'sucursal',
+      fecha: fechaSeleccionada + 'T12:00:00.000Z',
     });
   };
 
@@ -174,6 +181,22 @@ export default function Ingresos() {
                     onChange={(e) => setMonto(e.target.value)}
                     className="pl-10"
                     placeholder="0.00"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="fecha">Fecha</Label>
+                <div className="relative">
+                  <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="fecha"
+                    type="date"
+                    value={fechaSeleccionada}
+                    onChange={(e) => setFechaSeleccionada(e.target.value)}
+                    max={new Date().toISOString().split('T')[0]}
+                    className="pl-10"
                     required
                   />
                 </div>
