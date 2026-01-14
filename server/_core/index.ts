@@ -218,12 +218,12 @@ async function startServer() {
   // Test endpoint for weekly reports
   app.get("/api/test-weekly-report", async (req, res) => {
     try {
-      const { getTransactions, getConfig } = await import("../db");
+      const { getTransactions, getAllConfig } = await import("../db");
       const { generateWeeklyPDFReport } = await import("./pdf-generator");
       const { sendWeeklyReportEmail } = await import("./email-service");
       
       // Get config for email
-      const config = await getConfig();
+      const config = await getAllConfig();
       const reportEmail = config.reportEmail || '';
       
       if (!reportEmail) {
