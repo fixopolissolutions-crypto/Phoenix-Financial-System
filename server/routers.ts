@@ -53,10 +53,7 @@ export const appRouter = router({
           fechaInicio: input.fechaInicio ? new Date(input.fechaInicio) : undefined,
           fechaFin: input.fechaFin ? new Date(input.fechaFin) : undefined,
         } : undefined;
-        console.log('[transactions.list] Filters:', JSON.stringify(filters, null, 2));
-        const result = await db.getTransactions(filters);
-        console.log('[transactions.list] Result count:', result.length);
-        return result;
+        return await db.getTransactions(filters);
       }),
 
     getById: publicProcedure

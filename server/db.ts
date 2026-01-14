@@ -115,32 +115,26 @@ export async function getTransactions(filters?: {
   const conditions = [];
   if (filters?.tipo) {
     conditions.push(eq(transactions.tipo, filters.tipo));
-    console.log('[getTransactions] Filtering by tipo:', filters.tipo);
   }
   if (filters?.tienda) {
     conditions.push(eq(transactions.tienda, filters.tienda));
-    console.log('[getTransactions] Filtering by tienda:', filters.tienda);
   }
+  
+  // Usar DATE() de MySQL para comparar solo la fecha, sin la hora
   if (filters?.fechaInicio) {
-    conditions.push(gte(transactions.fecha, filters.fechaInicio));
-    console.log('[getTransactions] Filtering by fechaInicio:', filters.fechaInicio.toISOString());
+    const fechaInicioStr = filters.fechaInicio.toISOString().split('T')[0];
+    conditions.push(sql`DATE(${transactions.fecha}) >= ${fechaInicioStr}`);
   }
   if (filters?.fechaFin) {
-    conditions.push(lte(transactions.fecha, filters.fechaFin));
-    console.log('[getTransactions] Filtering by fechaFin:', filters.fechaFin.toISOString());
+    const fechaFinStr = filters.fechaFin.toISOString().split('T')[0];
+    conditions.push(sql`DATE(${transactions.fecha}) <= ${fechaFinStr}`);
   }
 
   if (conditions.length > 0) {
     query = query.where(and(...conditions)) as typeof query;
   }
 
-  const result = await query.orderBy(desc(transactions.fecha));
-  console.log('[getTransactions] Returning', result.length, 'transactions');
-  if (result.length > 0) {
-    console.log('[getTransactions] First transaction fecha:', result[0].fecha);
-    console.log('[getTransactions] Last transaction fecha:', result[result.length - 1].fecha);
-  }
-  return result;
+  return await query.orderBy(desc(transactions.fecha));
 }
 
 export async function getTransactionById(id: number) {
