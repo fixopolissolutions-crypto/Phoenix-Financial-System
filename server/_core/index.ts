@@ -40,9 +40,13 @@ async function startServer() {
     try {
       const mysql = await import("mysql2/promise");
       const connection = await mysql.default.createConnection(process.env.DATABASE_URL || "");
+      const { setupDatabaseStatements } = await import("./setup-endpoint");
       
       // Execute SQL statements
-      const statements = [
+      const statements = setupDatabaseStatements;
+      
+      // Old statements removed - now using setup-endpoint.ts
+      /*
         // Users table
         `CREATE TABLE IF NOT EXISTS users (
           id varchar(191) NOT NULL,
@@ -183,9 +187,7 @@ async function startServer() {
         ('sucursal-user-id', 'emergency_percentage', '5'),
         ('sucursal-user-id', 'available_percentage', '75'),
         ('sucursal-user-id', 'tax_rate', '8.25')
-        ON DUPLICATE KEY UPDATE 
-          value = VALUES(value)`
-      ];
+      */
       
       for (const sql of statements) {
         await connection.execute(sql);
