@@ -2,7 +2,7 @@
  * Email Service - Envío de reportes semanales por correo
  */
 
-import * as nodemailer from 'nodemailer';
+import nodemailer from 'nodemailer';
 import * as fs from 'fs';
 
 interface EmailOptions {
