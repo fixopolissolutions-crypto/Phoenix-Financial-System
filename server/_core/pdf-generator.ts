@@ -37,21 +37,31 @@ export async function generateWeeklyPDFReport(data: WeeklyReportData): Promise<s
     // Generar HTML del reporte
     const html = generateReportHTML(data);
     
-    // Convertir HTML a PDF usando weasyprint (instalado en el sistema)
-    const htmlPath = filepath.replace('.pdf', '.html');
-    fs.writeFileSync(htmlPath, html, 'utf-8');
-    
-    // Usar weasyprint para convertir HTML a PDF
-    const { execSync } = require('child_process');
+    // Convertir HTML a PDF usando html-pdf-node
     try {
-      execSync(`weasyprint ${htmlPath} ${filepath}`, { stdio: 'pipe' });
-      console.log(`[PDF Generator] PDF generado exitosamente: ${filepath}`);
+      const htmlPdf = require('html-pdf-node');
       
-      // Eliminar HTML temporal
-      fs.unlinkSync(htmlPath);
+      const options = {
+        format: 'A4',
+        margin: {
+          top: '20px',
+          right: '20px',
+          bottom: '20px',
+          left: '20px'
+        }
+      };
+      
+      const file = { content: html };
+      
+      const pdfBuffer = await htmlPdf.generatePdf(file, options);
+      fs.writeFileSync(filepath, pdfBuffer);
+      
+      console.log(`[PDF Generator] PDF generado exitosamente: ${filepath}`);
     } catch (error) {
-      console.error('[PDF Generator] Error al generar PDF con weasyprint:', error);
-      // Si falla weasyprint, mantener el HTML como respaldo
+      console.error('[PDF Generator] Error al generar PDF:', error);
+      // Si falla, guardar HTML como respaldo
+      const htmlPath = filepath.replace('.pdf', '.html');
+      fs.writeFileSync(htmlPath, html, 'utf-8');
       console.log(`[PDF Generator] HTML guardado como respaldo: ${htmlPath}`);
       return htmlPath;
     }
