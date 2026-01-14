@@ -61,10 +61,17 @@ export async function sendWeeklyReportEmail(options: EmailOptions): Promise<void
       throw new Error(`Archivo PDF no encontrado: ${options.pdfPath}`);
     }
     
+    // Parsear múltiples emails (separados por comas)
+    const emailList = options.to
+      .split(',')
+      .map(email => email.trim())
+      .filter(email => email.length > 0)
+      .join(', ');
+    
     // Configurar el email
     const mailOptions = {
       from: `"Phoenix Financial System" <${process.env.SMTP_USER}>`,
-      to: options.to,
+      to: emailList,
       subject: `📊 Reporte Semanal - ${options.tienda} (${options.weekStart} a ${options.weekEnd})`,
       html: `
         <!DOCTYPE html>
@@ -175,7 +182,7 @@ export async function sendWeeklyReportEmail(options: EmailOptions): Promise<void
     const info = await transporter.sendMail(mailOptions);
     
     console.log(`[Email Service] Email enviado exitosamente: ${info.messageId}`);
-    console.log(`[Email Service] Destinatario: ${options.to}`);
+    console.log(`[Email Service] Destinatarios: ${emailList}`);
     
   } catch (error) {
     console.error('[Email Service] Error al enviar email:', error);

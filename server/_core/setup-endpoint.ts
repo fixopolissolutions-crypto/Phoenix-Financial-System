@@ -143,5 +143,6 @@ export const setupDatabaseStatements = [
   ('investment_percentage', '10'),
   ('emergency_percentage', '5'),
   ('available_percentage', '75'),
-  ('tax_rate', '8.25')`
+  ('tax_rate', '8.25'),
+  ('reportEmail', 'andersonteran2@gmail.com, chavadelarosa549@gmail.com')`
 ];

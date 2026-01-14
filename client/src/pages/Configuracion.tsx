@@ -493,14 +493,17 @@ export default function Configuracion() {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="reportEmail">Email para Reportes</Label>
+                <Label htmlFor="reportEmail">Emails para Reportes</Label>
                 <Input
                   id="reportEmail"
-                  type="email"
-                  placeholder="ejemplo@correo.com"
+                  type="text"
+                  placeholder="email1@correo.com, email2@correo.com"
                   value={reportEmail}
                   onChange={(e) => handleChange(setReportEmail)(e.target.value)}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Puedes agregar múltiples emails separados por comas
+                </p>
               </div>
 
               <div className="p-3 bg-purple-50 rounded-lg mt-4">
@@ -508,7 +511,7 @@ export default function Configuracion() {
                   <strong>ℹ️ Información:</strong> Los reportes semanales se enviarán automáticamente al finalizar la semana laboral configurada.
                 </p>
                 <p className="text-xs text-purple-600 mt-2">
-                  Se generarán 2 PDFs: uno para la tienda principal y otro para la sucursal.
+                  Se generarán 2 PDFs: uno para la tienda principal y otro para la sucursal. Todos los emails configurados recibirán ambos reportes.
                 </p>
               </div>
             </div>
