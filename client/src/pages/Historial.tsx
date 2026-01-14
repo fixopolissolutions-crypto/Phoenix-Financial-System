@@ -12,7 +12,8 @@ import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import { 
   History, Search, Filter, Pencil, Trash2, 
-  TrendingUp, TrendingDown, Loader2, FileSpreadsheet, FileText
+  TrendingUp, TrendingDown, Loader2, FileSpreadsheet, FileText,
+  DollarSign, Landmark, Receipt, Wallet
 } from 'lucide-react';
 
 type PaymentMethod = 'efectivo' | 'banco';
@@ -51,6 +52,9 @@ export default function Historial() {
   const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
 
   const utils = trpc.useUtils();
+  
+  // Query para obtener configuración
+  const { data: configData = {} } = trpc.config.getAll.useQuery();
   
   // Query para obtener todas las transacciones
   const { data: transacciones = [], isLoading } = trpc.transactions.list.useQuery({
@@ -215,16 +219,71 @@ export default function Historial() {
     toast.success('Archivo Excel exportado');
   };
 
-  // Calcular totales
+  // Calcular totales con taxes y distribución inteligente
   const totales = useMemo(() => {
-    const ingresos = filteredTransactions
-      .filter(t => t.tipo === 'ingreso')
+    const config = {
+      taxRate: parseFloat(configData.taxRate || '8.25'),
+      porcentajeAhorro: parseFloat(configData.porcentajeAhorro || '30'),
+      porcentajeInversion: parseFloat(configData.porcentajeInversion || '20'),
+      porcentajeEmergencia: parseFloat(configData.porcentajeEmergencia || '10'),
+      porcentajeDisponible: parseFloat(configData.porcentajeDisponible || '40'),
+    };
+
+    const ingresosEfectivo = filteredTransactions
+      .filter(t => t.tipo === 'ingreso' && t.metodo === 'efectivo')
       .reduce((sum, t) => sum + parseFloat(t.monto), 0);
+    
+    const ingresosBanco = filteredTransactions
+      .filter(t => t.tipo === 'ingreso' && t.metodo === 'banco')
+      .reduce((sum, t) => sum + parseFloat(t.monto), 0);
+    
+    const ingresos = ingresosEfectivo + ingresosBanco;
+    
     const gastos = filteredTransactions
       .filter(t => t.tipo === 'gasto')
       .reduce((sum, t) => sum + parseFloat(t.monto), 0);
-    return { ingresos, gastos, balance: ingresos - gastos };
-  }, [filteredTransactions]);
+    
+    // Calcular taxes
+    const taxEfectivo = ingresosEfectivo * (config.taxRate / 100);
+    const taxBanco = ingresosBanco * (config.taxRate / 100);
+    const totalTax = taxEfectivo + taxBanco;
+    
+    // Ingreso neto después de taxes
+    const netoEfectivo = ingresosEfectivo - taxEfectivo;
+    const netoBanco = ingresosBanco - taxBanco;
+    
+    // Calcular distribución inteligente sobre el neto
+    const distribucionEfectivo = {
+      ahorro: netoEfectivo * config.porcentajeAhorro / 100,
+      inversion: netoEfectivo * config.porcentajeInversion / 100,
+      emergencia: netoEfectivo * config.porcentajeEmergencia / 100,
+      disponible: netoEfectivo * config.porcentajeDisponible / 100,
+    };
+    
+    const distribucionBanco = {
+      ahorro: netoBanco * config.porcentajeAhorro / 100,
+      inversion: netoBanco * config.porcentajeInversion / 100,
+      emergencia: netoBanco * config.porcentajeEmergencia / 100,
+      disponible: netoBanco * config.porcentajeDisponible / 100,
+    };
+    
+    return {
+      ingresos,
+      ingresosEfectivo,
+      ingresosBanco,
+      gastos,
+      balance: ingresos - gastos,
+      taxEfectivo,
+      taxBanco,
+      totalTax,
+      taxRate: config.taxRate,
+      netoEfectivo,
+      netoBanco,
+      distribucionEfectivo,
+      distribucionBanco,
+      porcentajes: config,
+    };
+  }, [filteredTransactions, configData]);
 
   return (
     <DashboardLayout>
@@ -318,14 +377,25 @@ export default function Historial() {
           </div>
         </Card>
 
-        {/* Resumen */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Resumen - Ingresos por Método */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="p-4 bg-green-50 border-green-200">
             <div className="flex items-center gap-3">
-              <TrendingUp className="h-8 w-8 text-green-600" />
+              <DollarSign className="h-8 w-8 text-green-600" />
               <div>
-                <p className="text-sm text-green-600">Total Ingresos</p>
-                <p className="text-xl font-bold text-green-700">${totales.ingresos.toFixed(2)}</p>
+                <p className="text-sm text-green-600">Ingresos Efectivo</p>
+                <p className="text-xl font-bold text-green-700">${totales.ingresosEfectivo.toFixed(2)}</p>
+                <p className="text-xs text-green-600">Tax: ${totales.taxEfectivo.toFixed(2)}</p>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-4 bg-blue-50 border-blue-200">
+            <div className="flex items-center gap-3">
+              <Landmark className="h-8 w-8 text-blue-600" />
+              <div>
+                <p className="text-sm text-blue-600">Ingresos Banco</p>
+                <p className="text-xl font-bold text-blue-700">${totales.ingresosBanco.toFixed(2)}</p>
+                <p className="text-xs text-blue-600">Tax: ${totales.taxBanco.toFixed(2)}</p>
               </div>
             </div>
           </Card>
@@ -338,14 +408,78 @@ export default function Historial() {
               </div>
             </div>
           </Card>
-          <Card className={`p-4 ${totales.balance >= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-orange-50 border-orange-200'}`}>
+          <Card className="p-4 bg-orange-50 border-orange-200">
             <div className="flex items-center gap-3">
-              <History className={`h-8 w-8 ${totales.balance >= 0 ? 'text-emerald-600' : 'text-orange-600'}`} />
+              <Receipt className="h-8 w-8 text-orange-600" />
               <div>
-                <p className={`text-sm ${totales.balance >= 0 ? 'text-emerald-600' : 'text-orange-600'}`}>Balance</p>
-                <p className={`text-xl font-bold ${totales.balance >= 0 ? 'text-emerald-700' : 'text-orange-700'}`}>
-                  ${totales.balance.toFixed(2)}
-                </p>
+                <p className="text-sm text-orange-600">Taxes del Período</p>
+                <p className="text-xl font-bold text-orange-700">${totales.totalTax.toFixed(2)}</p>
+                <p className="text-xs text-orange-600">Tasa: {totales.taxRate}%</p>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Balance */}
+        <Card className={`p-4 ${totales.balance >= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
+          <div className="flex items-center gap-3">
+            <History className={`h-8 w-8 ${totales.balance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`} />
+            <div>
+              <p className={`text-sm ${totales.balance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>Balance del Período</p>
+              <p className={`text-2xl font-bold ${totales.balance >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                ${totales.balance.toFixed(2)}
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        {/* Distribución Inteligente */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Card className="p-6">
+            <h3 className="font-semibold mb-4 flex items-center gap-2">
+              <Wallet className="h-5 w-5 text-green-600" />
+              Distribución Efectivo (Neto: ${totales.netoEfectivo.toFixed(2)})
+            </h3>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-green-600">Ahorro ({totales.porcentajes.porcentajeAhorro}%)</span>
+                <span className="font-semibold text-green-700">${totales.distribucionEfectivo.ahorro.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-blue-600">Inversión ({totales.porcentajes.porcentajeInversion}%)</span>
+                <span className="font-semibold text-blue-700">${totales.distribucionEfectivo.inversion.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-orange-600">Emergencia ({totales.porcentajes.porcentajeEmergencia}%)</span>
+                <span className="font-semibold text-orange-700">${totales.distribucionEfectivo.emergencia.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-purple-600">Disponible ({totales.porcentajes.porcentajeDisponible}%)</span>
+                <span className="font-semibold text-purple-700">${totales.distribucionEfectivo.disponible.toFixed(2)}</span>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-6">
+            <h3 className="font-semibold mb-4 flex items-center gap-2">
+              <Landmark className="h-5 w-5 text-blue-600" />
+              Distribución Banco (Neto: ${totales.netoBanco.toFixed(2)})
+            </h3>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-green-600">Ahorro ({totales.porcentajes.porcentajeAhorro}%)</span>
+                <span className="font-semibold text-green-700">${totales.distribucionBanco.ahorro.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-blue-600">Inversión ({totales.porcentajes.porcentajeInversion}%)</span>
+                <span className="font-semibold text-blue-700">${totales.distribucionBanco.inversion.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-orange-600">Emergencia ({totales.porcentajes.porcentajeEmergencia}%)</span>
+                <span className="font-semibold text-orange-700">${totales.distribucionBanco.emergencia.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-purple-600">Disponible ({totales.porcentajes.porcentajeDisponible}%)</span>
+                <span className="font-semibold text-purple-700">${totales.distribucionBanco.disponible.toFixed(2)}</span>
               </div>
             </div>
           </Card>
