@@ -17,7 +17,9 @@ interface EmailOptions {
  * Usa variables de entorno para configuración
  */
 async function createTransporter() {
-  const nodemailer = await import('nodemailer');
+  const nodemailerModule = await import('nodemailer');
+  // En ESM, nodemailer se exporta como default
+  const nodemailer = (nodemailerModule as any).default || nodemailerModule;
   
   // Configuración por defecto (Gmail)
   // Para usar otro proveedor, ajustar las variables de entorno
@@ -35,12 +37,7 @@ async function createTransporter() {
     throw new Error('Configuración de email no encontrada. Define SMTP_USER y SMTP_PASSWORD en variables de entorno.');
   }
   
-  // nodemailer puede venir como default o como objeto directo
-  const createTransporter = nodemailer.default?.createTransporter || nodemailer.createTransporter;
-  if (!createTransporter) {
-    throw new Error('No se pudo acceder a nodemailer.createTransporter');
-  }
-  return createTransporter(config);
+  return nodemailer.createTransporter(config);
 }
 
 /**
