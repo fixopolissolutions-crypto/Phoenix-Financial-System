@@ -35,7 +35,12 @@ async function createTransporter() {
     throw new Error('Configuración de email no encontrada. Define SMTP_USER y SMTP_PASSWORD en variables de entorno.');
   }
   
-  return nodemailer.default.createTransporter(config);
+  // nodemailer puede venir como default o como objeto directo
+  const createTransporter = nodemailer.default?.createTransporter || nodemailer.createTransporter;
+  if (!createTransporter) {
+    throw new Error('No se pudo acceder a nodemailer.createTransporter');
+  }
+  return createTransporter(config);
 }
 
 /**
