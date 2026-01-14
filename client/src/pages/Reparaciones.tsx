@@ -22,13 +22,16 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { trpc } from '@/lib/trpc';
-import { Wrench, Plus, DollarSign, Clock, CheckCircle, Package, Trash2 } from 'lucide-react';
+import { Wrench, Plus, DollarSign, Clock, CheckCircle, Package, Trash2, FileText } from 'lucide-react';
+import { FacturaReparacion } from '@/components/FacturaReparacion';
 import { toast } from 'sonner';
 
 export default function Reparaciones() {
   const { user } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'pendiente' | 'en_proceso' | 'completada' | 'entregada'>('todos');
+  const [facturaDialogOpen, setFacturaDialogOpen] = useState(false);
+  const [reparacionSeleccionada, setReparacionSeleccionada] = useState<any>(null);
 
   // Queries
   const { data: repairs = [], refetch } = trpc.repairs.list.useQuery({ tienda: user?.tienda });
@@ -404,6 +407,22 @@ export default function Reparaciones() {
               )}
 
               <div className="mt-4 space-y-2">
+                {/* Botón de Factura (solo para completadas o entregadas) */}
+                {(repair.estado === 'completada' || repair.estado === 'entregada') && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setReparacionSeleccionada(repair);
+                      setFacturaDialogOpen(true);
+                    }}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Generar Factura
+                  </Button>
+                )}
+                
                 {repair.estado === 'pendiente' && (
                   <Button
                     size="sm"
@@ -452,6 +471,33 @@ export default function Reparaciones() {
           </Card>
         )}
       </div>
+
+      {/* Dialog de Factura */}
+      <Dialog open={facturaDialogOpen} onOpenChange={setFacturaDialogOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Factura de Reparación</DialogTitle>
+            <DialogDescription>
+              Generar factura para el cliente
+            </DialogDescription>
+          </DialogHeader>
+          {reparacionSeleccionada && (
+            <FacturaReparacion
+              reparacion={{
+                id: reparacionSeleccionada.id,
+                cliente: reparacionSeleccionada.cliente || 'Cliente',
+                telefono: reparacionSeleccionada.telefono || 'N/A',
+                dispositivo: reparacionSeleccionada.dispositivo,
+                problema: reparacionSeleccionada.problema,
+                precio: Number(reparacionSeleccionada.precioTotal),
+                fecha: new Date(reparacionSeleccionada.fechaIngreso),
+                estado: reparacionSeleccionada.estado,
+              }}
+              taxRate={8.25}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
