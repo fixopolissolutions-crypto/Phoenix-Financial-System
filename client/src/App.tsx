@@ -16,6 +16,7 @@ import Nomina from "./pages/Nomina";
 import Configuracion from "./pages/Configuracion";
 import Taxes from "./pages/Taxes";
 import Historial from "./pages/Historial";
+import InversionCapital from "./pages/InversionCapital";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated } = useAuth();
@@ -60,6 +61,9 @@ function Router() {
       </Route>
       <Route path="/historial">
         {() => <ProtectedRoute component={Historial} />}
+      </Route>
+      <Route path="/inversion-capital">
+        {() => <ProtectedRoute component={InversionCapital} />}
       </Route>
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />

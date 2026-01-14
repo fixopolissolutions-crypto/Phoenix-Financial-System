@@ -13,6 +13,7 @@ import {
   Building2,
   Receipt,
   History,
+  Package,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -39,6 +40,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: 'Ingresos', href: '/ingresos', icon: TrendingUp, roles: ['admin', 'sucursal'] },
     { name: 'Gastos', href: '/gastos', icon: TrendingDown, roles: ['admin', 'sucursal'] },
     { name: 'Historial', href: '/historial', icon: History, roles: ['admin', 'sucursal'] },
+    { name: 'Inversión de Capital', href: '/inversion-capital', icon: Package, roles: ['admin', 'sucursal'] },
     { name: 'Proveedores', href: '/proveedores', icon: Users, roles: ['admin', 'sucursal'] },
     ...(user.role === 'admin' ? [
       { name: 'Nómina', href: '/nomina', icon: Wallet, roles: ['admin'] },
