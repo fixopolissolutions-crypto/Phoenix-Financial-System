@@ -652,6 +652,7 @@ export async function createInventoryPart(data: InsertInventoryPart) {
 
   const partData = {
     ...data,
+    precioCompraUnitario: typeof data.precioCompraUnitario === 'string' ? data.precioCompraUnitario : String(data.precioCompraUnitario),
     cantidadActual: data.cantidadInicial,
     cantidadUsada: 0,
   };
