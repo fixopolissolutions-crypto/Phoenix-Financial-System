@@ -30,6 +30,7 @@ interface Transaction {
 
 export default function Ingresos() {
   const { user } = useAuth();
+  const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
   const [monto, setMonto] = useState('');
   const [metodo, setMetodo] = useState<PaymentMethod>('efectivo');
   const [descripcion, setDescripcion] = useState('');
@@ -50,6 +51,20 @@ export default function Ingresos() {
   const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
 
   const utils = trpc.useUtils();
+  
+  // Detectar cambio de día y actualizar automáticamente
+  useEffect(() => {
+    const checkMidnight = setInterval(() => {
+      const newDate = new Date().toISOString().split('T')[0];
+      if (newDate !== currentDate) {
+        console.log('Nuevo día detectado en Ingresos:', newDate);
+        setCurrentDate(newDate);
+        utils.transactions.list.invalidate();
+      }
+    }, 60000); // Verificar cada minuto
+
+    return () => clearInterval(checkMidnight);
+  }, [currentDate, utils]);
   
   // Query para obtener ingresos del día actual
   const dateRange = useMemo(() => {

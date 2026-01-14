@@ -3,7 +3,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/card';
 import { DollarSign, TrendingUp, TrendingDown, Activity, Receipt, Landmark, Loader2, Wallet } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
@@ -11,6 +11,8 @@ const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EF4444', '#EC4899'
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
+  const utils = trpc.useContext();
   
   // Query para obtener todas las transacciones
   const { data: transacciones = [], isLoading: loadingTransactions } = trpc.transactions.list.useQuery({
@@ -19,6 +21,22 @@ export default function Dashboard() {
 
   // Query para obtener configuración
   const { data: configData = {} } = trpc.config.getAll.useQuery();
+
+  // Detectar cambio de día y actualizar automáticamente
+  useEffect(() => {
+    const checkMidnight = setInterval(() => {
+      const newDate = new Date().toISOString().split('T')[0];
+      if (newDate !== currentDate) {
+        console.log('Nuevo día detectado:', newDate);
+        setCurrentDate(newDate);
+        // Invalidar queries para recargar datos
+        utils.transactions.list.invalidate();
+        utils.config.getAll.invalidate();
+      }
+    }, 60000); // Verificar cada minuto
+
+    return () => clearInterval(checkMidnight);
+  }, [currentDate, utils]);
 
   const data = useMemo(() => {
     if (!user) return null;
