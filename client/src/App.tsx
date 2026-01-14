@@ -20,6 +20,7 @@ import InversionCapital from "./pages/InversionCapital";
 import InventarioTelefonos from "./pages/InventarioTelefonos";
 import InventarioAccesorios from "./pages/InventarioAccesorios";
 import InventarioPartes from "./pages/InventarioPartes";
+import Reparaciones from "./pages/Reparaciones";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated } = useAuth();
@@ -76,6 +77,9 @@ function Router() {
       </Route>
       <Route path="/inventario/partes">
         {() => <ProtectedRoute component={InventarioPartes} />}
+      </Route>
+      <Route path="/reparaciones">
+        {() => <ProtectedRoute component={Reparaciones} />}
       </Route>
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
