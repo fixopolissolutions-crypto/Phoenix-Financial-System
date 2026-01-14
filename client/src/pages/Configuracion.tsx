@@ -43,6 +43,7 @@ export default function Configuracion() {
   const [diaInicioSemana, setDiaInicioSemana] = useState('1');
   const [diaFinSemana, setDiaFinSemana] = useState('0');
   const [zonaHoraria, setZonaHoraria] = useState('America/Chicago');
+  const [reportEmail, setReportEmail] = useState('');
   
   const [hasChanges, setHasChanges] = useState(false);
   
@@ -89,6 +90,7 @@ export default function Configuracion() {
       setDiaInicioSemana(configData.diaInicioSemana || '1');
       setDiaFinSemana(configData.diaFinSemana || '0');
       setZonaHoraria(configData.zonaHoraria || 'America/Chicago');
+      setReportEmail(configData.reportEmail || '');
     }
   }, [configData]);
 
@@ -118,6 +120,7 @@ export default function Configuracion() {
         setConfigMutation.mutateAsync({ key: 'diaInicioSemana', value: diaInicioSemana }),
         setConfigMutation.mutateAsync({ key: 'diaFinSemana', value: diaFinSemana }),
         setConfigMutation.mutateAsync({ key: 'zonaHoraria', value: zonaHoraria }),
+        setConfigMutation.mutateAsync({ key: 'reportEmail', value: reportEmail }),
       ]);
       
       setHasChanges(false);
@@ -471,6 +474,41 @@ export default function Configuracion() {
               <div className="p-3 bg-orange-50 rounded-lg mt-4">
                 <p className="text-sm text-orange-800">
                   <strong>Hora actual:</strong> {new Date().toLocaleString('es-MX', { timeZone: zonaHoraria })}
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          {/* Email para Reportes */}
+          <Card className="p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                <Receipt className="w-6 h-6 text-purple-600" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold">Reportes Semanales</h2>
+                <p className="text-sm text-muted-foreground">Email para recibir reportes automáticos</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="reportEmail">Email para Reportes</Label>
+                <Input
+                  id="reportEmail"
+                  type="email"
+                  placeholder="ejemplo@correo.com"
+                  value={reportEmail}
+                  onChange={(e) => handleChange(setReportEmail)(e.target.value)}
+                />
+              </div>
+
+              <div className="p-3 bg-purple-50 rounded-lg mt-4">
+                <p className="text-sm text-purple-800">
+                  <strong>ℹ️ Información:</strong> Los reportes semanales se enviarán automáticamente al finalizar la semana laboral configurada.
+                </p>
+                <p className="text-xs text-purple-600 mt-2">
+                  Se generarán 2 PDFs: uno para la tienda principal y otro para la sucursal.
                 </p>
               </div>
             </div>

@@ -1,6 +1,7 @@
 // Temporary database setup endpoint - DELETE AFTER USE
 export const setupDatabaseStatements = [
   // Drop existing tables to recreate with correct structure
+  `DROP TABLE IF EXISTS weekly_history`,
   `DROP TABLE IF EXISTS daily_history`,
   `DROP TABLE IF EXISTS payroll`,
   `DROP TABLE IF EXISTS employees`,
@@ -87,6 +88,24 @@ export const setupDatabaseStatements = [
     \`key\` varchar(100) NOT NULL UNIQUE,
     value text,
     updatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  
+  // Weekly history table
+  `CREATE TABLE weekly_history (
+    id int NOT NULL AUTO_INCREMENT,
+    weekStart varchar(10) NOT NULL,
+    weekEnd varchar(10) NOT NULL,
+    tienda enum('admin','sucursal') NOT NULL DEFAULT 'admin',
+    totalIngresos decimal(10,2) NOT NULL DEFAULT '0.00',
+    totalGastos decimal(10,2) NOT NULL DEFAULT '0.00',
+    totalNomina decimal(10,2) NOT NULL DEFAULT '0.00',
+    totalTax decimal(10,2) NOT NULL DEFAULT '0.00',
+    gananciaNeta decimal(10,2) NOT NULL DEFAULT '0.00',
+    transaccionesCount int NOT NULL DEFAULT 0,
+    pdfPath varchar(500),
+    emailSent int NOT NULL DEFAULT 0,
+    createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   

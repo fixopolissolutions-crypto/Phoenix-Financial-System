@@ -1,14 +1,19 @@
 /**
  * Scheduler Service - Tareas programadas
  * - Reset diario a medianoche (00:00)
- * - Generación de reporte semanal (Domingos a las 23:55)
+ * - Reset semanal configurable (según config de semana laboral)
+ * - Generación de reportes semanales en PDF
+ * - Envío automático de reportes por email
  */
 
 import * as db from '../db';
+import { generateWeeklyPDFReport } from './pdf-generator';
+import { sendWeeklyReportEmail } from './email-service';
 
 let dailyResetInterval: NodeJS.Timeout | null = null;
-let weeklyReportInterval: NodeJS.Timeout | null = null;
+let weeklyResetInterval: NodeJS.Timeout | null = null;
 let lastResetDate: string | null = null;
+let lastWeeklyResetDate: string | null = null;
 
 /**
  * Calcula el tiempo hasta la próxima medianoche
@@ -21,25 +26,73 @@ function getMillisecondsUntilMidnight(): number {
 }
 
 /**
- * Calcula el tiempo hasta el próximo domingo a las 23:55
+ * Obtiene la configuración actual
  */
-function getMillisecondsUntilWeeklyReport(): number {
+async function getConfig() {
+  try {
+    const configData = await db.getAllConfig();
+    return {
+      diaInicioSemana: parseInt(configData.diaInicioSemana || '1'), // Lunes por defecto
+      diaFinSemana: parseInt(configData.diaFinSemana || '0'), // Domingo por defecto
+      taxRate: parseFloat(configData.taxRate || '8.25'),
+      email: configData.reportEmail || '',
+    };
+  } catch (error) {
+    console.error('[Scheduler] Error al obtener configuración:', error);
+    return {
+      diaInicioSemana: 1, // Lunes
+      diaFinSemana: 0, // Domingo
+      taxRate: 8.25,
+      email: '',
+    };
+  }
+}
+
+/**
+ * Calcula el tiempo hasta el fin de la semana laboral (23:55 del día configurado)
+ */
+async function getMillisecondsUntilWeekEnd(): Promise<number> {
+  const config = await getConfig();
   const now = new Date();
-  const nextSunday = new Date(now);
+  const endOfWeek = new Date(now);
   
-  // Calcular días hasta el próximo domingo (0 = domingo)
-  const daysUntilSunday = (7 - now.getDay()) % 7;
+  // Calcular días hasta el día de fin de semana
+  let daysUntilEnd = (config.diaFinSemana - now.getDay() + 7) % 7;
   
-  if (daysUntilSunday === 0 && now.getHours() < 23) {
-    // Si es domingo y aún no son las 23:55, programar para hoy
-    nextSunday.setHours(23, 55, 0, 0);
-  } else {
-    // Programar para el próximo domingo
-    nextSunday.setDate(now.getDate() + (daysUntilSunday || 7));
-    nextSunday.setHours(23, 55, 0, 0);
+  if (daysUntilEnd === 0 && now.getHours() >= 23 && now.getMinutes() >= 55) {
+    // Si ya pasó la hora de reset hoy, programar para la próxima semana
+    daysUntilEnd = 7;
   }
   
-  return nextSunday.getTime() - now.getTime();
+  endOfWeek.setDate(now.getDate() + daysUntilEnd);
+  endOfWeek.setHours(23, 55, 0, 0);
+  
+  return endOfWeek.getTime() - now.getTime();
+}
+
+/**
+ * Calcula las fechas de inicio y fin de la semana laboral actual
+ */
+async function getCurrentWeekDates(): Promise<{ start: string; end: string }> {
+  const config = await getConfig();
+  const now = new Date();
+  
+  // Calcular inicio de semana
+  const daysSinceStart = (now.getDay() - config.diaInicioSemana + 7) % 7;
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - daysSinceStart);
+  weekStart.setHours(0, 0, 0, 0);
+  
+  // Calcular fin de semana
+  const daysUntilEnd = (config.diaFinSemana - config.diaInicioSemana + 7) % 7;
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + daysUntilEnd);
+  weekEnd.setHours(23, 59, 59, 999);
+  
+  return {
+    start: weekStart.toISOString().split('T')[0],
+    end: weekEnd.toISOString().split('T')[0],
+  };
 }
 
 /**
@@ -47,12 +100,14 @@ function getMillisecondsUntilWeeklyReport(): number {
  */
 async function saveDailyHistory() {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
     
-    // Obtener todas las transacciones del día
+    // Obtener todas las transacciones del día anterior
     const transactions = await db.getTransactions({
-      fechaInicio: new Date(today),
-      fechaFin: new Date(today + 'T23:59:59'),
+      fechaInicio: new Date(yesterdayStr),
+      fechaFin: new Date(yesterdayStr + 'T23:59:59'),
     });
     
     // Calcular totales por tienda
@@ -71,16 +126,18 @@ async function saveDailyHistory() {
       
       const nomina = 0; // TODO: Implementar cuando se agregue módulo de nómina
       
-      // Guardar en historial
-      await db.saveDailyHistory({
-        fecha: today,
-        tienda,
-        totalIngresos: ingresos.toString(),
-        totalGastos: gastos.toString(),
-        totalNomina: nomina.toString(),
-      });
-      
-      console.log(`[Scheduler] Historial diario guardado para ${tienda}: Ingresos=$${ingresos}, Gastos=$${gastos}`);
+      // Guardar en historial solo si hubo actividad
+      if (ingresos > 0 || gastos > 0) {
+        await db.saveDailyHistory({
+          fecha: yesterdayStr,
+          tienda,
+          totalIngresos: ingresos.toString(),
+          totalGastos: gastos.toString(),
+          totalNomina: nomina.toString(),
+        });
+        
+        console.log(`[Scheduler] Historial diario guardado para ${tienda} (${yesterdayStr}): Ingresos=$${ingresos}, Gastos=$${gastos}`);
+      }
     }
   } catch (error) {
     console.error('[Scheduler] Error al guardar historial diario:', error);
@@ -88,8 +145,108 @@ async function saveDailyHistory() {
 }
 
 /**
+ * Guarda el historial semanal y genera reportes
+ */
+async function saveWeeklyHistory() {
+  try {
+    const weekDates = await getCurrentWeekDates();
+    const config = await getConfig();
+    
+    console.log(`[Scheduler] Guardando historial semanal: ${weekDates.start} a ${weekDates.end}`);
+    
+    // Obtener todas las transacciones de la semana
+    const transactions = await db.getTransactions({
+      fechaInicio: new Date(weekDates.start),
+      fechaFin: new Date(weekDates.end + 'T23:59:59'),
+    });
+    
+    // Procesar por tienda
+    const tiendas: ('admin' | 'sucursal')[] = ['admin', 'sucursal'];
+    const tiendaNombres = {
+      admin: '1+PhoneFix Principal',
+      sucursal: '1+PhoneFix Downtown',
+    };
+    
+    for (const tienda of tiendas) {
+      const tiendaTransactions = transactions.filter(t => t.tienda === tienda);
+      
+      // Calcular totales
+      const ingresos = tiendaTransactions
+        .filter(t => t.tipo === 'ingreso')
+        .reduce((sum, t) => sum + parseFloat(t.monto as any), 0);
+      
+      const gastos = tiendaTransactions
+        .filter(t => t.tipo === 'gasto')
+        .reduce((sum, t) => sum + parseFloat(t.monto as any), 0);
+      
+      const nomina = 0; // TODO: Implementar cuando se agregue módulo de nómina
+      
+      // Calcular tax
+      const totalTax = ingresos * (config.taxRate / 100);
+      const ingresoNeto = ingresos - totalTax;
+      const gananciaNeta = ingresoNeto - gastos - nomina;
+      
+      // Generar PDF del reporte
+      const pdfPath = await generateWeeklyPDFReport({
+        tienda,
+        tiendaNombre: tiendaNombres[tienda],
+        weekStart: weekDates.start,
+        weekEnd: weekDates.end,
+        totalIngresos: ingresos,
+        totalGastos: gastos,
+        totalNomina: nomina,
+        totalTax,
+        gananciaNeta,
+        transaccionesCount: tiendaTransactions.length,
+        taxRate: config.taxRate,
+      });
+      
+      console.log(`[Scheduler] PDF generado para ${tienda}: ${pdfPath}`);
+      
+      // Guardar en historial
+      await db.saveWeeklyHistory({
+        weekStart: weekDates.start,
+        weekEnd: weekDates.end,
+        tienda,
+        totalIngresos: ingresos.toString(),
+        totalGastos: gastos.toString(),
+        totalNomina: nomina.toString(),
+        totalTax: totalTax.toString(),
+        gananciaNeta: gananciaNeta.toString(),
+        transaccionesCount: tiendaTransactions.length,
+        pdfPath,
+        emailSent: 0,
+      });
+      
+      // Enviar por email si está configurado
+      if (config.email) {
+        try {
+          await sendWeeklyReportEmail({
+            to: config.email,
+            tienda: tiendaNombres[tienda],
+            weekStart: weekDates.start,
+            weekEnd: weekDates.end,
+            pdfPath,
+          });
+          
+          // Marcar como enviado
+          await db.updateWeeklyHistoryEmailStatus(pdfPath, 1);
+          
+          console.log(`[Scheduler] Email enviado para ${tienda} a ${config.email}`);
+        } catch (emailError) {
+          console.error(`[Scheduler] Error al enviar email para ${tienda}:`, emailError);
+        }
+      }
+      
+      console.log(`[Scheduler] Historial semanal guardado para ${tienda}: Ingresos=$${ingresos}, Gastos=$${gastos}, Ganancia=$${gananciaNeta}`);
+    }
+  } catch (error) {
+    console.error('[Scheduler] Error al guardar historial semanal:', error);
+  }
+}
+
+/**
  * Reset diario a medianoche
- * Guarda el historial del día y prepara el sistema para el nuevo día
  */
 async function performDailyReset() {
   const today = new Date().toISOString().split('T')[0];
@@ -117,47 +274,32 @@ async function performDailyReset() {
 }
 
 /**
- * Genera reporte semanal
+ * Reset semanal al final de la semana laboral
  */
-async function generateWeeklyReport() {
-  console.log('[Scheduler] Generando reporte semanal...');
+async function performWeeklyReset() {
+  const weekDates = await getCurrentWeekDates();
+  const weekKey = `${weekDates.start}_${weekDates.end}`;
   
-  try {
-    // Obtener datos de los últimos 7 días
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 7);
-    
-    const transactions = await db.getTransactions({
-      fechaInicio: startDate,
-      fechaFin: endDate,
-    });
-    
-    // Calcular totales
-    const totalIngresos = transactions
-      .filter(t => t.tipo === 'ingreso')
-      .reduce((sum, t) => sum + parseFloat(t.monto as any), 0);
-    
-    const totalGastos = transactions
-      .filter(t => t.tipo === 'gasto')
-      .reduce((sum, t) => sum + parseFloat(t.monto as any), 0);
-    
-    const ganancia = totalIngresos - totalGastos;
-    
-    console.log('[Scheduler] Reporte semanal generado:');
-    console.log(`  - Ingresos: $${totalIngresos.toFixed(2)}`);
-    console.log(`  - Gastos: $${totalGastos.toFixed(2)}`);
-    console.log(`  - Ganancia: $${ganancia.toFixed(2)}`);
-    console.log(`  - Transacciones: ${transactions.length}`);
-    
-    // TODO: Enviar reporte por email o guardarlo en un archivo
-    
-  } catch (error) {
-    console.error('[Scheduler] Error al generar reporte semanal:', error);
+  // Evitar múltiples resets en la misma semana
+  if (lastWeeklyResetDate === weekKey) {
+    console.log('[Scheduler] Reset semanal ya ejecutado esta semana');
+    return;
   }
   
-  // Programar el próximo reporte
-  scheduleWeeklyReport();
+  console.log('[Scheduler] Ejecutando reset semanal...');
+  
+  try {
+    // Guardar historial semanal y generar reportes
+    await saveWeeklyHistory();
+    
+    lastWeeklyResetDate = weekKey;
+    console.log('[Scheduler] Reset semanal completado exitosamente');
+  } catch (error) {
+    console.error('[Scheduler] Error en reset semanal:', error);
+  }
+  
+  // Programar el próximo reset
+  scheduleWeeklyReset();
 }
 
 /**
@@ -181,36 +323,36 @@ function scheduleDailyReset() {
 }
 
 /**
- * Programa el reporte semanal
+ * Programa el reset semanal
  */
-function scheduleWeeklyReport() {
+async function scheduleWeeklyReset() {
   // Cancelar intervalo anterior si existe
-  if (weeklyReportInterval) {
-    clearTimeout(weeklyReportInterval);
+  if (weeklyResetInterval) {
+    clearTimeout(weeklyResetInterval);
   }
   
-  const msUntilReport = getMillisecondsUntilWeeklyReport();
-  const days = Math.floor(msUntilReport / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((msUntilReport % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const msUntilWeekEnd = await getMillisecondsUntilWeekEnd();
+  const days = Math.floor(msUntilWeekEnd / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((msUntilWeekEnd % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
   
-  console.log(`[Scheduler] Próximo reporte semanal en ${days}d ${hours}h`);
+  console.log(`[Scheduler] Próximo reset semanal en ${days}d ${hours}h`);
   
-  weeklyReportInterval = setTimeout(() => {
-    generateWeeklyReport();
-  }, msUntilReport);
+  weeklyResetInterval = setTimeout(() => {
+    performWeeklyReset();
+  }, msUntilWeekEnd);
 }
 
 /**
  * Inicia el scheduler
  */
-export function startScheduler() {
+export async function startScheduler() {
   console.log('[Scheduler] Iniciando servicio de tareas programadas...');
   
   // Programar reset diario
   scheduleDailyReset();
   
-  // Programar reporte semanal
-  scheduleWeeklyReport();
+  // Programar reset semanal
+  await scheduleWeeklyReset();
   
   console.log('[Scheduler] Servicio iniciado correctamente');
 }
@@ -224,9 +366,9 @@ export function stopScheduler() {
     dailyResetInterval = null;
   }
   
-  if (weeklyReportInterval) {
-    clearTimeout(weeklyReportInterval);
-    weeklyReportInterval = null;
+  if (weeklyResetInterval) {
+    clearTimeout(weeklyResetInterval);
+    weeklyResetInterval = null;
   }
   
   console.log('[Scheduler] Servicio detenido');

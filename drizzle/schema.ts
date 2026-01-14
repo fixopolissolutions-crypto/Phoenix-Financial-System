@@ -128,6 +128,28 @@ export type DailyHistory = typeof dailyHistory.$inferSelect;
 export type InsertDailyHistory = typeof dailyHistory.$inferInsert;
 
 /**
+ * Historial semanal
+ */
+export const weeklyHistory = mysqlTable("weekly_history", {
+  id: int("id").autoincrement().primaryKey(),
+  weekStart: varchar("weekStart", { length: 10 }).notNull(), // YYYY-MM-DD
+  weekEnd: varchar("weekEnd", { length: 10 }).notNull(), // YYYY-MM-DD
+  tienda: mysqlEnum("tienda", ["admin", "sucursal"]).default("admin").notNull(),
+  totalIngresos: decimal("totalIngresos", { precision: 10, scale: 2 }).default("0").notNull(),
+  totalGastos: decimal("totalGastos", { precision: 10, scale: 2 }).default("0").notNull(),
+  totalNomina: decimal("totalNomina", { precision: 10, scale: 2 }).default("0").notNull(),
+  totalTax: decimal("totalTax", { precision: 10, scale: 2 }).default("0").notNull(),
+  gananciaNeta: decimal("gananciaNeta", { precision: 10, scale: 2 }).default("0").notNull(),
+  transaccionesCount: int("transaccionesCount").default(0).notNull(),
+  pdfPath: varchar("pdfPath", { length: 500 }),
+  emailSent: int("emailSent").default(0).notNull(), // 0 = no enviado, 1 = enviado
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type WeeklyHistory = typeof weeklyHistory.$inferSelect;
+export type InsertWeeklyHistory = typeof weeklyHistory.$inferInsert;
+
+/**
  * Credenciales de acceso (para usuarios locales admin/sucursal)
  */
 export const credentials = mysqlTable("credentials", {

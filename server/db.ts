@@ -8,6 +8,7 @@ import {
   payroll, InsertPayroll, Payroll,
   config, InsertConfig,
   dailyHistory, InsertDailyHistory,
+  weeklyHistory, InsertWeeklyHistory,
   credentials, InsertCredential
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -408,4 +409,42 @@ export async function saveDailyHistory(data: InsertDailyHistory) {
 
   const result = await db.insert(dailyHistory).values(data);
   return { id: Number(result[0].insertId), ...data };
+}
+
+/**
+ * Weekly History functions
+ */
+export async function getWeeklyHistory(params?: { tienda?: 'admin' | 'sucursal'; limit?: number }) {
+  const { tienda, limit } = params || {};
+  const db = await getDb();
+  if (!db) return [];
+
+  let query = db.select().from(weeklyHistory);
+  if (tienda) {
+    query = query.where(eq(weeklyHistory.tienda, tienda)) as typeof query;
+  }
+
+  query = query.orderBy(desc(weeklyHistory.weekStart)) as typeof query;
+  if (limit) {
+    query = query.limit(limit) as typeof query;
+  }
+
+  return await query;
+}
+
+export async function saveWeeklyHistory(data: InsertWeeklyHistory) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db.insert(weeklyHistory).values(data);
+  return { id: Number(result[0].insertId), ...data };
+}
+
+export async function updateWeeklyHistoryEmailStatus(pdfPath: string, emailSent: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.update(weeklyHistory)
+    .set({ emailSent })
+    .where(eq(weeklyHistory.pdfPath, pdfPath));
 }
