@@ -38,7 +38,8 @@ async function startServer() {
   // Temporary database setup endpoint
   app.get("/api/setup-database", async (req, res) => {
     try {
-      const { db } = await import("../db");
+      const mysql = await import("mysql2/promise");
+      const connection = await mysql.default.createConnection(process.env.DATABASE_URL || "");
       
       // Execute SQL statements
       const statements = [
@@ -187,23 +188,26 @@ async function startServer() {
       ];
       
       for (const sql of statements) {
-        await db.execute(sql);
+        await connection.execute(sql);
       }
       
       // Verify tables
-      const [tables] = await db.execute('SHOW TABLES');
-      const [users] = await db.execute('SELECT username FROM credentials');
+      const [tables] = await connection.execute('SHOW TABLES');
+      const [users] = await connection.execute('SELECT username FROM credentials');
+      
+      await connection.end();
       
       res.json({
         success: true,
         message: 'Database initialized successfully',
-        tables: tables.length,
-        users: users.length
+        tables: (tables as any[]).length,
+        users: (users as any[]).length
       });
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        error: error.message
+        error: error.message,
+        stack: error.stack
       });
     }
   });
