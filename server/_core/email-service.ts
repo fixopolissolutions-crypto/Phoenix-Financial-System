@@ -1,7 +1,8 @@
 /**
- * Email Service - Envío de reportes semanales por correo
+ * Email Service - Envío de reportes semanales por correo usando Resend
  */
 
+import { Resend } from 'resend';
 import * as fs from 'fs';
 
 interface EmailOptions {
@@ -9,35 +10,7 @@ interface EmailOptions {
   tienda: string;
   weekStart: string;
   weekEnd: string;
-  pdfPath: string;
-}
-
-/**
- * Crea el transportador de email
- * Usa variables de entorno para configuración
- */
-async function createTransporter() {
-  const nodemailerModule = await import('nodemailer');
-  // En ESM, nodemailer se exporta como default
-  const nodemailer = (nodemailerModule as any).default || nodemailerModule;
-  
-  // Configuración por defecto (Gmail)
-  // Para usar otro proveedor, ajustar las variables de entorno
-  const config = {
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_SECURE === 'true', // true para 465, false para otros puertos
-    auth: {
-      user: process.env.SMTP_USER || '',
-      pass: process.env.SMTP_PASSWORD || '',
-    },
-  };
-  
-  if (!config.auth.user || !config.auth.pass) {
-    throw new Error('Configuración de email no encontrada. Define SMTP_USER y SMTP_PASSWORD en variables de entorno.');
-  }
-  
-  return nodemailer.createTransport(config);
+  htmlPath: string; // Ruta al archivo HTML del reporte
 }
 
 /**
@@ -53,10 +26,16 @@ function formatDate(dateStr: string): string {
 }
 
 /**
- * Genera el HTML del email
+ * Genera el HTML del email con el reporte embebido
  */
 function generateEmailHTML(options: EmailOptions): string {
-  const { tienda, weekStart, weekEnd } = options;
+  const { tienda, weekStart, weekEnd, htmlPath } = options;
+  
+  // Leer el HTML del reporte
+  let reportContent = '';
+  if (fs.existsSync(htmlPath)) {
+    reportContent = fs.readFileSync(htmlPath, 'utf-8');
+  }
   
   return `
 <!DOCTYPE html>
@@ -72,8 +51,8 @@ function generateEmailHTML(options: EmailOptions): string {
       margin: 0;
       padding: 20px;
     }
-    .container {
-      max-width: 600px;
+    .email-container {
+      max-width: 800px;
       margin: 0 auto;
       background-color: #ffffff;
       border-radius: 10px;
@@ -96,14 +75,15 @@ function generateEmailHTML(options: EmailOptions): string {
       font-size: 16px;
       opacity: 0.9;
     }
-    .content {
+    .intro {
       padding: 30px;
+      background-color: #fff;
     }
-    .content p {
+    .intro p {
       color: #333;
       font-size: 16px;
       line-height: 1.6;
-      margin-bottom: 20px;
+      margin-bottom: 15px;
     }
     .info-box {
       background-color: #f8f9fa;
@@ -119,15 +99,8 @@ function generateEmailHTML(options: EmailOptions): string {
     .info-box strong {
       color: #333;
     }
-    .button {
-      display: inline-block;
-      background-color: #667eea;
-      color: white;
-      text-decoration: none;
-      padding: 12px 30px;
-      border-radius: 5px;
-      font-weight: 600;
-      margin-top: 20px;
+    .report-content {
+      padding: 0 30px 30px 30px;
     }
     .footer {
       background-color: #f8f9fa;
@@ -139,12 +112,12 @@ function generateEmailHTML(options: EmailOptions): string {
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="email-container">
     <div class="header">
       <h1>📊 Reporte Semanal</h1>
       <p>${tienda}</p>
     </div>
-    <div class="content">
+    <div class="intro">
       <p>Hola,</p>
       <p>Te enviamos el reporte semanal de <strong>${tienda}</strong> correspondiente al período:</p>
       
@@ -152,16 +125,9 @@ function generateEmailHTML(options: EmailOptions): string {
         <p><strong>📅 Inicio:</strong> ${formatDate(weekStart)}</p>
         <p><strong>📅 Fin:</strong> ${formatDate(weekEnd)}</p>
       </div>
-      
-      <p>El reporte completo en PDF está adjunto a este correo. Incluye:</p>
-      <ul>
-        <li>Resumen de ingresos y gastos</li>
-        <li>Cálculo de impuestos</li>
-        <li>Ganancia neta del período</li>
-        <li>Análisis de margen de ganancia</li>
-      </ul>
-      
-      <p>Si tienes alguna pregunta sobre el reporte, no dudes en contactarnos.</p>
+    </div>
+    <div class="report-content">
+      ${reportContent}
     </div>
     <div class="footer">
       <p>Este es un correo automático generado por Phoenix Financial System</p>
@@ -174,41 +140,49 @@ function generateEmailHTML(options: EmailOptions): string {
 }
 
 /**
- * Envía el reporte semanal por email
+ * Envía el reporte semanal por email usando Resend
  */
 export async function sendWeeklyReportEmail(options: EmailOptions): Promise<void> {
   try {
     console.log(`[Email Service] Preparando envío de reporte para ${options.tienda}...`);
     
-    // Verificar que el PDF existe
-    if (!fs.existsSync(options.pdfPath)) {
-      throw new Error(`PDF no encontrado: ${options.pdfPath}`);
+    // Verificar que el HTML existe
+    if (!fs.existsSync(options.htmlPath)) {
+      throw new Error(`HTML no encontrado: ${options.htmlPath}`);
     }
     
-    // Crear transportador
-    const transporter = await createTransporter();
+    // Verificar que la API key está configurada
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      throw new Error('RESEND_API_KEY no está configurada en las variables de entorno');
+    }
+    
+    // Crear cliente de Resend
+    const resend = new Resend(apiKey);
     
     // Separar múltiples emails si están separados por comas
-    const recipients = options.to.split(',').map(email => email.trim()).join(', ');
+    const recipients = options.to.split(',').map(email => email.trim());
     
-    // Configurar el email
-    const mailOptions = {
-      from: `"Phoenix Financial System" <${process.env.SMTP_USER}>`,
-      to: recipients,
-      subject: `📊 Reporte Semanal - ${options.tienda} (${formatDate(options.weekStart)} - ${formatDate(options.weekEnd)})`,
-      html: generateEmailHTML(options),
-      attachments: [
-        {
-          filename: `Reporte_${options.tienda.replace(/\s+/g, '_')}_${options.weekStart}_${options.weekEnd}.pdf`,
-          path: options.pdfPath,
-        },
-      ],
-    };
+    // Generar HTML del email
+    const emailHTML = generateEmailHTML(options);
     
-    // Enviar email
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`[Email Service] ✅ Email enviado exitosamente a ${recipients}`);
-    console.log(`[Email Service] Message ID: ${info.messageId}`);
+    // Enviar email a cada destinatario
+    for (const recipient of recipients) {
+      const { data, error } = await resend.emails.send({
+        from: 'Phoenix Financial <onboarding@resend.dev>',
+        to: recipient,
+        subject: `📊 Reporte Semanal - ${options.tienda} (${formatDate(options.weekStart)} - ${formatDate(options.weekEnd)})`,
+        html: emailHTML,
+      });
+      
+      if (error) {
+        console.error(`[Email Service] ❌ Error al enviar a ${recipient}:`, error);
+        throw error;
+      }
+      
+      console.log(`[Email Service] ✅ Email enviado exitosamente a ${recipient}`);
+      console.log(`[Email Service] Email ID: ${data?.id}`);
+    }
     
   } catch (error: any) {
     console.error(`[Email Service] ❌ Error al enviar email:`, error.message);

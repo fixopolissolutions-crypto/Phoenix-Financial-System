@@ -292,8 +292,8 @@ async function startServer() {
         const totalTax = (totalIngresos * taxRate) / 100;
         const gananciaNeta = totalIngresos - totalTax - totalGastos;
         
-        // Generate PDF
-        const pdfPath = await generateWeeklyPDFReport({
+        // Generate HTML report
+        const htmlPath = await generateWeeklyPDFReport({
           tienda,
           tiendaNombre: tienda === 'admin' ? '1+PhoneFix Principal' : '1+PhoneFix Downtown',
           weekStart,
@@ -307,18 +307,18 @@ async function startServer() {
           taxRate,
         });
         
-        // Send email
+        // Send email with HTML report
         await sendWeeklyReportEmail({
           to: reportEmail,
           tienda: tienda === 'admin' ? '1+PhoneFix Principal' : '1+PhoneFix Downtown',
           weekStart,
           weekEnd,
-          pdfPath,
+          htmlPath,
         });
         
         results.push({
           tienda,
-          pdfPath,
+          htmlPath,
           totalIngresos,
           totalGastos,
           totalTax,
