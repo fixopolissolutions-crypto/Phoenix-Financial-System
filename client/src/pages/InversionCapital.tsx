@@ -9,11 +9,11 @@ import {
   TrendingUp, TrendingDown, DollarSign, Package,
   ArrowRight, AlertCircle
 } from 'lucide-react';
-import { useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 
 export default function InversionCapital() {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
 
   // Queries para obtener datos
   const { data: phones = [] } = trpc.inventoryPhones.list.useQuery({ tienda: user?.tienda });
@@ -132,7 +132,7 @@ export default function InversionCapital() {
               <Smartphone className="h-6 w-6 text-blue-600" />
               📱 Teléfonos
             </h2>
-            <Button onClick={() => navigate('/inventario/telefonos')}>
+            <Button onClick={() => setLocation('/inventario/telefonos')}>
               Ver Detalle <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
@@ -174,7 +174,7 @@ export default function InversionCapital() {
               <Headphones className="h-6 w-6 text-purple-600" />
               🔌 Accesorios
             </h2>
-            <Button onClick={() => navigate('/inventario/accesorios')}>
+            <Button onClick={() => setLocation('/inventario/accesorios')}>
               Ver Detalle <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
@@ -217,7 +217,7 @@ export default function InversionCapital() {
               <Wrench className="h-6 w-6 text-gray-600" />
               🔧 Partes para Reparación
             </h2>
-            <Button onClick={() => navigate('/inventario/partes')}>
+            <Button onClick={() => setLocation('/inventario/partes')}>
               Ver Detalle <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
@@ -261,7 +261,7 @@ export default function InversionCapital() {
                       <p className="font-medium">{a.nombre}</p>
                       <p className="text-sm text-gray-600">Accesorio - Stock: {a.cantidadActual} (Mínimo: {a.stockMinimo})</p>
                     </div>
-                    <Button size="sm" onClick={() => navigate('/inventario/accesorios')}>
+                    <Button size="sm" onClick={() => setLocation('/inventario/accesorios')}>
                       Ver
                     </Button>
                   </div>
@@ -274,7 +274,7 @@ export default function InversionCapital() {
                       <p className="font-medium">{p.nombre}</p>
                       <p className="text-sm text-gray-600">Parte - Stock: {p.cantidadActual} (Mínimo: {p.stockMinimo})</p>
                     </div>
-                    <Button size="sm" onClick={() => navigate('/inventario/partes')}>
+                    <Button size="sm" onClick={() => setLocation('/inventario/partes')}>
                       Ver
                     </Button>
                   </div>
