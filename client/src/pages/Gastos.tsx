@@ -65,10 +65,16 @@ export default function Gastos() {
 
   const utils = trpc.useUtils();
   
-  // Query para obtener gastos
+  // Query para obtener gastos del día actual
+  const today = new Date();
+  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+  
   const { data: gastos = [], isLoading } = trpc.transactions.list.useQuery({
     tipo: 'gasto',
     tienda: user?.role as 'admin' | 'sucursal' | undefined,
+    fechaInicio: startOfDay.toISOString(),
+    fechaFin: endOfDay.toISOString(),
   });
 
   // Query para obtener proveedores

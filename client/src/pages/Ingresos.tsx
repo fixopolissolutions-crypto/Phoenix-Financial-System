@@ -51,10 +51,16 @@ export default function Ingresos() {
 
   const utils = trpc.useUtils();
   
-  // Query para obtener ingresos
+  // Query para obtener ingresos del día actual
+  const today = new Date();
+  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+  
   const { data: ingresos = [], isLoading } = trpc.transactions.list.useQuery({
     tipo: 'ingreso',
     tienda: user?.role as 'admin' | 'sucursal' | undefined,
+    fechaInicio: startOfDay.toISOString(),
+    fechaFin: endOfDay.toISOString(),
   });
 
   // Mutations
