@@ -17,6 +17,9 @@ import Configuracion from "./pages/Configuracion";
 import Taxes from "./pages/Taxes";
 import Historial from "./pages/Historial";
 import InversionCapital from "./pages/InversionCapital";
+import InventarioTelefonos from "./pages/InventarioTelefonos";
+import InventarioAccesorios from "./pages/InventarioAccesorios";
+import InventarioPartes from "./pages/InventarioPartes";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated } = useAuth();
@@ -64,6 +67,15 @@ function Router() {
       </Route>
       <Route path="/inversion-capital">
         {() => <ProtectedRoute component={InversionCapital} />}
+      </Route>
+      <Route path="/inventario/telefonos">
+        {() => <ProtectedRoute component={InventarioTelefonos} />}
+      </Route>
+      <Route path="/inventario/accesorios">
+        {() => <ProtectedRoute component={InventarioAccesorios} />}
+      </Route>
+      <Route path="/inventario/partes">
+        {() => <ProtectedRoute component={InventarioPartes} />}
       </Route>
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
