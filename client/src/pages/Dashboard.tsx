@@ -1,7 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/card';
-import { DollarSign, TrendingUp, TrendingDown, Activity, Receipt, Landmark, Loader2 } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Activity, Receipt, Landmark, Loader2, Wallet } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
@@ -164,7 +164,7 @@ export default function Dashboard() {
         </div>
 
         {/* Tarjetas principales */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <Card className="p-6 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
             <div className="flex items-center justify-between">
               <div>
@@ -228,6 +228,32 @@ export default function Dashboard() {
                   "h-6 w-6",
                   data.gananciaNeta >= 0 ? "text-emerald-700" : "text-orange-700"
                 )} />
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-6 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-orange-600">Taxes del Día</p>
+                <p className="text-2xl font-bold text-orange-700">${data.totalTax.toFixed(2)}</p>
+                <p className="text-xs text-orange-600 mt-1">Tasa: {data.config.taxRate}%</p>
+              </div>
+              <div className="p-3 bg-orange-200 rounded-full">
+                <Receipt className="h-6 w-6 text-orange-700" />
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-6 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-purple-600">Caja Chica</p>
+                <p className="text-2xl font-bold text-purple-700">${data.cajaChica.toFixed(2)}</p>
+                <p className="text-xs text-purple-600 mt-1">{user?.role === 'admin' ? 'Principal' : 'Sucursal'}</p>
+              </div>
+              <div className="p-3 bg-purple-200 rounded-full">
+                <Wallet className="h-6 w-6 text-purple-700" />
               </div>
             </div>
           </Card>
