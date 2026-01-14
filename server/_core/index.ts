@@ -215,6 +215,31 @@ async function startServer() {
     }
   });
   
+  // Fix email config endpoint
+  app.get("/api/fix-email-config", async (req, res) => {
+    try {
+      const mysql = await import("mysql2/promise");
+      const connection = await mysql.default.createConnection(process.env.DATABASE_URL || "");
+      
+      await connection.execute(
+        "INSERT INTO config (\`key\`, value) VALUES ('reportEmail', 'andersonteran2@gmail.com, chavadelarosa549@gmail.com') ON DUPLICATE KEY UPDATE value = 'andersonteran2@gmail.com, chavadelarosa549@gmail.com'"
+      );
+      
+      await connection.end();
+      
+      res.json({
+        success: true,
+        message: 'Email configuration updated successfully',
+        email: 'andersonteran2@gmail.com, chavadelarosa549@gmail.com'
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  });
+  
   // Test endpoint for weekly reports
   app.get("/api/test-weekly-report", async (req, res) => {
     try {
