@@ -169,7 +169,7 @@ export async function sendWeeklyReportEmail(options: EmailOptions): Promise<void
     // Enviar email a cada destinatario
     for (const recipient of recipients) {
       const { data, error } = await resend.emails.send({
-        from: 'Phoenix Financial <onboarding@resend.dev>',
+        from: 'Phoenix Financial System <noreply@1phonefixsystem.shop>',
         to: recipient,
         subject: `📊 Reporte Semanal - ${options.tienda} (${formatDate(options.weekStart)} - ${formatDate(options.weekEnd)})`,
         html: emailHTML,
