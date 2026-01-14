@@ -215,6 +215,110 @@ async function startServer() {
     }
   });
   
+  // Test endpoint for weekly reports
+  app.get("/api/test-weekly-report", async (req, res) => {
+    try {
+      const { getTransactions, getConfig } = await import("../db");
+      const { generateWeeklyPDFReport } = await import("./pdf-generator");
+      const { sendWeeklyReportEmail } = await import("./email-service");
+      
+      // Get config for email
+      const config = await getConfig();
+      const reportEmail = config.reportEmail || '';
+      
+      if (!reportEmail) {
+        return res.status(400).json({
+          success: false,
+          error: 'No email configured. Please set reportEmail in configuration.'
+        });
+      }
+      
+      // Get today's date range
+      const today = new Date();
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - 7); // Last 7 days
+      
+      const weekStart = startOfWeek.toISOString().split('T')[0];
+      const weekEnd = today.toISOString().split('T')[0];
+      
+      const tiendas: Array<'admin' | 'sucursal'> = ['admin', 'sucursal'];
+      const results = [];
+      
+      for (const tienda of tiendas) {
+        // Get transactions for this store
+        const transactions = await getTransactions({ tienda });
+        
+        // Filter transactions for the date range
+        const weekTransactions = transactions.filter(t => {
+          const tDate = new Date(t.date);
+          return tDate >= startOfWeek && tDate <= today;
+        });
+        
+        // Calculate totals
+        const totalIngresos = weekTransactions
+          .filter(t => t.type === 'ingreso')
+          .reduce((sum, t) => sum + Number(t.amount), 0);
+        
+        const totalGastos = weekTransactions
+          .filter(t => t.type === 'gasto')
+          .reduce((sum, t) => sum + Number(t.amount), 0);
+        
+        const taxRate = parseFloat(config.taxRate || '8.25');
+        const totalTax = (totalIngresos * taxRate) / 100;
+        const gananciaNeta = totalIngresos - totalTax - totalGastos;
+        
+        // Generate PDF
+        const pdfPath = await generateWeeklyPDFReport({
+          tienda,
+          tiendaNombre: tienda === 'admin' ? '1+PhoneFix Principal' : '1+PhoneFix Downtown',
+          weekStart,
+          weekEnd,
+          totalIngresos,
+          totalGastos,
+          totalNomina: 0, // For test, set to 0
+          totalTax,
+          gananciaNeta,
+          transaccionesCount: weekTransactions.length,
+          taxRate,
+        });
+        
+        // Send email
+        await sendWeeklyReportEmail({
+          to: reportEmail,
+          tienda: tienda === 'admin' ? '1+PhoneFix Principal' : '1+PhoneFix Downtown',
+          weekStart,
+          weekEnd,
+          pdfPath,
+        });
+        
+        results.push({
+          tienda,
+          pdfPath,
+          totalIngresos,
+          totalGastos,
+          totalTax,
+          gananciaNeta,
+          transaccionesCount: weekTransactions.length,
+        });
+      }
+      
+      res.json({
+        success: true,
+        message: 'Weekly reports generated and sent successfully',
+        emailSentTo: reportEmail,
+        reports: results,
+      });
+      
+    } catch (error: any) {
+      console.error('[Test Weekly Report] Error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        stack: error.stack,
+      });
+    }
+  });
+  
   // tRPC API
   app.use(
     "/api/trpc",
