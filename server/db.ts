@@ -115,22 +115,32 @@ export async function getTransactions(filters?: {
   const conditions = [];
   if (filters?.tipo) {
     conditions.push(eq(transactions.tipo, filters.tipo));
+    console.log('[getTransactions] Filtering by tipo:', filters.tipo);
   }
   if (filters?.tienda) {
     conditions.push(eq(transactions.tienda, filters.tienda));
+    console.log('[getTransactions] Filtering by tienda:', filters.tienda);
   }
   if (filters?.fechaInicio) {
     conditions.push(gte(transactions.fecha, filters.fechaInicio));
+    console.log('[getTransactions] Filtering by fechaInicio:', filters.fechaInicio.toISOString());
   }
   if (filters?.fechaFin) {
     conditions.push(lte(transactions.fecha, filters.fechaFin));
+    console.log('[getTransactions] Filtering by fechaFin:', filters.fechaFin.toISOString());
   }
 
   if (conditions.length > 0) {
     query = query.where(and(...conditions)) as typeof query;
   }
 
-  return await query.orderBy(desc(transactions.fecha));
+  const result = await query.orderBy(desc(transactions.fecha));
+  console.log('[getTransactions] Returning', result.length, 'transactions');
+  if (result.length > 0) {
+    console.log('[getTransactions] First transaction fecha:', result[0].fecha);
+    console.log('[getTransactions] Last transaction fecha:', result[result.length - 1].fecha);
+  }
+  return result;
 }
 
 export async function getTransactionById(id: number) {
