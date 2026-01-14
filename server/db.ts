@@ -9,7 +9,13 @@ import {
   config, InsertConfig,
   dailyHistory, InsertDailyHistory,
   weeklyHistory, InsertWeeklyHistory,
-  credentials, InsertCredential
+  credentials, InsertCredential,
+  inventoryPhones, InsertInventoryPhone, InventoryPhone,
+  inventoryAccessories, InsertInventoryAccessory, InventoryAccessory,
+  inventoryParts, InsertInventoryPart, InventoryPart,
+  repairs, InsertRepair, Repair,
+  repairParts, InsertRepairPart, RepairPart,
+  inventoryMovements, InsertInventoryMovement, InventoryMovement
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -451,4 +457,400 @@ export async function updateWeeklyHistoryEmailStatus(pdfPath: string, emailSent:
   await db.update(weeklyHistory)
     .set({ emailSent })
     .where(eq(weeklyHistory.pdfPath, pdfPath));
+}
+
+export async function updateCredentialPassword(username: string, newPassword: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.update(credentials)
+    .set({ password: newPassword })
+    .where(eq(credentials.username, username));
+  
+  return { success: true };
+}
+
+// ==================== INVENTORY PHONES ====================
+
+export async function getInventoryPhones(filters?: { estado?: 'disponible' | 'vendido' | 'reservado'; tienda?: 'admin' | 'sucursal' }) {
+  const db = await getDb();
+  if (!db) return [];
+
+  let query = db.select().from(inventoryPhones);
+  
+  const conditions = [];
+  if (filters?.estado) {
+    conditions.push(eq(inventoryPhones.estado, filters.estado));
+  }
+  if (filters?.tienda) {
+    conditions.push(eq(inventoryPhones.tienda, filters.tienda));
+  }
+
+  if (conditions.length > 0) {
+    query = query.where(and(...conditions)) as typeof query;
+  }
+
+  return await query.orderBy(desc(inventoryPhones.createdAt));
+}
+
+export async function createInventoryPhone(data: InsertInventoryPhone) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db.insert(inventoryPhones).values(data);
+  return { id: Number(result[0].insertId), ...data };
+}
+
+export async function updateInventoryPhone(id: number, data: Partial<InsertInventoryPhone>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.update(inventoryPhones).set(data).where(eq(inventoryPhones.id, id));
+  return { success: true };
+}
+
+export async function sellInventoryPhone(id: number, precioVenta: string, fechaVenta: Date) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.update(inventoryPhones)
+    .set({ 
+      estado: 'vendido', 
+      precioVenta, 
+      fechaVenta 
+    })
+    .where(eq(inventoryPhones.id, id));
+  
+  return { success: true };
+}
+
+export async function deleteInventoryPhone(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.delete(inventoryPhones).where(eq(inventoryPhones.id, id));
+  return { success: true };
+}
+
+// ==================== INVENTORY ACCESSORIES ====================
+
+export async function getInventoryAccessories(filters?: { tienda?: 'admin' | 'sucursal'; activo?: number }) {
+  const db = await getDb();
+  if (!db) return [];
+
+  let query = db.select().from(inventoryAccessories);
+  
+  const conditions = [];
+  if (filters?.tienda) {
+    conditions.push(eq(inventoryAccessories.tienda, filters.tienda));
+  }
+  if (filters?.activo !== undefined) {
+    conditions.push(eq(inventoryAccessories.activo, filters.activo));
+  }
+
+  if (conditions.length > 0) {
+    query = query.where(and(...conditions)) as typeof query;
+  }
+
+  return await query.orderBy(desc(inventoryAccessories.createdAt));
+}
+
+export async function createInventoryAccessory(data: InsertInventoryAccessory) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const accessoryData = {
+    ...data,
+    cantidadActual: data.cantidadInicial,
+    cantidadVendida: 0,
+  };
+
+  const result = await db.insert(inventoryAccessories).values(accessoryData);
+  return { id: Number(result[0].insertId), ...accessoryData };
+}
+
+export async function updateInventoryAccessory(id: number, data: Partial<InsertInventoryAccessory>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.update(inventoryAccessories).set(data).where(eq(inventoryAccessories.id, id));
+  return { success: true };
+}
+
+export async function addAccessoryStock(id: number, cantidad: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const accessory = await db.select().from(inventoryAccessories).where(eq(inventoryAccessories.id, id)).limit(1);
+  if (accessory.length === 0) throw new Error("Accessory not found");
+
+  const newCantidad = Number(accessory[0].cantidadActual) + cantidad;
+  await db.update(inventoryAccessories)
+    .set({ cantidadActual: newCantidad })
+    .where(eq(inventoryAccessories.id, id));
+  
+  return { success: true, newCantidad };
+}
+
+export async function sellAccessory(id: number, cantidad: number, fecha: Date) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const accessory = await db.select().from(inventoryAccessories).where(eq(inventoryAccessories.id, id)).limit(1);
+  if (accessory.length === 0) throw new Error("Accessory not found");
+
+  const currentCantidad = Number(accessory[0].cantidadActual);
+  if (currentCantidad < cantidad) throw new Error("Insufficient stock");
+
+  const newCantidad = currentCantidad - cantidad;
+  const newVendida = Number(accessory[0].cantidadVendida) + cantidad;
+
+  await db.update(inventoryAccessories)
+    .set({ 
+      cantidadActual: newCantidad,
+      cantidadVendida: newVendida 
+    })
+    .where(eq(inventoryAccessories.id, id));
+  
+  return { success: true, newCantidad, newVendida };
+}
+
+export async function deleteInventoryAccessory(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.delete(inventoryAccessories).where(eq(inventoryAccessories.id, id));
+  return { success: true };
+}
+
+// ==================== INVENTORY PARTS ====================
+
+export async function getInventoryParts(filters?: { tienda?: 'admin' | 'sucursal'; activo?: number }) {
+  const db = await getDb();
+  if (!db) return [];
+
+  let query = db.select().from(inventoryParts);
+  
+  const conditions = [];
+  if (filters?.tienda) {
+    conditions.push(eq(inventoryParts.tienda, filters.tienda));
+  }
+  if (filters?.activo !== undefined) {
+    conditions.push(eq(inventoryParts.activo, filters.activo));
+  }
+
+  if (conditions.length > 0) {
+    query = query.where(and(...conditions)) as typeof query;
+  }
+
+  return await query.orderBy(desc(inventoryParts.createdAt));
+}
+
+export async function createInventoryPart(data: InsertInventoryPart) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const partData = {
+    ...data,
+    cantidadActual: data.cantidadInicial,
+    cantidadUsada: 0,
+  };
+
+  const result = await db.insert(inventoryParts).values(partData);
+  return { id: Number(result[0].insertId), ...partData };
+}
+
+export async function updateInventoryPart(id: number, data: Partial<InsertInventoryPart>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.update(inventoryParts).set(data).where(eq(inventoryParts.id, id));
+  return { success: true };
+}
+
+export async function addPartStock(id: number, cantidad: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const part = await db.select().from(inventoryParts).where(eq(inventoryParts.id, id)).limit(1);
+  if (part.length === 0) throw new Error("Part not found");
+
+  const newCantidad = Number(part[0].cantidadActual) + cantidad;
+  await db.update(inventoryParts)
+    .set({ cantidadActual: newCantidad })
+    .where(eq(inventoryParts.id, id));
+  
+  return { success: true, newCantidad };
+}
+
+export async function usePart(id: number, cantidad: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const part = await db.select().from(inventoryParts).where(eq(inventoryParts.id, id)).limit(1);
+  if (part.length === 0) throw new Error("Part not found");
+
+  const currentCantidad = Number(part[0].cantidadActual);
+  if (currentCantidad < cantidad) throw new Error("Insufficient stock");
+
+  const newCantidad = currentCantidad - cantidad;
+  const newUsada = Number(part[0].cantidadUsada) + cantidad;
+
+  await db.update(inventoryParts)
+    .set({ 
+      cantidadActual: newCantidad,
+      cantidadUsada: newUsada 
+    })
+    .where(eq(inventoryParts.id, id));
+  
+  return { success: true, newCantidad, newUsada };
+}
+
+export async function deleteInventoryPart(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.delete(inventoryParts).where(eq(inventoryParts.id, id));
+  return { success: true };
+}
+
+// ==================== REPAIRS ====================
+
+export async function getRepairs(filters?: { 
+  estado?: 'pendiente' | 'en_proceso' | 'completada' | 'entregada'; 
+  tienda?: 'admin' | 'sucursal';
+  fechaInicio?: Date;
+  fechaFin?: Date;
+}) {
+  const db = await getDb();
+  if (!db) return [];
+
+  let query = db.select().from(repairs);
+  
+  const conditions = [];
+  if (filters?.estado) {
+    conditions.push(eq(repairs.estado, filters.estado));
+  }
+  if (filters?.tienda) {
+    conditions.push(eq(repairs.tienda, filters.tienda));
+  }
+  if (filters?.fechaInicio) {
+    conditions.push(gte(repairs.fechaIngreso, filters.fechaInicio));
+  }
+  if (filters?.fechaFin) {
+    conditions.push(lte(repairs.fechaIngreso, filters.fechaFin));
+  }
+
+  if (conditions.length > 0) {
+    query = query.where(and(...conditions)) as typeof query;
+  }
+
+  return await query.orderBy(desc(repairs.createdAt));
+}
+
+export async function createRepair(data: InsertRepair & { partes?: { partId: number; cantidad: number }[] }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Calcular costo de partes si se proporcionan
+  let costoPartes = 0;
+  if (data.partes && data.partes.length > 0) {
+    for (const parte of data.partes) {
+      const part = await db.select().from(inventoryParts).where(eq(inventoryParts.id, parte.partId)).limit(1);
+      if (part.length > 0) {
+        costoPartes += Number(part[0].precioCompraUnitario) * parte.cantidad;
+      }
+    }
+  }
+
+  const ganancia = Number(data.precioTotal) - costoPartes;
+
+  const repairData = {
+    codigo: data.codigo,
+    cliente: data.cliente,
+    telefono: data.telefono,
+    dispositivo: data.dispositivo,
+    problema: data.problema,
+    diagnostico: data.diagnostico,
+    precioManoObra: data.precioManoObra,
+    precioTotal: data.precioTotal,
+    costoPartes: costoPartes.toFixed(2),
+    ganancia: ganancia.toFixed(2),
+    fechaIngreso: data.fechaIngreso,
+    tienda: data.tienda,
+    notas: data.notas,
+  };
+
+  const result = await db.insert(repairs).values(repairData);
+  const repairId = Number(result[0].insertId);
+
+  // Agregar partes si se proporcionan
+  if (data.partes && data.partes.length > 0) {
+    await addRepairParts(repairId, data.partes);
+  }
+
+  return { id: repairId, ...repairData };
+}
+
+export async function updateRepair(id: number, data: Partial<InsertRepair>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.update(repairs).set(data).where(eq(repairs.id, id));
+  return { success: true };
+}
+
+export async function addRepairParts(repairId: number, partes: { partId: number; cantidad: number }[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  for (const parte of partes) {
+    // Obtener el precio de la parte
+    const part = await db.select().from(inventoryParts).where(eq(inventoryParts.id, parte.partId)).limit(1);
+    if (part.length === 0) continue;
+
+    const costoUnitario = part[0].precioCompraUnitario;
+    const costoTotal = (Number(costoUnitario) * parte.cantidad).toFixed(2);
+
+    // Insertar en repair_parts
+    await db.insert(repairParts).values({
+      repairId,
+      partId: parte.partId,
+      cantidad: parte.cantidad,
+      costoUnitario,
+      costoTotal,
+    });
+
+    // Usar la parte del inventario
+    await usePart(parte.partId, parte.cantidad);
+  }
+
+  // Actualizar el costo de partes y ganancia de la reparación
+  const partesUsadas = await db.select().from(repairParts).where(eq(repairParts.repairId, repairId));
+  const costoPartes = partesUsadas.reduce((sum, p) => sum + Number(p.costoTotal), 0);
+
+  const repair = await db.select().from(repairs).where(eq(repairs.id, repairId)).limit(1);
+  if (repair.length > 0) {
+    const ganancia = Number(repair[0].precioTotal) - costoPartes;
+    await db.update(repairs)
+      .set({ 
+        costoPartes: costoPartes.toFixed(2),
+        ganancia: ganancia.toFixed(2) 
+      })
+      .where(eq(repairs.id, repairId));
+  }
+
+  return { success: true };
+}
+
+export async function deleteRepair(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Eliminar primero las partes asociadas
+  await db.delete(repairParts).where(eq(repairParts.repairId, id));
+  
+  // Eliminar la reparación
+  await db.delete(repairs).where(eq(repairs.id, id));
+  return { success: true };
 }

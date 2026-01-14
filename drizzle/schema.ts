@@ -163,3 +163,139 @@ export const credentials = mysqlTable("credentials", {
 
 export type Credential = typeof credentials.$inferSelect;
 export type InsertCredential = typeof credentials.$inferInsert;
+
+/**
+ * Inventario de Teléfonos
+ */
+export const inventoryPhones = mysqlTable("inventory_phones", {
+  id: int("id").autoincrement().primaryKey(),
+  codigo: varchar("codigo", { length: 50 }).notNull().unique(), // TEL-001, TEL-002, etc.
+  modelo: varchar("modelo", { length: 200 }).notNull(), // iPhone 13 Pro 256GB Gold
+  marca: varchar("marca", { length: 100 }).notNull(), // Apple, Samsung, Google
+  imei: varchar("imei", { length: 20 }).unique(), // IMEI único del teléfono
+  carrier: varchar("carrier", { length: 100 }), // Unlocked, Verizon, AT&T, etc.
+  condicion: mysqlEnum("condicion", ["nuevo", "usado", "refurbished"]).default("usado").notNull(),
+  precioCompra: decimal("precioCompra", { precision: 10, scale: 2 }).notNull(), // Inversión
+  precioVenta: decimal("precioVenta", { precision: 10, scale: 2 }), // Precio al que se vendió
+  estado: mysqlEnum("estado", ["disponible", "vendido", "reservado"]).default("disponible").notNull(),
+  fechaCompra: timestamp("fechaCompra").notNull(),
+  fechaVenta: timestamp("fechaVenta"),
+  tienda: mysqlEnum("tienda", ["admin", "sucursal"]).default("admin").notNull(),
+  notas: text("notas"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type InventoryPhone = typeof inventoryPhones.$inferSelect;
+export type InsertInventoryPhone = typeof inventoryPhones.$inferInsert;
+
+/**
+ * Inventario de Accesorios
+ */
+export const inventoryAccessories = mysqlTable("inventory_accessories", {
+  id: int("id").autoincrement().primaryKey(),
+  codigo: varchar("codigo", { length: 50 }).notNull().unique(), // ACC-001, ACC-002, etc.
+  nombre: varchar("nombre", { length: 200 }).notNull(), // Case iPhone 13 Pro Silicone Black
+  categoria: varchar("categoria", { length: 100 }), // Cases, Chargers, Cables, etc.
+  precioCompraUnitario: decimal("precioCompraUnitario", { precision: 10, scale: 2 }).notNull(),
+  precioVentaUnitario: decimal("precioVentaUnitario", { precision: 10, scale: 2 }).notNull(),
+  cantidadInicial: int("cantidadInicial").notNull(), // Cantidad al crear el producto
+  cantidadActual: int("cantidadActual").notNull(), // Cantidad disponible
+  cantidadVendida: int("cantidadVendida").default(0).notNull(), // Total vendido
+  stockMinimo: int("stockMinimo").default(5).notNull(), // Alerta de stock bajo
+  tienda: mysqlEnum("tienda", ["admin", "sucursal"]).default("admin").notNull(),
+  activo: int("activo").default(1).notNull(), // 1 = activo, 0 = descontinuado
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type InventoryAccessory = typeof inventoryAccessories.$inferSelect;
+export type InsertInventoryAccessory = typeof inventoryAccessories.$inferInsert;
+
+/**
+ * Inventario de Partes para Reparación
+ */
+export const inventoryParts = mysqlTable("inventory_parts", {
+  id: int("id").autoincrement().primaryKey(),
+  codigo: varchar("codigo", { length: 50 }).notNull().unique(), // PART-001, PART-002, etc.
+  nombre: varchar("nombre", { length: 200 }).notNull(), // Pantalla iPhone 13 Pro OLED
+  categoria: varchar("categoria", { length: 100 }), // Pantallas, Baterías, Cámaras, etc.
+  compatibilidad: text("compatibilidad"), // iPhone 13 Pro, iPhone 13 Pro Max
+  precioCompraUnitario: decimal("precioCompraUnitario", { precision: 10, scale: 2 }).notNull(),
+  cantidadInicial: int("cantidadInicial").notNull(),
+  cantidadActual: int("cantidadActual").notNull(),
+  cantidadUsada: int("cantidadUsada").default(0).notNull(), // Total usado en reparaciones
+  stockMinimo: int("stockMinimo").default(2).notNull(),
+  tienda: mysqlEnum("tienda", ["admin", "sucursal"]).default("admin").notNull(),
+  activo: int("activo").default(1).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type InventoryPart = typeof inventoryParts.$inferSelect;
+export type InsertInventoryPart = typeof inventoryParts.$inferInsert;
+
+/**
+ * Reparaciones
+ */
+export const repairs = mysqlTable("repairs", {
+  id: int("id").autoincrement().primaryKey(),
+  codigo: varchar("codigo", { length: 50 }).notNull().unique(), // REP-001, REP-002, etc.
+  cliente: varchar("cliente", { length: 200 }), // Nombre del cliente (opcional)
+  telefono: varchar("telefono", { length: 50 }),
+  dispositivo: varchar("dispositivo", { length: 200 }).notNull(), // iPhone 13 Pro
+  problema: text("problema").notNull(), // Descripción del problema
+  diagnostico: text("diagnostico"), // Diagnóstico técnico
+  precioManoObra: decimal("precioManoObra", { precision: 10, scale: 2 }).notNull(), // Costo de la reparación
+  precioTotal: decimal("precioTotal", { precision: 10, scale: 2 }).notNull(), // Precio total cobrado al cliente
+  costoPartes: decimal("costoPartes", { precision: 10, scale: 2 }).default("0").notNull(), // Costo de partes usadas
+  ganancia: decimal("ganancia", { precision: 10, scale: 2 }).notNull(), // precioTotal - costoPartes
+  estado: mysqlEnum("estado", ["pendiente", "en_proceso", "completada", "entregada"]).default("pendiente").notNull(),
+  fechaIngreso: timestamp("fechaIngreso").notNull(),
+  fechaCompletado: timestamp("fechaCompletado"),
+  fechaEntrega: timestamp("fechaEntrega"),
+  tienda: mysqlEnum("tienda", ["admin", "sucursal"]).default("admin").notNull(),
+  notas: text("notas"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Repair = typeof repairs.$inferSelect;
+export type InsertRepair = typeof repairs.$inferInsert;
+
+/**
+ * Partes usadas en Reparaciones (relación muchos a muchos)
+ */
+export const repairParts = mysqlTable("repair_parts", {
+  id: int("id").autoincrement().primaryKey(),
+  repairId: int("repairId").notNull(), // FK a repairs
+  partId: int("partId").notNull(), // FK a inventory_parts
+  cantidad: int("cantidad").notNull(), // Cantidad de partes usadas
+  costoUnitario: decimal("costoUnitario", { precision: 10, scale: 2 }).notNull(), // Costo al momento de usar
+  costoTotal: decimal("costoTotal", { precision: 10, scale: 2 }).notNull(), // cantidad * costoUnitario
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type RepairPart = typeof repairParts.$inferSelect;
+export type InsertRepairPart = typeof repairParts.$inferInsert;
+
+/**
+ * Movimientos de Inventario (historial de compras, ventas, uso)
+ */
+export const inventoryMovements = mysqlTable("inventory_movements", {
+  id: int("id").autoincrement().primaryKey(),
+  tipo: mysqlEnum("tipo", ["compra", "venta", "uso", "ajuste"]).notNull(),
+  categoria: mysqlEnum("categoria", ["telefono", "accesorio", "parte"]).notNull(),
+  itemId: int("itemId").notNull(), // ID del item (phone, accessory o part)
+  cantidad: int("cantidad").notNull(), // Cantidad movida
+  monto: decimal("monto", { precision: 10, scale: 2 }).notNull(), // Monto del movimiento
+  descripcion: text("descripcion"),
+  relacionId: int("relacionId"), // ID de la transacción relacionada (venta, reparación, etc.)
+  relacionTipo: varchar("relacionTipo", { length: 50 }), // "repair", "sale", etc.
+  fecha: timestamp("fecha").notNull(),
+  tienda: mysqlEnum("tienda", ["admin", "sucursal"]).default("admin").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type InventoryMovement = typeof inventoryMovements.$inferSelect;
+export type InsertInventoryMovement = typeof inventoryMovements.$inferInsert;

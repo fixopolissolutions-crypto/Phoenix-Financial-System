@@ -314,6 +314,276 @@ export const appRouter = router({
       }),
   }),
 
+  // ==================== INVENTORY PHONES ====================
+  inventoryPhones: router({
+    list: publicProcedure
+      .input(z.object({
+        estado: z.enum(['disponible', 'vendido', 'reservado']).optional(),
+        tienda: z.enum(['admin', 'sucursal']).optional(),
+      }).optional())
+      .query(async ({ input }) => {
+        return await db.getInventoryPhones(input);
+      }),
+
+    create: publicProcedure
+      .input(z.object({
+        codigo: z.string(),
+        modelo: z.string(),
+        marca: z.string(),
+        imei: z.string().optional(),
+        carrier: z.string().optional(),
+        condicion: z.enum(['nuevo', 'usado', 'refurbished']).default('usado'),
+        precioCompra: z.string(),
+        fechaCompra: z.string(),
+        tienda: z.enum(['admin', 'sucursal']).default('admin'),
+        notas: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return await db.createInventoryPhone({
+          ...input,
+          fechaCompra: new Date(input.fechaCompra),
+        });
+      }),
+
+    update: publicProcedure
+      .input(z.object({
+        id: z.number(),
+        modelo: z.string().optional(),
+        marca: z.string().optional(),
+        imei: z.string().optional(),
+        carrier: z.string().optional(),
+        condicion: z.enum(['nuevo', 'usado', 'refurbished']).optional(),
+        precioCompra: z.string().optional(),
+        notas: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return await db.updateInventoryPhone(input.id, input);
+      }),
+
+    sell: publicProcedure
+      .input(z.object({
+        id: z.number(),
+        precioVenta: z.string(),
+        fechaVenta: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        return await db.sellInventoryPhone(input.id, input.precioVenta, new Date(input.fechaVenta));
+      }),
+
+    delete: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return await db.deleteInventoryPhone(input.id);
+      }),
+  }),
+
+  // ==================== INVENTORY ACCESSORIES ====================
+  inventoryAccessories: router({
+    list: publicProcedure
+      .input(z.object({
+        tienda: z.enum(['admin', 'sucursal']).optional(),
+        activo: z.number().optional(),
+      }).optional())
+      .query(async ({ input }) => {
+        return await db.getInventoryAccessories(input);
+      }),
+
+    create: publicProcedure
+      .input(z.object({
+        codigo: z.string(),
+        nombre: z.string(),
+        categoria: z.string().optional(),
+        precioCompraUnitario: z.string(),
+        precioVentaUnitario: z.string(),
+        cantidadInicial: z.number(),
+        stockMinimo: z.number().default(5),
+        tienda: z.enum(['admin', 'sucursal']).default('admin'),
+      }))
+      .mutation(async ({ input }) => {
+        return await db.createInventoryAccessory(input);
+      }),
+
+    update: publicProcedure
+      .input(z.object({
+        id: z.number(),
+        nombre: z.string().optional(),
+        categoria: z.string().optional(),
+        precioCompraUnitario: z.string().optional(),
+        precioVentaUnitario: z.string().optional(),
+        stockMinimo: z.number().optional(),
+        activo: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return await db.updateInventoryAccessory(input.id, input);
+      }),
+
+    addStock: publicProcedure
+      .input(z.object({
+        id: z.number(),
+        cantidad: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        return await db.addAccessoryStock(input.id, input.cantidad);
+      }),
+
+    sell: publicProcedure
+      .input(z.object({
+        id: z.number(),
+        cantidad: z.number(),
+        fecha: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        return await db.sellAccessory(input.id, input.cantidad, new Date(input.fecha));
+      }),
+
+    delete: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return await db.deleteInventoryAccessory(input.id);
+      }),
+  }),
+
+  // ==================== INVENTORY PARTS ====================
+  inventoryParts: router({
+    list: publicProcedure
+      .input(z.object({
+        tienda: z.enum(['admin', 'sucursal']).optional(),
+        activo: z.number().optional(),
+      }).optional())
+      .query(async ({ input }) => {
+        return await db.getInventoryParts(input);
+      }),
+
+    create: publicProcedure
+      .input(z.object({
+        codigo: z.string(),
+        nombre: z.string(),
+        categoria: z.string().optional(),
+        compatibilidad: z.string().optional(),
+        precioCompraUnitario: z.string(),
+        cantidadInicial: z.number(),
+        stockMinimo: z.number().default(2),
+        tienda: z.enum(['admin', 'sucursal']).default('admin'),
+      }))
+      .mutation(async ({ input }) => {
+        return await db.createInventoryPart(input);
+      }),
+
+    update: publicProcedure
+      .input(z.object({
+        id: z.number(),
+        nombre: z.string().optional(),
+        categoria: z.string().optional(),
+        compatibilidad: z.string().optional(),
+        precioCompraUnitario: z.string().optional(),
+        stockMinimo: z.number().optional(),
+        activo: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return await db.updateInventoryPart(input.id, input);
+      }),
+
+    addStock: publicProcedure
+      .input(z.object({
+        id: z.number(),
+        cantidad: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        return await db.addPartStock(input.id, input.cantidad);
+      }),
+
+    delete: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return await db.deleteInventoryPart(input.id);
+      }),
+  }),
+
+  // ==================== REPAIRS ====================
+  repairs: router({
+    list: publicProcedure
+      .input(z.object({
+        estado: z.enum(['pendiente', 'en_proceso', 'completada', 'entregada']).optional(),
+        tienda: z.enum(['admin', 'sucursal']).optional(),
+        fechaInicio: z.string().optional(),
+        fechaFin: z.string().optional(),
+      }).optional())
+      .query(async ({ input }) => {
+        const filters = input ? {
+          estado: input.estado,
+          tienda: input.tienda,
+          fechaInicio: input.fechaInicio ? new Date(input.fechaInicio) : undefined,
+          fechaFin: input.fechaFin ? new Date(input.fechaFin) : undefined,
+        } : undefined;
+        return await db.getRepairs(filters);
+      }),
+
+    create: publicProcedure
+      .input(z.object({
+        codigo: z.string(),
+        cliente: z.string().optional(),
+        telefono: z.string().optional(),
+        dispositivo: z.string(),
+        problema: z.string(),
+        diagnostico: z.string().optional(),
+        precioManoObra: z.string(),
+        precioTotal: z.string(),
+        fechaIngreso: z.string(),
+        tienda: z.enum(['admin', 'sucursal']).default('admin'),
+        notas: z.string().optional(),
+        partes: z.array(z.object({
+          partId: z.number(),
+          cantidad: z.number(),
+        })).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return await db.createRepair({
+          ...input,
+          fechaIngreso: new Date(input.fechaIngreso),
+        });
+      }),
+
+    update: publicProcedure
+      .input(z.object({
+        id: z.number(),
+        cliente: z.string().optional(),
+        telefono: z.string().optional(),
+        dispositivo: z.string().optional(),
+        problema: z.string().optional(),
+        diagnostico: z.string().optional(),
+        precioManoObra: z.string().optional(),
+        precioTotal: z.string().optional(),
+        estado: z.enum(['pendiente', 'en_proceso', 'completada', 'entregada']).optional(),
+        fechaCompletado: z.string().optional(),
+        fechaEntrega: z.string().optional(),
+        notas: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const updateData: any = { ...input };
+        if (input.fechaCompletado) updateData.fechaCompletado = new Date(input.fechaCompletado);
+        if (input.fechaEntrega) updateData.fechaEntrega = new Date(input.fechaEntrega);
+        return await db.updateRepair(input.id, updateData);
+      }),
+
+    addParts: publicProcedure
+      .input(z.object({
+        repairId: z.number(),
+        partes: z.array(z.object({
+          partId: z.number(),
+          cantidad: z.number(),
+        })),
+      }))
+      .mutation(async ({ input }) => {
+        return await db.addRepairParts(input.repairId, input.partes);
+      }),
+
+    delete: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return await db.deleteRepair(input.id);
+      }),
+  }),
+
   // ==================== DAILY HISTORY ====================
   history: router({
     list: publicProcedure
