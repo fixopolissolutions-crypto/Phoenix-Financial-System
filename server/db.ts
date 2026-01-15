@@ -155,7 +155,15 @@ export async function createTransaction(data: InsertTransaction) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const result = await db.insert(transactions).values(data);
+  // Usar SQL raw para evitar problemas con comillas en Drizzle
+  const result = await db.execute(
+    sql`INSERT INTO transactions (
+      tipo, monto, metodo, descripcion, categoria, proveedor, tienda, fecha
+    ) VALUES (
+      ${data.tipo}, ${data.monto}, ${data.metodo}, ${data.descripcion},
+      ${data.categoria}, ${data.proveedor}, ${data.tienda}, ${data.fecha}
+    )`
+  );
   return { id: Number(result[0].insertId), ...data };
 }
 
@@ -226,7 +234,15 @@ export async function createProvider(data: InsertProvider) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const result = await db.insert(providers).values(data);
+  // Usar SQL raw para evitar problemas con comillas en Drizzle
+  const result = await db.execute(
+    sql`INSERT INTO providers (
+      nombre, telefono, email, direccion, notas
+    ) VALUES (
+      ${data.nombre}, ${data.telefono}, ${data.email},
+      ${data.direccion}, ${data.notas}
+    )`
+  );
   return { id: Number(result[0].insertId), ...data };
 }
 
@@ -272,7 +288,15 @@ export async function createEmployee(data: InsertEmployee) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const result = await db.insert(employees).values(data);
+  // Usar SQL raw para evitar problemas con comillas en Drizzle
+  const result = await db.execute(
+    sql`INSERT INTO employees (
+      nombre, puesto, salario, telefono, email, tienda, activo
+    ) VALUES (
+      ${data.nombre}, ${data.puesto}, ${data.salario},
+      ${data.telefono}, ${data.email}, ${data.tienda}, ${data.activo}
+    )`
+  );
   return { id: Number(result[0].insertId), ...data };
 }
 
@@ -330,7 +354,15 @@ export async function createPayrollRecord(data: InsertPayroll) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const result = await db.insert(payroll).values(data);
+  // Usar SQL raw para evitar problemas con comillas en Drizzle
+  const result = await db.execute(
+    sql`INSERT INTO payroll (
+      employeeId, monto, metodo, descripcion, tienda, fecha
+    ) VALUES (
+      ${data.employeeId}, ${data.monto}, ${data.metodo},
+      ${data.descripcion}, ${data.tienda}, ${data.fecha}
+    )`
+  );
   return { id: Number(result[0].insertId), ...data };
 }
 
@@ -417,7 +449,15 @@ export async function saveDailyHistory(data: InsertDailyHistory) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const result = await db.insert(dailyHistory).values(data);
+  // Usar SQL raw para evitar problemas con comillas en Drizzle
+  const result = await db.execute(
+    sql`INSERT INTO daily_history (
+      fecha, tienda, totalIngresos, totalGastos, totalNomina
+    ) VALUES (
+      ${data.fecha}, ${data.tienda}, ${data.totalIngresos},
+      ${data.totalGastos}, ${data.totalNomina}
+    )`
+  );
   return { id: Number(result[0].insertId), ...data };
 }
 
@@ -446,7 +486,19 @@ export async function saveWeeklyHistory(data: InsertWeeklyHistory) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const result = await db.insert(weeklyHistory).values(data);
+  // Usar SQL raw para evitar problemas con comillas en Drizzle
+  const result = await db.execute(
+    sql`INSERT INTO weekly_history (
+      weekStart, weekEnd, tienda, totalIngresos, totalGastos,
+      totalNomina, totalTax, gananciaNeta, transaccionesCount,
+      pdfPath, emailSent
+    ) VALUES (
+      ${data.weekStart}, ${data.weekEnd}, ${data.tienda},
+      ${data.totalIngresos}, ${data.totalGastos}, ${data.totalNomina},
+      ${data.totalTax}, ${data.gananciaNeta}, ${data.transaccionesCount},
+      ${data.pdfPath}, ${data.emailSent}
+    )`
+  );
   return { id: Number(result[0].insertId), ...data };
 }
 
@@ -497,7 +549,20 @@ export async function createInventoryPhone(data: InsertInventoryPhone) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const result = await db.insert(inventoryPhones).values(data);
+  // Usar SQL raw para evitar problemas con comillas en Drizzle
+  const result = await db.execute(
+    sql`INSERT INTO inventory_phones (
+      codigo, modelo, marca, imei, carrier, condicion,
+      precioCompra, precioVenta, precioVentaReal, ganancia,
+      estado, notas, tienda, fechaCompra, fechaVenta
+    ) VALUES (
+      ${data.codigo}, ${data.modelo}, ${data.marca}, ${data.imei},
+      ${data.carrier}, ${data.condicion}, ${data.precioCompra},
+      ${data.precioVenta}, ${data.precioVentaReal}, ${data.ganancia},
+      ${data.estado}, ${data.notas}, ${data.tienda},
+      ${data.fechaCompra}, ${data.fechaVenta}
+    )`
+  );
   return { id: Number(result[0].insertId), ...data };
 }
 
@@ -565,7 +630,20 @@ export async function createInventoryAccessory(data: InsertInventoryAccessory) {
     cantidadVendida: 0,
   };
 
-  const result = await db.insert(inventoryAccessories).values(accessoryData);
+  // Usar SQL raw para evitar problemas con comillas en Drizzle
+  const result = await db.execute(
+    sql`INSERT INTO inventory_accessories (
+      codigo, nombre, categoria, precioCompraUnitario, precioVentaUnitario,
+      cantidadInicial, cantidadActual, cantidadVendida, stockMinimo,
+      tienda, activo
+    ) VALUES (
+      ${accessoryData.codigo}, ${accessoryData.nombre}, ${accessoryData.categoria},
+      ${accessoryData.precioCompraUnitario}, ${accessoryData.precioVentaUnitario},
+      ${accessoryData.cantidadInicial}, ${accessoryData.cantidadActual},
+      ${accessoryData.cantidadVendida}, ${accessoryData.stockMinimo},
+      ${accessoryData.tienda}, ${accessoryData.activo}
+    )`
+  );
   return { id: Number(result[0].insertId), ...accessoryData };
 }
 
@@ -657,7 +735,20 @@ export async function createInventoryPart(data: InsertInventoryPart) {
     cantidadUsada: 0,
   };
 
-  const result = await db.insert(inventoryParts).values(partData);
+  // Usar SQL raw para evitar problemas con comillas en Drizzle
+  const result = await db.execute(
+    sql`INSERT INTO inventory_parts (
+      codigo, nombre, categoria, compatibilidad, precioCompraUnitario,
+      cantidadInicial, cantidadActual, cantidadUsada, stockMinimo,
+      tienda, activo
+    ) VALUES (
+      ${partData.codigo}, ${partData.nombre}, ${partData.categoria},
+      ${partData.compatibilidad}, ${partData.precioCompraUnitario},
+      ${partData.cantidadInicial}, ${partData.cantidadActual},
+      ${partData.cantidadUsada}, ${partData.stockMinimo},
+      ${partData.tienda}, ${partData.activo}
+    )`
+  );
   return { id: Number(result[0].insertId), ...partData };
 }
 
@@ -826,14 +917,15 @@ export async function addRepairParts(repairId: number, partes: { partId: number;
     const costoUnitario = part[0].precioCompraUnitario;
     const costoTotal = (Number(costoUnitario) * parte.cantidad).toFixed(2);
 
-    // Insertar en repair_parts
-    await db.insert(repairParts).values({
-      repairId,
-      partId: parte.partId,
-      cantidad: parte.cantidad,
-      costoUnitario,
-      costoTotal,
-    });
+    // Insertar en repair_parts usando SQL raw
+    await db.execute(
+      sql`INSERT INTO repair_parts (
+        repairId, partId, cantidad, costoUnitario, costoTotal
+      ) VALUES (
+        ${repairId}, ${parte.partId}, ${parte.cantidad},
+        ${costoUnitario}, ${costoTotal}
+      )`
+    );
 
     // Usar la parte del inventario
     await usePart(parte.partId, parte.cantidad);
