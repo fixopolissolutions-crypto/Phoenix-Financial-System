@@ -15,6 +15,13 @@
       "when": 1768172197464,
       "tag": "0001_loving_praxagora",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1768441200000,
+      "tag": "0002_inventory_tables",
+      "breakpoints": true
     }
   ]
 }
