@@ -782,7 +782,20 @@ export async function createRepair(data: InsertRepair & { partes?: { partId: num
     notas: data.notas,
   };
 
-  const result = await db.insert(repairs).values(repairData);
+  // Usar SQL raw para evitar problemas con comillas en Drizzle
+  const result = await db.execute(
+    sql`INSERT INTO repairs (
+      codigo, cliente, telefono, dispositivo, problema, diagnostico,
+      precioManoObra, precioTotal, costoPartes, ganancia,
+      fechaIngreso, tienda, notas
+    ) VALUES (
+      ${repairData.codigo}, ${repairData.cliente}, ${repairData.telefono},
+      ${repairData.dispositivo}, ${repairData.problema}, ${repairData.diagnostico},
+      ${repairData.precioManoObra}, ${repairData.precioTotal}, ${repairData.costoPartes},
+      ${repairData.ganancia}, ${repairData.fechaIngreso}, ${repairData.tienda},
+      ${repairData.notas}
+    )`
+  );
   const repairId = Number(result[0].insertId);
 
   // Agregar partes si se proporcionan
