@@ -960,3 +960,4 @@ export async function deleteRepair(id: number) {
   await db.delete(repairs).where(eq(repairs.id, id));
   return { success: true };
 }
+// Force redeploy Wed Jan 14 21:16:08 EST 2026
