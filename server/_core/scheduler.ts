@@ -214,8 +214,7 @@ async function saveWeeklyHistory() {
         totalTax: totalTax.toString(),
         gananciaNeta: gananciaNeta.toString(),
         transaccionesCount: tiendaTransactions.length,
-        pdfPath,
-        emailSent: 0,
+                emailSent: 0,
       });
       
       // Enviar por email si está configurado
@@ -226,8 +225,7 @@ async function saveWeeklyHistory() {
             tienda: tiendaNombres[tienda],
             weekStart: weekDates.start,
             weekEnd: weekDates.end,
-            pdfPath,
-          });
+                      });
           
           // Marcar como enviado
           await db.updateWeeklyHistoryEmailStatus(pdfPath, 1);

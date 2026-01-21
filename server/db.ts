@@ -553,17 +553,15 @@ export async function createInventoryPhone(data: InsertInventoryPhone) {
   const result = await db.execute(
     sql`INSERT INTO inventory_phones (
       codigo, modelo, marca, imei, carrier, condicion,
-      precioCompra, precioVenta, precioVentaReal, ganancia,
-      estado, notas, tienda, fechaCompra, fechaVenta
+      precioCompra, precioVenta, estado, notas, tienda, fechaCompra, fechaVenta
     ) VALUES (
-      ${data.codigo}, ${data.modelo}, ${data.marca}, ${data.imei},
-      ${data.carrier}, ${data.condicion}, ${data.precioCompra},
-      ${data.precioVenta}, ${data.precioVentaReal}, ${data.ganancia},
-      ${data.estado}, ${data.notas}, ${data.tienda},
-      ${data.fechaCompra}, ${data.fechaVenta}
+      ${data.codigo}, ${data.modelo}, ${data.marca}, ${data.imei || null},
+      ${data.carrier || null}, ${data.condicion || 'usado'}, ${data.precioCompra},
+      ${data.precioVenta || null}, ${data.estado || 'disponible'}, ${data.notas || null}, 
+      ${data.tienda || 'admin'}, ${data.fechaCompra}, ${data.fechaVenta || null}
     )`
   );
-  return { id: Number(result[0].insertId), ...data };
+  return { id: Number((result[0] as any).insertId), ...data };
 }
 
 export async function updateInventoryPhone(id: number, data: Partial<InsertInventoryPhone>) {

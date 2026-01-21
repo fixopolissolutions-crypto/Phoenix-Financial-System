@@ -400,7 +400,11 @@ export const appRouter = router({
         tienda: z.enum(['admin', 'sucursal']).default('admin'),
       }))
       .mutation(async ({ input }) => {
-        return await db.createInventoryAccessory(input);
+        return await db.createInventoryAccessory({
+          ...input,
+          cantidadActual: input.cantidadInicial,
+          cantidadVendida: 0,
+        });
       }),
 
     update: publicProcedure
@@ -466,7 +470,11 @@ export const appRouter = router({
         tienda: z.enum(['admin', 'sucursal']).default('admin'),
       }))
       .mutation(async ({ input }) => {
-        return await db.createInventoryPart(input);
+        return await db.createInventoryPart({
+          ...input,
+          cantidadActual: input.cantidadInicial,
+          cantidadUsada: 0,
+        });
       }),
 
     update: publicProcedure
@@ -540,6 +548,7 @@ export const appRouter = router({
         return await db.createRepair({
           ...input,
           fechaIngreso: new Date(input.fechaIngreso),
+          ganancia: (Number(input.precioTotal) - Number(input.precioManoObra)).toFixed(2),
         });
       }),
 

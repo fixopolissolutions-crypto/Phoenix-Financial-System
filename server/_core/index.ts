@@ -275,18 +275,18 @@ async function startServer() {
         
         // Filter transactions for the date range
         const weekTransactions = transactions.filter(t => {
-          const tDate = new Date(t.date);
+          const tDate = new Date(t.fecha);
           return tDate >= startOfWeek && tDate <= today;
         });
         
         // Calculate totals
         const totalIngresos = weekTransactions
-          .filter(t => t.type === 'ingreso')
-          .reduce((sum, t) => sum + Number(t.amount), 0);
+          .filter(t => t.tipo === 'ingreso')
+          .reduce((sum, t) => sum + Number(t.monto), 0);
         
         const totalGastos = weekTransactions
-          .filter(t => t.type === 'gasto')
-          .reduce((sum, t) => sum + Number(t.amount), 0);
+          .filter(t => t.tipo === 'gasto')
+          .reduce((sum, t) => sum + Number(t.monto), 0);
         
         const taxRate = parseFloat(config.taxRate || '8.25');
         const totalTax = (totalIngresos * taxRate) / 100;
