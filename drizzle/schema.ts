@@ -171,12 +171,14 @@ export const inventoryPhones = mysqlTable("inventory_phones", {
   id: int("id").autoincrement().primaryKey(),
   codigo: varchar("codigo", { length: 50 }).notNull().unique(), // TEL-001, TEL-002, etc.
   modelo: varchar("modelo", { length: 200 }).notNull(), // iPhone 13 Pro 256GB Gold
-  marca: varchar("marca", { length: 100 }).notNull(), // Apple, Samsung, Google
-  imei: varchar("imei", { length: 20 }).unique(), // IMEI único del teléfono
-  carrier: varchar("carrier", { length: 100 }), // Unlocked, Verizon, AT&T, etc.
-  condicion: mysqlEnum("condicion", ["nuevo", "usado", "refurbished"]).default("usado").notNull(),
+  marca: varchar("marca", { length: 100 }), // Apple, Samsung, Google
+  imei: varchar("imei", { length: 50 }), // IMEI único del teléfono
+  carrier: varchar("carrier", { length: 50 }), // Unlocked, Verizon, AT&T, etc.
+  condicion: mysqlEnum("condicion", ["nuevo", "usado_a", "usado_b", "usado_c", "para_partes"]).default("usado_a").notNull(),
   precioCompra: decimal("precioCompra", { precision: 10, scale: 2 }).notNull(), // Inversión
   precioVenta: decimal("precioVenta", { precision: 10, scale: 2 }), // Precio al que se vendió
+  precioVentaReal: decimal("precioVentaReal", { precision: 10, scale: 2 }), // Precio real de venta
+  ganancia: decimal("ganancia", { precision: 10, scale: 2 }), // Ganancia obtenida
   estado: mysqlEnum("estado", ["disponible", "vendido", "reservado"]).default("disponible").notNull(),
   fechaCompra: timestamp("fechaCompra").notNull(),
   fechaVenta: timestamp("fechaVenta"),

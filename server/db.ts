@@ -553,11 +553,12 @@ export async function createInventoryPhone(data: InsertInventoryPhone) {
   const result = await db.execute(
     sql`INSERT INTO inventory_phones (
       codigo, modelo, marca, imei, carrier, condicion,
-      precioCompra, precioVenta, estado, notas, tienda, fechaCompra, fechaVenta
+      precioCompra, precioVenta, precioVentaReal, ganancia, estado, notas, tienda, fechaCompra, fechaVenta
     ) VALUES (
-      ${data.codigo}, ${data.modelo}, ${data.marca}, ${data.imei || null},
-      ${data.carrier || null}, ${data.condicion || 'usado'}, ${data.precioCompra},
-      ${data.precioVenta || null}, ${data.estado || 'disponible'}, ${data.notas || null}, 
+      ${data.codigo}, ${data.modelo}, ${data.marca || null}, ${data.imei || null},
+      ${data.carrier || null}, ${data.condicion || 'usado_a'}, ${data.precioCompra},
+      ${data.precioVenta || null}, ${data.precioVentaReal || null}, ${data.ganancia || null},
+      ${data.estado || 'disponible'}, ${data.notas || null}, 
       ${data.tienda || 'admin'}, ${data.fechaCompra}, ${data.fechaVenta || null}
     )`
   );
