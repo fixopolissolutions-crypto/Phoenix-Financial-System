@@ -572,23 +572,30 @@ export async function getInventoryPhones(filters?: { estado?: 'disponible' | 've
 }
 
 export async function createInventoryPhone(data: InsertInventoryPhone) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
 
-  // Usar SQL raw para evitar problemas con comillas en Drizzle
-  const result = await db.execute(
-    sql`INSERT INTO inventory_phones (
-      codigo, modelo, marca, imei, carrier, condicion,
-      precioCompra, precioVenta, precioVentaReal, ganancia, estado, notas, tienda, fechaCompra, fechaVenta
-    ) VALUES (
-      ${data.codigo}, ${data.modelo}, ${data.marca || null}, ${data.imei || null},
-      ${data.carrier || null}, ${data.condicion || 'usado_a'}, ${data.precioCompra},
-      ${data.precioVenta || null}, ${data.precioVentaReal || null}, ${data.ganancia || null},
-      ${data.estado || 'disponible'}, ${data.notas || null}, 
-      ${data.tienda || 'admin'}, ${data.fechaCompra}, ${data.fechaVenta || null}
-    )`
-  );
-  return { id: Number((result[0] as any).insertId), ...data };
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  
+  try {
+    const [result] = await connection.execute(
+      `INSERT INTO inventory_phones (
+        codigo, modelo, marca, imei, carrier, condicion,
+        precioCompra, precioVenta, precioVentaReal, ganancia, estado, notas, tienda, fechaCompra, fechaVenta
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        data.codigo, data.modelo, data.marca || null, data.imei || null,
+        data.carrier || null, data.condicion || 'usado_a', data.precioCompra,
+        data.precioVenta || null, data.precioVentaReal || null, data.ganancia || null,
+        data.estado || 'disponible', data.notas || null,
+        data.tienda || 'admin', data.fechaCompra, data.fechaVenta || null
+      ]
+    );
+    await connection.end();
+    return { id: Number((result as any).insertId), ...data };
+  } catch (error) {
+    await connection.end();
+    throw error;
+  }
 }
 
 export async function updateInventoryPhone(id: number, data: Partial<InsertInventoryPhone>) {
@@ -646,8 +653,7 @@ export async function getInventoryAccessories(filters?: { tienda?: 'admin' | 'su
 }
 
 export async function createInventoryAccessory(data: InsertInventoryAccessory) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
 
   const accessoryData = {
     ...data,
@@ -655,21 +661,29 @@ export async function createInventoryAccessory(data: InsertInventoryAccessory) {
     cantidadVendida: 0,
   };
 
-  // Usar SQL raw para evitar problemas con comillas en Drizzle
-  const result = await db.execute(
-    sql`INSERT INTO inventory_accessories (
-      codigo, nombre, categoria, precioCompraUnitario, precioVentaUnitario,
-      cantidadInicial, cantidadActual, cantidadVendida, stockMinimo,
-      tienda, activo
-    ) VALUES (
-      ${accessoryData.codigo}, ${accessoryData.nombre}, ${accessoryData.categoria},
-      ${accessoryData.precioCompraUnitario}, ${accessoryData.precioVentaUnitario},
-      ${accessoryData.cantidadInicial}, ${accessoryData.cantidadActual},
-      ${accessoryData.cantidadVendida}, ${accessoryData.stockMinimo},
-      ${accessoryData.tienda}, ${accessoryData.activo}
-    )`
-  );
-  return { id: Number(result[0].insertId), ...accessoryData };
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  
+  try {
+    const [result] = await connection.execute(
+      `INSERT INTO inventory_accessories (
+        codigo, nombre, categoria, precioCompraUnitario, precioVentaUnitario,
+        cantidadInicial, cantidadActual, cantidadVendida, stockMinimo,
+        tienda, activo
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        accessoryData.codigo, accessoryData.nombre, accessoryData.categoria,
+        accessoryData.precioCompraUnitario, accessoryData.precioVentaUnitario,
+        accessoryData.cantidadInicial, accessoryData.cantidadActual,
+        accessoryData.cantidadVendida, accessoryData.stockMinimo,
+        accessoryData.tienda, accessoryData.activo
+      ]
+    );
+    await connection.end();
+    return { id: Number((result as any).insertId), ...accessoryData };
+  } catch (error) {
+    await connection.end();
+    throw error;
+  }
 }
 
 export async function updateInventoryAccessory(id: number, data: Partial<InsertInventoryAccessory>) {
@@ -750,8 +764,7 @@ export async function getInventoryParts(filters?: { tienda?: 'admin' | 'sucursal
 }
 
 export async function createInventoryPart(data: InsertInventoryPart) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
 
   const partData = {
     ...data,
@@ -760,21 +773,29 @@ export async function createInventoryPart(data: InsertInventoryPart) {
     cantidadUsada: 0,
   };
 
-  // Usar SQL raw para evitar problemas con comillas en Drizzle
-  const result = await db.execute(
-    sql`INSERT INTO inventory_parts (
-      codigo, nombre, categoria, compatibilidad, precioCompraUnitario,
-      cantidadInicial, cantidadActual, cantidadUsada, stockMinimo,
-      tienda, activo
-    ) VALUES (
-      ${partData.codigo}, ${partData.nombre}, ${partData.categoria},
-      ${partData.compatibilidad}, ${partData.precioCompraUnitario},
-      ${partData.cantidadInicial}, ${partData.cantidadActual},
-      ${partData.cantidadUsada}, ${partData.stockMinimo},
-      ${partData.tienda}, ${partData.activo}
-    )`
-  );
-  return { id: Number(result[0].insertId), ...partData };
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  
+  try {
+    const [result] = await connection.execute(
+      `INSERT INTO inventory_parts (
+        codigo, nombre, categoria, compatibilidad, precioCompraUnitario,
+        cantidadInicial, cantidadActual, cantidadUsada, stockMinimo,
+        tienda, activo
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        partData.codigo, partData.nombre, partData.categoria,
+        partData.compatibilidad, partData.precioCompraUnitario,
+        partData.cantidadInicial, partData.cantidadActual,
+        partData.cantidadUsada, partData.stockMinimo,
+        partData.tienda, partData.activo
+      ]
+    );
+    await connection.end();
+    return { id: Number((result as any).insertId), ...partData };
+  } catch (error) {
+    await connection.end();
+    throw error;
+  }
 }
 
 export async function updateInventoryPart(id: number, data: Partial<InsertInventoryPart>) {
@@ -898,28 +919,37 @@ export async function createRepair(data: InsertRepair & { partes?: { partId: num
     notas: data.notas,
   };
 
-  // Usar SQL raw para evitar problemas con comillas en Drizzle
-  const result = await db.execute(
-    sql`INSERT INTO repairs (
-      codigo, cliente, telefono, dispositivo, problema, diagnostico,
-      precioManoObra, precioTotal, costoPartes, ganancia,
-      fechaIngreso, tienda, notas
-    ) VALUES (
-      ${repairData.codigo}, ${repairData.cliente}, ${repairData.telefono},
-      ${repairData.dispositivo}, ${repairData.problema}, ${repairData.diagnostico},
-      ${repairData.precioManoObra}, ${repairData.precioTotal}, ${repairData.costoPartes},
-      ${repairData.ganancia}, ${repairData.fechaIngreso}, ${repairData.tienda},
-      ${repairData.notas}
-    )`
-  );
-  const repairId = Number(result[0].insertId);
+  // Usar mysql2 directamente
+  const connection = await mysql.createConnection(process.env.DATABASE_URL!);
+  
+  try {
+    const [result] = await connection.execute(
+      `INSERT INTO repairs (
+        codigo, cliente, telefono, dispositivo, problema, diagnostico,
+        precioManoObra, precioTotal, costoPartes, ganancia,
+        fechaIngreso, tienda, notas
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        repairData.codigo, repairData.cliente, repairData.telefono,
+        repairData.dispositivo, repairData.problema, repairData.diagnostico,
+        repairData.precioManoObra, repairData.precioTotal, repairData.costoPartes,
+        repairData.ganancia, repairData.fechaIngreso, repairData.tienda,
+        repairData.notas
+      ]
+    );
+    await connection.end();
+    const repairId = Number((result as any).insertId);
 
-  // Agregar partes si se proporcionan
-  if (data.partes && data.partes.length > 0) {
-    await addRepairParts(repairId, data.partes);
+    // Agregar partes si se proporcionan
+    if (data.partes && data.partes.length > 0) {
+      await addRepairParts(repairId, data.partes);
+    }
+
+    return { id: repairId, ...repairData };
+  } catch (error) {
+    await connection.end();
+    throw error;
   }
-
-  return { id: repairId, ...repairData };
 }
 
 export async function updateRepair(id: number, data: Partial<InsertRepair>) {
