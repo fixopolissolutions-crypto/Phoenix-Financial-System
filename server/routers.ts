@@ -68,7 +68,7 @@ export const appRouter = router({
         monto: z.string(),
         metodo: z.enum(['efectivo', 'banco']),
         descripcion: z.string().optional(),
-        categoria: z.string().optional(),
+        categoria: z.string().nullish().transform(val => val || ''),
         proveedor: z.string().optional(),
         tienda: z.enum(['admin', 'sucursal']).default('admin'),
         fecha: z.string().optional(),
@@ -96,7 +96,7 @@ export const appRouter = router({
         monto: z.string().optional(),
         metodo: z.enum(['efectivo', 'banco']).optional(),
         descripcion: z.string().optional(),
-        categoria: z.string().optional(),
+        categoria: z.string().nullish().transform(val => val || ''),
         proveedor: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
@@ -448,7 +448,7 @@ export const appRouter = router({
       .input(z.object({
         codigo: z.string(),
         nombre: z.string(),
-        categoria: z.string().optional(),
+        categoria: z.string().nullish().transform(val => val || ''),
         precioCompraUnitario: z.string(),
         precioVentaUnitario: z.string(),
         cantidadInicial: z.number(),
@@ -468,7 +468,7 @@ export const appRouter = router({
       .input(z.object({
         id: z.number(),
         nombre: z.string().optional(),
-        categoria: z.string().optional(),
+        categoria: z.string().nullish().transform(val => val || ''),
         precioCompraUnitario: z.string().optional(),
         precioVentaUnitario: z.string().optional(),
         stockMinimo: z.number().optional(),
@@ -537,7 +537,7 @@ export const appRouter = router({
       .input(z.object({
         codigo: z.string(),
         nombre: z.string(),
-        categoria: z.string().optional(),
+        categoria: z.string().nullish().transform(val => val || ''),
         compatibilidad: z.string().optional(),
         precioCompraUnitario: z.string(),
         cantidadInicial: z.number(),
@@ -557,7 +557,7 @@ export const appRouter = router({
       .input(z.object({
         id: z.number(),
         nombre: z.string().optional(),
-        categoria: z.string().optional(),
+        categoria: z.string().nullish().transform(val => val || ''),
         compatibilidad: z.string().optional(),
         precioCompraUnitario: z.string().optional(),
         stockMinimo: z.number().optional(),
