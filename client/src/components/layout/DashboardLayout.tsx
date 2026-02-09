@@ -15,6 +15,7 @@ import {
   History,
   Package,
   Wrench,
+  Store,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -37,6 +38,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       { name: 'Dashboard General', href: '/dashboard-general', icon: Building2, roles: ['admin'] },
       { name: 'Reportes', href: '/reportes', icon: FileText, roles: ['admin'] },
       { name: 'Taxes', href: '/taxes', icon: Receipt, roles: ['admin'] },
+      { name: 'Inversión Capital Sucursal', href: '/inversion-capital-sucursal', icon: Store, roles: ['admin'] },
     ] : []),
     { name: 'Ingresos', href: '/ingresos', icon: TrendingUp, roles: ['admin', 'sucursal'] },
     { name: 'Gastos', href: '/gastos', icon: TrendingDown, roles: ['admin', 'sucursal'] },

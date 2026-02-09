@@ -339,6 +339,20 @@ export const appRouter = router({
         return await db.getInventoryPhones(filters);
       }),
 
+    // Endpoint para que admin pueda ver inventario de sucursal
+    listByTienda: protectedProcedure
+      .input(z.object({
+        tienda: z.enum(['admin', 'sucursal']),
+        estado: z.enum(['disponible', 'vendido', 'reservado']).optional(),
+      }))
+      .query(async ({ input, ctx }) => {
+        // Solo admin puede ver inventario de otras tiendas
+        if (ctx.user?.tienda !== 'admin') {
+          throw new Error('No tienes permisos para ver inventario de otras tiendas');
+        }
+        return await db.getInventoryPhones(input);
+      }),
+
     create: protectedProcedure
       .input(z.object({
         codigo: z.string(),
@@ -416,6 +430,20 @@ export const appRouter = router({
         return await db.getInventoryAccessories(filters);
       }),
 
+    // Endpoint para que admin pueda ver inventario de sucursal
+    listByTienda: protectedProcedure
+      .input(z.object({
+        tienda: z.enum(['admin', 'sucursal']),
+        activo: z.number().optional(),
+      }))
+      .query(async ({ input, ctx }) => {
+        // Solo admin puede ver inventario de otras tiendas
+        if (ctx.user?.tienda !== 'admin') {
+          throw new Error('No tienes permisos para ver inventario de otras tiendas');
+        }
+        return await db.getInventoryAccessories(input);
+      }),
+
     create: protectedProcedure
       .input(z.object({
         codigo: z.string(),
@@ -489,6 +517,20 @@ export const appRouter = router({
           tienda: ctx.user?.tienda || 'admin',
         };
         return await db.getInventoryParts(filters);
+      }),
+
+    // Endpoint para que admin pueda ver inventario de sucursal
+    listByTienda: protectedProcedure
+      .input(z.object({
+        tienda: z.enum(['admin', 'sucursal']),
+        activo: z.number().optional(),
+      }))
+      .query(async ({ input, ctx }) => {
+        // Solo admin puede ver inventario de otras tiendas
+        if (ctx.user?.tienda !== 'admin') {
+          throw new Error('No tienes permisos para ver inventario de otras tiendas');
+        }
+        return await db.getInventoryParts(input);
       }),
 
     create: protectedProcedure

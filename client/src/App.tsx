@@ -17,6 +17,7 @@ import Configuracion from "./pages/Configuracion";
 import Taxes from "./pages/Taxes";
 import Historial from "./pages/Historial";
 import InversionCapital from "./pages/InversionCapital";
+import InversionCapitalSucursal from "./pages/InversionCapitalSucursal";
 import InventarioTelefonos from "./pages/InventarioTelefonos";
 import InventarioAccesorios from "./pages/InventarioAccesorios";
 import InventarioPartes from "./pages/InventarioPartes";
@@ -68,6 +69,9 @@ function Router() {
       </Route>
       <Route path="/inversion-capital">
         {() => <ProtectedRoute component={InversionCapital} />}
+      </Route>
+      <Route path="/inversion-capital-sucursal">
+        {() => <ProtectedRoute component={InversionCapitalSucursal} />}
       </Route>
       <Route path="/inventario/telefonos">
         {() => <ProtectedRoute component={InventarioTelefonos} />}
