@@ -606,8 +606,10 @@ export const appRouter = router({
       .input(z.object({
         repairId: z.number(),
         partes: z.array(z.object({
-          partId: z.number(),
+          partId: z.number().optional(), // Opcional para partes manuales
           cantidad: z.number(),
+          nombre: z.string().optional(), // Para partes manuales
+          costoUnitario: z.string().optional(), // Para partes manuales
         })),
       }))
       .mutation(async ({ input }) => {

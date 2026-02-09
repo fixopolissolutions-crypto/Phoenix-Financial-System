@@ -607,18 +607,55 @@ export async function updateInventoryPhone(id: number, data: Partial<InsertInven
 }
 
 export async function sellInventoryPhone(id: number, precioVenta: string, fechaVenta: Date) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  await db.update(inventoryPhones)
-    .set({ 
-      estado: 'vendido', 
-      precioVenta, 
-      fechaVenta 
-    })
-    .where(eq(inventoryPhones.id, id));
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
   
-  return { success: true };
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  
+  try {
+    // Obtener el teléfono
+    const [phones] = await connection.execute(
+      'SELECT * FROM inventory_phones WHERE id = ?',
+      [id]
+    );
+    
+    if (!Array.isArray(phones) || phones.length === 0) {
+      throw new Error('Teléfono no encontrado');
+    }
+    
+    const phone = phones[0] as any;
+    
+    // Calcular ganancia: precioVenta - precioCompra
+    const ganancia = Number(precioVenta) - Number(phone.precioCompra);
+    
+    // Actualizar el teléfono
+    await connection.execute(
+      `UPDATE inventory_phones 
+       SET estado = 'vendido', precioVenta = ?, fechaVenta = ?, ganancia = ?
+       WHERE id = ?`,
+      [precioVenta, fechaVenta, ganancia, id]
+    );
+    
+    // Registrar ingreso automáticamente
+    const descripcion = `Venta de teléfono ${phone.codigo} - ${phone.modelo}`;
+    await connection.execute(
+      `INSERT INTO transactions (tipo, monto, metodo, descripcion, categoria, tienda, fecha)
+       VALUES ('ingreso', ?, 'efectivo', ?, 'venta_telefono', ?, ?)`,
+      [ganancia, descripcion, phone.tienda, fechaVenta]
+    );
+    
+    // Registrar movimiento de inventario
+    await connection.execute(
+      `INSERT INTO inventory_movements (tipo, categoria, itemId, cantidad, monto, descripcion, fecha, tienda)
+       VALUES ('venta', 'telefono', ?, 1, ?, ?, ?, ?)`,
+      [id, precioVenta, descripcion, fechaVenta, phone.tienda]
+    );
+    
+    await connection.end();
+    return { success: true, ganancia };
+  } catch (error) {
+    await connection.end();
+    throw error;
+  }
 }
 
 export async function deleteInventoryPhone(id: number) {
@@ -710,26 +747,65 @@ export async function addAccessoryStock(id: number, cantidad: number) {
 }
 
 export async function sellAccessory(id: number, cantidad: number, fecha: Date) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  const accessory = await db.select().from(inventoryAccessories).where(eq(inventoryAccessories.id, id)).limit(1);
-  if (accessory.length === 0) throw new Error("Accessory not found");
-
-  const currentCantidad = Number(accessory[0].cantidadActual);
-  if (currentCantidad < cantidad) throw new Error("Insufficient stock");
-
-  const newCantidad = currentCantidad - cantidad;
-  const newVendida = Number(accessory[0].cantidadVendida) + cantidad;
-
-  await db.update(inventoryAccessories)
-    .set({ 
-      cantidadActual: newCantidad,
-      cantidadVendida: newVendida 
-    })
-    .where(eq(inventoryAccessories.id, id));
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
   
-  return { success: true, newCantidad, newVendida };
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  
+  try {
+    // Obtener el accesorio
+    const [accessories] = await connection.execute(
+      'SELECT * FROM inventory_accessories WHERE id = ?',
+      [id]
+    );
+    
+    if (!Array.isArray(accessories) || accessories.length === 0) {
+      throw new Error('Accesorio no encontrado');
+    }
+    
+    const accessory = accessories[0] as any;
+    const currentCantidad = Number(accessory.cantidadActual);
+    
+    if (currentCantidad < cantidad) {
+      throw new Error('Stock insuficiente');
+    }
+    
+    const newCantidad = currentCantidad - cantidad;
+    const newVendida = Number(accessory.cantidadVendida) + cantidad;
+    
+    // Calcular ganancia: (precioVenta - precioCompra) * cantidad
+    const gananciaUnitaria = Number(accessory.precioVentaUnitario) - Number(accessory.precioCompraUnitario);
+    const gananciaTotal = gananciaUnitaria * cantidad;
+    const montoVenta = Number(accessory.precioVentaUnitario) * cantidad;
+    
+    // Actualizar el accesorio
+    await connection.execute(
+      `UPDATE inventory_accessories 
+       SET cantidadActual = ?, cantidadVendida = ?
+       WHERE id = ?`,
+      [newCantidad, newVendida, id]
+    );
+    
+    // Registrar ingreso automáticamente
+    const descripcion = `Venta de ${cantidad}x ${accessory.nombre} (${accessory.codigo})`;
+    await connection.execute(
+      `INSERT INTO transactions (tipo, monto, metodo, descripcion, categoria, tienda, fecha)
+       VALUES ('ingreso', ?, 'efectivo', ?, 'venta_accesorio', ?, ?)`,
+      [gananciaTotal, descripcion, accessory.tienda, fecha]
+    );
+    
+    // Registrar movimiento de inventario
+    await connection.execute(
+      `INSERT INTO inventory_movements (tipo, categoria, itemId, cantidad, monto, descripcion, fecha, tienda)
+       VALUES ('venta', 'accesorio', ?, ?, ?, ?, ?, ?)`,
+      [id, cantidad, montoVenta, descripcion, fecha, accessory.tienda]
+    );
+    
+    await connection.end();
+    return { success: true, newCantidad, newVendida, ganancia: gananciaTotal };
+  } catch (error) {
+    await connection.end();
+    throw error;
+  }
 }
 
 export async function deleteInventoryAccessory(id: number) {
@@ -953,55 +1029,186 @@ export async function createRepair(data: InsertRepair & { partes?: { partId: num
 }
 
 export async function updateRepair(id: number, data: Partial<InsertRepair>) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  await db.update(repairs).set(data).where(eq(repairs.id, id));
-  return { success: true };
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
+  
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  
+  try {
+    // Obtener la reparación actual
+    const [repairs] = await connection.execute(
+      'SELECT * FROM repairs WHERE id = ?',
+      [id]
+    );
+    
+    if (!Array.isArray(repairs) || repairs.length === 0) {
+      throw new Error('Reparación no encontrada');
+    }
+    
+    const repair = repairs[0] as any;
+    const wasEntregada = repair.estado === 'entregada';
+    const willBeEntregada = data.estado === 'entregada';
+    
+    // Construir el UPDATE dinámicamente
+    const updates: string[] = [];
+    const values: any[] = [];
+    
+    if (data.cliente !== undefined) {
+      updates.push('cliente = ?');
+      values.push(data.cliente);
+    }
+    if (data.telefono !== undefined) {
+      updates.push('telefono = ?');
+      values.push(data.telefono);
+    }
+    if (data.dispositivo !== undefined) {
+      updates.push('dispositivo = ?');
+      values.push(data.dispositivo);
+    }
+    if (data.problema !== undefined) {
+      updates.push('problema = ?');
+      values.push(data.problema);
+    }
+    if (data.diagnostico !== undefined) {
+      updates.push('diagnostico = ?');
+      values.push(data.diagnostico);
+    }
+    if (data.precioManoObra !== undefined) {
+      updates.push('precioManoObra = ?');
+      values.push(data.precioManoObra);
+    }
+    if (data.precioTotal !== undefined) {
+      updates.push('precioTotal = ?');
+      values.push(data.precioTotal);
+    }
+    if (data.estado !== undefined) {
+      updates.push('estado = ?');
+      values.push(data.estado);
+    }
+    if (data.fechaCompletado !== undefined) {
+      updates.push('fechaCompletado = ?');
+      values.push(data.fechaCompletado);
+    }
+    if (data.fechaEntrega !== undefined) {
+      updates.push('fechaEntrega = ?');
+      values.push(data.fechaEntrega);
+    }
+    if (data.notas !== undefined) {
+      updates.push('notas = ?');
+      values.push(data.notas);
+    }
+    
+    if (updates.length > 0) {
+      values.push(id);
+      await connection.execute(
+        `UPDATE repairs SET ${updates.join(', ')} WHERE id = ?`,
+        values
+      );
+    }
+    
+    // Si se marca como entregada y no estaba entregada antes, registrar ingreso
+    if (willBeEntregada && !wasEntregada) {
+      const descripcion = `Reparación entregada ${repair.codigo} - ${repair.dispositivo}`;
+      const fechaEntrega = data.fechaEntrega || new Date();
+      
+      // Registrar ingreso automáticamente con la ganancia
+      await connection.execute(
+        `INSERT INTO transactions (tipo, monto, metodo, descripcion, categoria, tienda, fecha)
+         VALUES ('ingreso', ?, 'efectivo', ?, 'reparacion', ?, ?)`,
+        [repair.ganancia, descripcion, repair.tienda, fechaEntrega]
+      );
+    }
+    
+    await connection.end();
+    return { success: true };
+  } catch (error) {
+    await connection.end();
+    throw error;
+  }
 }
 
-export async function addRepairParts(repairId: number, partes: { partId: number; cantidad: number }[]) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  for (const parte of partes) {
-    // Obtener el precio de la parte
-    const part = await db.select().from(inventoryParts).where(eq(inventoryParts.id, parte.partId)).limit(1);
-    if (part.length === 0) continue;
-
-    const costoUnitario = part[0].precioCompraUnitario;
-    const costoTotal = (Number(costoUnitario) * parte.cantidad).toFixed(2);
-
-    // Insertar en repair_parts usando SQL raw
-    await db.execute(
-      sql`INSERT INTO repair_parts (
-        repairId, partId, cantidad, costoUnitario, costoTotal
-      ) VALUES (
-        ${repairId}, ${parte.partId}, ${parte.cantidad},
-        ${costoUnitario}, ${costoTotal}
-      )`
+export async function addRepairParts(
+  repairId: number, 
+  partes: { partId?: number; cantidad: number; nombre?: string; costoUnitario?: string }[]
+) {
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
+  
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  
+  try {
+    let costoPartesTotal = 0;
+    
+    for (const parte of partes) {
+      let costoUnitario: string;
+      let partId: number | null = parte.partId || null;
+      
+      if (parte.partId) {
+        // Parte del inventario
+        const [parts] = await connection.execute(
+          'SELECT * FROM inventory_parts WHERE id = ?',
+          [parte.partId]
+        );
+        
+        if (!Array.isArray(parts) || parts.length === 0) {
+          throw new Error(`Parte con ID ${parte.partId} no encontrada`);
+        }
+        
+        const part = parts[0] as any;
+        costoUnitario = part.precioCompraUnitario;
+        
+        // Descontar del inventario
+        const newCantidad = Number(part.cantidadActual) - parte.cantidad;
+        const newUsada = Number(part.cantidadUsada) + parte.cantidad;
+        
+        if (newCantidad < 0) {
+          throw new Error(`Stock insuficiente para ${part.nombre}`);
+        }
+        
+        await connection.execute(
+          'UPDATE inventory_parts SET cantidadActual = ?, cantidadUsada = ? WHERE id = ?',
+          [newCantidad, newUsada, parte.partId]
+        );
+      } else {
+        // Parte manual (no en inventario)
+        if (!parte.costoUnitario) {
+          throw new Error('costoUnitario es requerido para partes manuales');
+        }
+        costoUnitario = parte.costoUnitario;
+      }
+      
+      const costoTotal = (Number(costoUnitario) * parte.cantidad).toFixed(2);
+      costoPartesTotal += Number(costoTotal);
+      
+      // Insertar en repair_parts
+      await connection.execute(
+        `INSERT INTO repair_parts (repairId, partId, cantidad, costoUnitario, costoTotal)
+         VALUES (?, ?, ?, ?, ?)`,
+        [repairId, partId, parte.cantidad, costoUnitario, costoTotal]
+      );
+    }
+    
+    // Obtener el precio total de la reparación
+    const [repairs] = await connection.execute(
+      'SELECT precioTotal FROM repairs WHERE id = ?',
+      [repairId]
     );
-
-    // Usar la parte del inventario
-    await usePart(parte.partId, parte.cantidad);
+    
+    if (Array.isArray(repairs) && repairs.length > 0) {
+      const repair = repairs[0] as any;
+      const ganancia = Number(repair.precioTotal) - costoPartesTotal;
+      
+      // Actualizar costoPartes y ganancia de la reparación
+      await connection.execute(
+        'UPDATE repairs SET costoPartes = ?, ganancia = ? WHERE id = ?',
+        [costoPartesTotal.toFixed(2), ganancia.toFixed(2), repairId]
+      );
+    }
+    
+    await connection.end();
+    return { success: true, costoPartes: costoPartesTotal };
+  } catch (error) {
+    await connection.end();
+    throw error;
   }
-
-  // Actualizar el costo de partes y ganancia de la reparación
-  const partesUsadas = await db.select().from(repairParts).where(eq(repairParts.repairId, repairId));
-  const costoPartes = partesUsadas.reduce((sum, p) => sum + Number(p.costoTotal), 0);
-
-  const repair = await db.select().from(repairs).where(eq(repairs.id, repairId)).limit(1);
-  if (repair.length > 0) {
-    const ganancia = Number(repair[0].precioTotal) - costoPartes;
-    await db.update(repairs)
-      .set({ 
-        costoPartes: costoPartes.toFixed(2),
-        ganancia: ganancia.toFixed(2) 
-      })
-      .where(eq(repairs.id, repairId));
-  }
-
-  return { success: true };
 }
 
 export async function deleteRepair(id: number) {
