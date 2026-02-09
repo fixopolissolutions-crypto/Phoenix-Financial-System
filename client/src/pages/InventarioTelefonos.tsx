@@ -211,6 +211,7 @@ export default function InventarioTelefonos() {
                       type="number" 
                       step="0.01" 
                       placeholder="500.00" 
+                      defaultValue="500.00"
                       required 
                     />
                   </div>

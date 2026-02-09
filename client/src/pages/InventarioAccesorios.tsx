@@ -208,6 +208,7 @@ export default function InventarioAccesorios() {
                       type="number" 
                       step="0.01" 
                       placeholder="5.00" 
+                      defaultValue="5.00"
                       required 
                     />
                   </div>
@@ -219,6 +220,7 @@ export default function InventarioAccesorios() {
                       type="number" 
                       step="0.01" 
                       placeholder="15.00" 
+                      defaultValue="15.00"
                       required 
                     />
                   </div>
@@ -232,6 +234,7 @@ export default function InventarioAccesorios() {
                       name="cantidadInicial" 
                       type="number" 
                       placeholder="50" 
+                      defaultValue="50"
                       required 
                     />
                   </div>

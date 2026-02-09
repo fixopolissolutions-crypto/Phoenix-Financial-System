@@ -184,6 +184,7 @@ export default function InventarioPartes() {
                       type="number" 
                       step="0.01" 
                       placeholder="50.00" 
+                      defaultValue="50.00"
                       required 
                     />
                   </div>
@@ -194,6 +195,7 @@ export default function InventarioPartes() {
                       name="cantidadInicial" 
                       type="number" 
                       placeholder="10" 
+                      defaultValue="10"
                       required 
                     />
                   </div>
