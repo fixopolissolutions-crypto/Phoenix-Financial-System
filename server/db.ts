@@ -1,5 +1,6 @@
 import { eq, and, desc, gte, lte, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 import { 
   InsertUser, users, 
   transactions, InsertTransaction, Transaction,
@@ -155,31 +156,35 @@ export async function createTransaction(data: InsertTransaction) {
   console.log('=== DB createTransaction ===');
   console.log('Data recibida:', JSON.stringify(data, null, 2));
   
-  const db = await getDb();
-  if (!db) {
-    console.error('ERROR: Database not available');
+  if (!process.env.DATABASE_URL) {
+    console.error('ERROR: DATABASE_URL not configured');
     throw new Error("Database not available");
   }
   
-  console.log('Database connection OK');
+  console.log('Creating MySQL connection...');
 
   try {
+    // Usar mysql2 directamente para evitar problemas con drizzle
+    const connection = await mysql.createConnection(process.env.DATABASE_URL);
+    
     // Manejar valores opcionales
     const descripcion = data.descripcion || null;
     const categoria = data.categoria || null;
     const proveedor = data.proveedor || null;
     
-    // Usar SQL raw para evitar problemas con comillas en Drizzle
-    const result = await db.execute(
-      sql`INSERT INTO transactions (
+    console.log('Executing INSERT query...');
+    const [result] = await connection.execute(
+      `INSERT INTO transactions (
         tipo, monto, metodo, descripcion, categoria, proveedor, tienda, fecha
-      ) VALUES (
-        ${data.tipo}, ${data.monto}, ${data.metodo}, ${descripcion},
-        ${categoria}, ${proveedor}, ${data.tienda}, ${data.fecha}
-      )`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [data.tipo, data.monto, data.metodo, descripcion, categoria, proveedor, data.tienda, data.fecha]
     );
+    
+    await connection.end();
+    
     console.log('INSERT result:', result);
-    const newRecord = { id: Number(result[0].insertId), ...data };
+    const insertId = (result as any).insertId;
+    const newRecord = { id: Number(insertId), ...data };
     console.log('Returning:', newRecord);
     return newRecord;
   } catch (error) {
