@@ -74,10 +74,20 @@ export const appRouter = router({
         fecha: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
-        return await db.createTransaction({
-          ...input,
-          fecha: input.fecha ? new Date(input.fecha) : new Date(),
-        });
+        console.log('=== CREATE TRANSACTION ===');
+        console.log('Input recibido:', JSON.stringify(input, null, 2));
+        console.log('Tipo de monto:', typeof input.monto);
+        try {
+          const result = await db.createTransaction({
+            ...input,
+            fecha: input.fecha ? new Date(input.fecha) : new Date(),
+          });
+          console.log('Transacción creada exitosamente:', result);
+          return result;
+        } catch (error) {
+          console.error('ERROR al crear transacción:', error);
+          throw error;
+        }
       }),
 
     update: publicProcedure
@@ -339,10 +349,19 @@ export const appRouter = router({
         notas: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
-        return await db.createInventoryPhone({
-          ...input,
-          fechaCompra: new Date(input.fechaCompra),
-        });
+        console.log('=== CREATE INVENTORY PHONE ===');
+        console.log('Input recibido:', JSON.stringify(input, null, 2));
+        try {
+          const result = await db.createInventoryPhone({
+            ...input,
+            fechaCompra: new Date(input.fechaCompra),
+          });
+          console.log('Teléfono creado exitosamente:', result);
+          return result;
+        } catch (error) {
+          console.error('ERROR al crear teléfono:', error);
+          throw error;
+        }
       }),
 
     update: publicProcedure
@@ -545,11 +564,20 @@ export const appRouter = router({
         })).optional(),
       }))
       .mutation(async ({ input }) => {
-        return await db.createRepair({
-          ...input,
-          fechaIngreso: new Date(input.fechaIngreso),
-          ganancia: (Number(input.precioTotal) - Number(input.precioManoObra)).toFixed(2),
-        });
+        console.log('=== CREATE REPAIR ===');
+        console.log('Input recibido:', JSON.stringify(input, null, 2));
+        try {
+          const result = await db.createRepair({
+            ...input,
+            fechaIngreso: new Date(input.fechaIngreso),
+            ganancia: (Number(input.precioTotal) - Number(input.precioManoObra)).toFixed(2),
+          });
+          console.log('Reparación creada exitosamente:', result);
+          return result;
+        } catch (error) {
+          console.error('ERROR al crear reparación:', error);
+          throw error;
+        }
       }),
 
     update: publicProcedure

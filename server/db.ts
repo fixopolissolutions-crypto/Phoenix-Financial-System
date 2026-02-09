@@ -152,19 +152,35 @@ export async function getTransactionById(id: number) {
 }
 
 export async function createTransaction(data: InsertTransaction) {
+  console.log('=== DB createTransaction ===');
+  console.log('Data recibida:', JSON.stringify(data, null, 2));
+  
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
+  if (!db) {
+    console.error('ERROR: Database not available');
+    throw new Error("Database not available");
+  }
+  
+  console.log('Database connection OK');
 
-  // Usar SQL raw para evitar problemas con comillas en Drizzle
-  const result = await db.execute(
-    sql`INSERT INTO transactions (
-      tipo, monto, metodo, descripcion, categoria, proveedor, tienda, fecha
-    ) VALUES (
-      ${data.tipo}, ${data.monto}, ${data.metodo}, ${data.descripcion},
-      ${data.categoria}, ${data.proveedor}, ${data.tienda}, ${data.fecha}
-    )`
-  );
-  return { id: Number(result[0].insertId), ...data };
+  try {
+    // Usar SQL raw para evitar problemas con comillas en Drizzle
+    const result = await db.execute(
+      sql`INSERT INTO transactions (
+        tipo, monto, metodo, descripcion, categoria, proveedor, tienda, fecha
+      ) VALUES (
+        ${data.tipo}, ${data.monto}, ${data.metodo}, ${data.descripcion},
+        ${data.categoria}, ${data.proveedor}, ${data.tienda}, ${data.fecha}
+      )`
+    );
+    console.log('INSERT result:', result);
+    const newRecord = { id: Number(result[0].insertId), ...data };
+    console.log('Returning:', newRecord);
+    return newRecord;
+  } catch (error) {
+    console.error('ERROR en INSERT SQL:', error);
+    throw error;
+  }
 }
 
 export async function updateTransaction(id: number, data: Partial<InsertTransaction>) {
