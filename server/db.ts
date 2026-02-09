@@ -992,7 +992,7 @@ export async function createRepair(data: InsertRepair & { partes?: { partId: num
     ganancia: ganancia.toFixed(2),
     fechaIngreso: data.fechaIngreso,
     tienda: data.tienda,
-    notas: data.notas,
+    notas: data.notas || null,
   };
 
   // Usar mysql2 directamente
