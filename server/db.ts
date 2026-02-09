@@ -164,13 +164,18 @@ export async function createTransaction(data: InsertTransaction) {
   console.log('Database connection OK');
 
   try {
+    // Manejar valores opcionales
+    const descripcion = data.descripcion || null;
+    const categoria = data.categoria || null;
+    const proveedor = data.proveedor || null;
+    
     // Usar SQL raw para evitar problemas con comillas en Drizzle
     const result = await db.execute(
       sql`INSERT INTO transactions (
         tipo, monto, metodo, descripcion, categoria, proveedor, tienda, fecha
       ) VALUES (
-        ${data.tipo}, ${data.monto}, ${data.metodo}, ${data.descripcion},
-        ${data.categoria}, ${data.proveedor}, ${data.tienda}, ${data.fecha}
+        ${data.tipo}, ${data.monto}, ${data.metodo}, ${descripcion},
+        ${categoria}, ${proveedor}, ${data.tienda}, ${data.fecha}
       )`
     );
     console.log('INSERT result:', result);
