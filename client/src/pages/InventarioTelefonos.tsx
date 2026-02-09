@@ -108,7 +108,6 @@ export default function InventarioTelefonos() {
       condicion: formData.get('condicion') as any,
       precioCompra: formData.get('precioCompra') as string,
       fechaCompra: formData.get('fechaCompra') as string,
-      tienda: user?.tienda || 'admin',
       notas: (formData.get('notas') as string) || null,
     });
   };

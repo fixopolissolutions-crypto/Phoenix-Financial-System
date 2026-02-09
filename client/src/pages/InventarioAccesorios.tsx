@@ -121,7 +121,6 @@ export default function InventarioAccesorios() {
       precioVentaUnitario: formData.get('precioVentaUnitario') as string,
       cantidadInicial: Number(formData.get('cantidadInicial')),
       stockMinimo: Number(formData.get('stockMinimo')),
-      tienda: user?.tienda || 'admin',
     });
   };
 

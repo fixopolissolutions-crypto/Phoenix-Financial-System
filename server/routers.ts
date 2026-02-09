@@ -326,16 +326,20 @@ export const appRouter = router({
 
   // ==================== INVENTORY PHONES ====================
   inventoryPhones: router({
-    list: publicProcedure
+    list: protectedProcedure
       .input(z.object({
         estado: z.enum(['disponible', 'vendido', 'reservado']).optional(),
-        tienda: z.enum(['admin', 'sucursal']).optional(),
       }).optional())
-      .query(async ({ input }) => {
-        return await db.getInventoryPhones(input);
+      .query(async ({ input, ctx }) => {
+        // Filtrar automáticamente por la tienda del usuario logueado
+        const filters = {
+          ...input,
+          tienda: ctx.user?.tienda || 'admin',
+        };
+        return await db.getInventoryPhones(filters);
       }),
 
-    create: publicProcedure
+    create: protectedProcedure
       .input(z.object({
         codigo: z.string(),
         modelo: z.string(),
@@ -345,15 +349,17 @@ export const appRouter = router({
         condicion: z.enum(['nuevo', 'usado_a', 'usado_b', 'usado_c', 'para_partes']).default('usado_a'),
         precioCompra: z.string(),
         fechaCompra: z.string(),
-        tienda: z.enum(['admin', 'sucursal']).default('admin'),
         notas: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // Usar automáticamente la tienda del usuario logueado
+        const tienda = ctx.user?.tienda || 'admin';
         console.log('=== CREATE INVENTORY PHONE ===');
         console.log('Input recibido:', JSON.stringify(input, null, 2));
         try {
           const result = await db.createInventoryPhone({
             ...input,
+            tienda,
             fechaCompra: new Date(input.fechaCompra),
           });
           console.log('Teléfono creado exitosamente:', result);
@@ -398,16 +404,19 @@ export const appRouter = router({
 
   // ==================== INVENTORY ACCESSORIES ====================
   inventoryAccessories: router({
-    list: publicProcedure
+    list: protectedProcedure
       .input(z.object({
-        tienda: z.enum(['admin', 'sucursal']).optional(),
         activo: z.number().optional(),
       }).optional())
-      .query(async ({ input }) => {
-        return await db.getInventoryAccessories(input);
+      .query(async ({ input, ctx }) => {
+        const filters = {
+          ...input,
+          tienda: ctx.user?.tienda || 'admin',
+        };
+        return await db.getInventoryAccessories(filters);
       }),
 
-    create: publicProcedure
+    create: protectedProcedure
       .input(z.object({
         codigo: z.string(),
         nombre: z.string(),
@@ -416,11 +425,12 @@ export const appRouter = router({
         precioVentaUnitario: z.string(),
         cantidadInicial: z.number(),
         stockMinimo: z.number().default(5),
-        tienda: z.enum(['admin', 'sucursal']).default('admin'),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const tienda = ctx.user?.tienda || 'admin';
         return await db.createInventoryAccessory({
           ...input,
+          tienda,
           cantidadActual: input.cantidadInicial,
           cantidadVendida: 0,
         });
@@ -469,16 +479,19 @@ export const appRouter = router({
 
   // ==================== INVENTORY PARTS ====================
   inventoryParts: router({
-    list: publicProcedure
+    list: protectedProcedure
       .input(z.object({
-        tienda: z.enum(['admin', 'sucursal']).optional(),
         activo: z.number().optional(),
       }).optional())
-      .query(async ({ input }) => {
-        return await db.getInventoryParts(input);
+      .query(async ({ input, ctx }) => {
+        const filters = {
+          ...input,
+          tienda: ctx.user?.tienda || 'admin',
+        };
+        return await db.getInventoryParts(filters);
       }),
 
-    create: publicProcedure
+    create: protectedProcedure
       .input(z.object({
         codigo: z.string(),
         nombre: z.string(),
@@ -487,11 +500,12 @@ export const appRouter = router({
         precioCompraUnitario: z.string(),
         cantidadInicial: z.number(),
         stockMinimo: z.number().default(2),
-        tienda: z.enum(['admin', 'sucursal']).default('admin'),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const tienda = ctx.user?.tienda || 'admin';
         return await db.createInventoryPart({
           ...input,
+          tienda,
           cantidadActual: input.cantidadInicial,
           cantidadUsada: 0,
         });
@@ -529,24 +543,23 @@ export const appRouter = router({
 
   // ==================== REPAIRS ====================
   repairs: router({
-    list: publicProcedure
+    list: protectedProcedure
       .input(z.object({
         estado: z.enum(['pendiente', 'en_proceso', 'completada', 'entregada']).optional(),
-        tienda: z.enum(['admin', 'sucursal']).optional(),
         fechaInicio: z.string().optional(),
         fechaFin: z.string().optional(),
       }).optional())
-      .query(async ({ input }) => {
-        const filters = input ? {
-          estado: input.estado,
-          tienda: input.tienda,
-          fechaInicio: input.fechaInicio ? new Date(input.fechaInicio) : undefined,
-          fechaFin: input.fechaFin ? new Date(input.fechaFin) : undefined,
-        } : undefined;
+      .query(async ({ input, ctx }) => {
+        const filters = {
+          estado: input?.estado,
+          tienda: ctx.user?.tienda || 'admin',
+          fechaInicio: input?.fechaInicio ? new Date(input.fechaInicio) : undefined,
+          fechaFin: input?.fechaFin ? new Date(input.fechaFin) : undefined,
+        };
         return await db.getRepairs(filters);
       }),
 
-    create: publicProcedure
+    create: protectedProcedure
       .input(z.object({
         codigo: z.string(),
         cliente: z.string().optional(),
@@ -557,19 +570,20 @@ export const appRouter = router({
         precioManoObra: z.string(),
         precioTotal: z.string(),
         fechaIngreso: z.string(),
-        tienda: z.enum(['admin', 'sucursal']).default('admin'),
         notas: z.string().optional(),
         partes: z.array(z.object({
           partId: z.number(),
           cantidad: z.number(),
         })).optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const tienda = ctx.user?.tienda || 'admin';
         console.log('=== CREATE REPAIR ===');
         console.log('Input recibido:', JSON.stringify(input, null, 2));
         try {
           const result = await db.createRepair({
             ...input,
+            tienda,
             fechaIngreso: new Date(input.fechaIngreso),
             ganancia: (Number(input.precioTotal) - Number(input.precioManoObra)).toFixed(2),
           });

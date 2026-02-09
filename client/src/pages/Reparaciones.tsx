@@ -118,7 +118,6 @@ export default function Reparaciones() {
       precioManoObra: formData.get('precioManoObra') as string,
       precioTotal: formData.get('precioTotal') as string,
       fechaIngreso: formData.get('fechaIngreso') as string,
-      tienda: user?.tienda || 'admin',
       notas: formData.get('notas') as string || undefined,
     });
   };

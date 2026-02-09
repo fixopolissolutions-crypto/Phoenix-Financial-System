@@ -101,7 +101,6 @@ export default function InventarioPartes() {
       precioCompraUnitario: formData.get('precioCompraUnitario') as string,
       cantidadInicial: Number(formData.get('cantidadInicial')),
       stockMinimo: Number(formData.get('stockMinimo')),
-      tienda: user?.tienda || 'admin',
     });
   };
 
