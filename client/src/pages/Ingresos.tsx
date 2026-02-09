@@ -10,7 +10,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
-import { Plus, DollarSign, Calendar, Pencil, Trash2, Loader2, CalendarIcon } from 'lucide-react';
+import { Plus, DollarSign, Calendar, Pencil, Trash2, Loader2, CalendarIcon, Smartphone, Package } from 'lucide-react';
+import VenderTelefonoModal from '@/components/VenderTelefonoModal';
+import VenderAccesorioModal from '@/components/VenderAccesorioModal';
 
 type PaymentMethod = 'efectivo' | 'banco';
 
@@ -49,6 +51,10 @@ export default function Ingresos() {
   // Estado para confirmación de eliminación
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
+  
+  // Estados para modales de venta
+  const [venderTelefonoOpen, setVenderTelefonoOpen] = useState(false);
+  const [venderAccesorioOpen, setVenderAccesorioOpen] = useState(false);
 
   const utils = trpc.useUtils();
   
@@ -188,6 +194,26 @@ export default function Ingresos() {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Registrar Ingreso</h1>
           <p className="text-muted-foreground mt-1">Registra los ingresos del día</p>
+        </div>
+
+        {/* Botones de venta rápida */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Button
+            onClick={() => setVenderTelefonoOpen(true)}
+            className="h-20 text-lg"
+            variant="outline"
+          >
+            <Smartphone className="mr-2 h-6 w-6" />
+            Vender Teléfono
+          </Button>
+          <Button
+            onClick={() => setVenderAccesorioOpen(true)}
+            className="h-20 text-lg"
+            variant="outline"
+          >
+            <Package className="mr-2 h-6 w-6" />
+            Vender Accesorio
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -422,6 +448,16 @@ export default function Ingresos() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modales de venta */}
+      <VenderTelefonoModal
+        open={venderTelefonoOpen}
+        onOpenChange={setVenderTelefonoOpen}
+      />
+      <VenderAccesorioModal
+        open={venderAccesorioOpen}
+        onOpenChange={setVenderAccesorioOpen}
+      />
     </DashboardLayout>
   );
 }

@@ -746,7 +746,7 @@ export async function addAccessoryStock(id: number, cantidad: number) {
   return { success: true, newCantidad };
 }
 
-export async function sellAccessory(id: number, cantidad: number, fecha: Date) {
+export async function sellAccessory(id: number, cantidad: number, fecha: Date, precioVentaUnitario?: string) {
   if (!process.env.DATABASE_URL) throw new Error("Database not available");
   
   const connection = await mysql.createConnection(process.env.DATABASE_URL);
@@ -773,9 +773,11 @@ export async function sellAccessory(id: number, cantidad: number, fecha: Date) {
     const newVendida = Number(accessory.cantidadVendida) + cantidad;
     
     // Calcular ganancia: (precioVenta - precioCompra) * cantidad
-    const gananciaUnitaria = Number(accessory.precioVentaUnitario) - Number(accessory.precioCompraUnitario);
+    // Usar el precio de venta proporcionado o el precio sugerido del accesorio
+    const precioVenta = precioVentaUnitario ? Number(precioVentaUnitario) : Number(accessory.precioVentaUnitario);
+    const gananciaUnitaria = precioVenta - Number(accessory.precioCompraUnitario);
     const gananciaTotal = gananciaUnitaria * cantidad;
-    const montoVenta = Number(accessory.precioVentaUnitario) * cantidad;
+    const montoVenta = precioVenta * cantidad;
     
     // Actualizar el accesorio
     await connection.execute(

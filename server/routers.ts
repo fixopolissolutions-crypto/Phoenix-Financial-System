@@ -453,10 +453,11 @@ export const appRouter = router({
       .input(z.object({
         id: z.number(),
         cantidad: z.number(),
+        precioVentaUnitario: z.string().optional(),
         fecha: z.string(),
       }))
       .mutation(async ({ input }) => {
-        return await db.sellAccessory(input.id, input.cantidad, new Date(input.fecha));
+        return await db.sellAccessory(input.id, input.cantidad, new Date(input.fecha), input.precioVentaUnitario);
       }),
 
     delete: publicProcedure
