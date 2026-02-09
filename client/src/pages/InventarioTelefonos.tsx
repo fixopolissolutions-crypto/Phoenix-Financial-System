@@ -103,13 +103,13 @@ export default function InventarioTelefonos() {
       codigo: formData.get('codigo') as string,
       modelo: formData.get('modelo') as string,
       marca: formData.get('marca') as string,
-      imei: formData.get('imei') as string || undefined,
-      carrier: formData.get('carrier') as string || undefined,
+      imei: (formData.get('imei') as string) || null,
+      carrier: (formData.get('carrier') as string) || null,
       condicion: formData.get('condicion') as any,
       precioCompra: formData.get('precioCompra') as string,
       fechaCompra: formData.get('fechaCompra') as string,
       tienda: user?.tienda || 'admin',
-      notas: formData.get('notas') as string || undefined,
+      notas: (formData.get('notas') as string) || null,
     });
   };
 
@@ -191,14 +191,16 @@ export default function InventarioTelefonos() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="condicion">Condición *</Label>
-                    <Select name="condicion" defaultValue="usado" required>
+                    <Select name="condicion" defaultValue="usado_a" required>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="nuevo">Nuevo</SelectItem>
-                        <SelectItem value="usado">Usado</SelectItem>
-                        <SelectItem value="refurbished">Refurbished</SelectItem>
+                        <SelectItem value="usado_a">Usado A (Excelente)</SelectItem>
+                        <SelectItem value="usado_b">Usado B (Bueno)</SelectItem>
+                        <SelectItem value="usado_c">Usado C (Regular)</SelectItem>
+                        <SelectItem value="para_partes">Para Partes</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

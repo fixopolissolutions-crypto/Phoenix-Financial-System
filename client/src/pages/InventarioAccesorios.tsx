@@ -116,7 +116,7 @@ export default function InventarioAccesorios() {
     createMutation.mutate({
       codigo: formData.get('codigo') as string,
       nombre: formData.get('nombre') as string,
-      categoria: formData.get('categoria') as string || undefined,
+      categoria: (formData.get('categoria') as string) || null,
       precioCompraUnitario: formData.get('precioCompraUnitario') as string,
       precioVentaUnitario: formData.get('precioVentaUnitario') as string,
       cantidadInicial: Number(formData.get('cantidadInicial')),
