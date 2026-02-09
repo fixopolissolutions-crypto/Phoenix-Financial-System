@@ -1,7 +1,7 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { publicProcedure, publicProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
 
@@ -326,7 +326,7 @@ export const appRouter = router({
 
   // ==================== INVENTORY PHONES ====================
   inventoryPhones: router({
-    list: protectedProcedure
+    list: publicProcedure
       .input(z.object({
         estado: z.enum(['disponible', 'vendido', 'reservado']).optional(),
       }).optional())
@@ -340,7 +340,7 @@ export const appRouter = router({
       }),
 
     // Endpoint para que admin pueda ver inventario de sucursal
-    listByTienda: protectedProcedure
+    listByTienda: publicProcedure
       .input(z.object({
         tienda: z.enum(['admin', 'sucursal']),
         estado: z.enum(['disponible', 'vendido', 'reservado']).optional(),
@@ -353,7 +353,7 @@ export const appRouter = router({
         return await db.getInventoryPhones(input);
       }),
 
-    create: protectedProcedure
+    create: publicProcedure
       .input(z.object({
         codigo: z.string(),
         modelo: z.string(),
@@ -418,7 +418,7 @@ export const appRouter = router({
 
   // ==================== INVENTORY ACCESSORIES ====================
   inventoryAccessories: router({
-    list: protectedProcedure
+    list: publicProcedure
       .input(z.object({
         activo: z.number().optional(),
       }).optional())
@@ -431,7 +431,7 @@ export const appRouter = router({
       }),
 
     // Endpoint para que admin pueda ver inventario de sucursal
-    listByTienda: protectedProcedure
+    listByTienda: publicProcedure
       .input(z.object({
         tienda: z.enum(['admin', 'sucursal']),
         activo: z.number().optional(),
@@ -444,7 +444,7 @@ export const appRouter = router({
         return await db.getInventoryAccessories(input);
       }),
 
-    create: protectedProcedure
+    create: publicProcedure
       .input(z.object({
         codigo: z.string(),
         nombre: z.string(),
@@ -507,7 +507,7 @@ export const appRouter = router({
 
   // ==================== INVENTORY PARTS ====================
   inventoryParts: router({
-    list: protectedProcedure
+    list: publicProcedure
       .input(z.object({
         activo: z.number().optional(),
       }).optional())
@@ -520,7 +520,7 @@ export const appRouter = router({
       }),
 
     // Endpoint para que admin pueda ver inventario de sucursal
-    listByTienda: protectedProcedure
+    listByTienda: publicProcedure
       .input(z.object({
         tienda: z.enum(['admin', 'sucursal']),
         activo: z.number().optional(),
@@ -533,7 +533,7 @@ export const appRouter = router({
         return await db.getInventoryParts(input);
       }),
 
-    create: protectedProcedure
+    create: publicProcedure
       .input(z.object({
         codigo: z.string(),
         nombre: z.string(),
@@ -585,7 +585,7 @@ export const appRouter = router({
 
   // ==================== REPAIRS ====================
   repairs: router({
-    list: protectedProcedure
+    list: publicProcedure
       .input(z.object({
         estado: z.enum(['pendiente', 'en_proceso', 'completada', 'entregada']).optional(),
         fechaInicio: z.string().optional(),
@@ -601,7 +601,7 @@ export const appRouter = router({
         return await db.getRepairs(filters);
       }),
 
-    create: protectedProcedure
+    create: publicProcedure
       .input(z.object({
         codigo: z.string(),
         cliente: z.string().optional(),
