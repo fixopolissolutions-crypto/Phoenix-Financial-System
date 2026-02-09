@@ -1,204 +1,249 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Printer, Mail } from 'lucide-react';
+import { Button } from '@/components/ui/card';
+import { Printer } from 'lucide-react';
 
 interface FacturaReparacionProps {
-  reparacion: {
-    id: number;
-    cliente: string;
-    telefono: string;
-    dispositivo: string;
-    problema: string;
-    precio: number;
-    fecha: Date;
-    estado: string;
-  };
-  taxRate: number;
+  repair: any;
 }
 
-export function FacturaReparacion({ reparacion, taxRate }: FacturaReparacionProps) {
-  const subtotal = reparacion.precio;
-  const taxes = subtotal * (taxRate / 100);
-  const total = subtotal + taxes;
-
+export function FacturaReparacion({ repair }: FacturaReparacionProps) {
   const handlePrint = () => {
     window.print();
   };
 
-  const handleEmail = () => {
-    // TODO: Implementar envío por correo
-    alert('Función de envío por correo en desarrollo');
-  };
+  // Calcular fecha de vencimiento de garantía (60 días)
+  const fechaGarantia = new Date(repair.fechaIngreso);
+  fechaGarantia.setDate(fechaGarantia.getDate() + 60);
+
+  const isPagado = repair.pagado === 1;
 
   return (
-    <div className="max-w-4xl mx-auto p-8 bg-white">
-      {/* Botones de acción (no se imprimen) */}
-      <div className="flex gap-4 mb-6 print:hidden">
+    <div className="relative">
+      {/* Botón de imprimir (no se imprime) */}
+      <div className="flex justify-end mb-4 print:hidden">
         <Button onClick={handlePrint} className="flex items-center gap-2">
           <Printer className="w-4 h-4" />
-          Imprimir
-        </Button>
-        <Button onClick={handleEmail} variant="outline" className="flex items-center gap-2">
-          <Mail className="w-4 h-4" />
-          Enviar por Correo
+          Imprimir Recibo
         </Button>
       </div>
 
-      {/* Contenido de la factura (se imprime) */}
-      <div className="border-2 border-gray-300 p-8">
-        {/* Membrete */}
-        <div className="flex items-center justify-between mb-8 pb-6 border-b-2 border-gray-200">
-          <div>
-            <img 
-              src="/logo-1plusphonefix.png" 
-              alt="1+PhoneFix" 
-              className="h-16 mb-2"
-            />
-            <p className="text-sm text-gray-600">Phone Repair, Sales & Unlocking</p>
-            <p className="text-sm text-gray-600">Austin, TX</p>
-          </div>
-          <div className="text-right">
-            <h1 className="text-3xl font-bold text-gray-800">INVOICE</h1>
-            <p className="text-sm text-gray-600 mt-2">Invoice #{reparacion.id}</p>
-            <p className="text-sm text-gray-600">
-              {new Date(reparacion.fecha).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
-            </p>
-          </div>
-        </div>
-
-        {/* Información del cliente */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-700 mb-3">Customer Information</h2>
-          <div className="bg-gray-50 p-4 rounded">
-            <p className="text-sm"><span className="font-semibold">Name:</span> {reparacion.cliente}</p>
-            <p className="text-sm"><span className="font-semibold">Phone:</span> {reparacion.telefono}</p>
-            <p className="text-sm"><span className="font-semibold">Device:</span> {reparacion.dispositivo}</p>
-          </div>
-        </div>
-
-        {/* Detalles de la reparación */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-700 mb-3">Repair Details</h2>
-          <table className="w-full">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="text-left p-3 text-sm font-semibold text-gray-700">Description</th>
-                <th className="text-right p-3 text-sm font-semibold text-gray-700">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b">
-                <td className="p-3 text-sm">{reparacion.problema}</td>
-                <td className="text-right p-3 text-sm">${subtotal.toFixed(2)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Totales */}
-        <div className="mb-8">
-          <div className="flex justify-end">
-            <div className="w-64">
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-sm font-semibold">Subtotal:</span>
-                <span className="text-sm">${subtotal.toFixed(2)}</span>
+      {/* Contenido del recibo - Formato A4 */}
+      <div className="relative bg-white print:p-0" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto' }}>
+        {/* Sello de agua PAGADO (solo si está pagado) */}
+        {isPagado && (
+          <div 
+            className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
+            style={{ 
+              opacity: 0.15,
+              transform: 'rotate(-45deg)',
+            }}
+          >
+            <div className="text-center">
+              <div className="text-9xl font-bold text-green-600" style={{ fontSize: '180px' }}>
+                PAGADO
               </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-sm font-semibold">Tax ({taxRate}%):</span>
-                <span className="text-sm">${taxes.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between py-3 bg-gray-100 px-3 mt-2">
-                <span className="text-lg font-bold">TOTAL:</span>
-                <span className="text-lg font-bold">${total.toFixed(2)}</span>
-              </div>
+              <img 
+                src="/logo-1plusphonefix.png" 
+                alt="Logo" 
+                className="mx-auto mt-8"
+                style={{ width: '200px', filter: 'grayscale(100%)' }}
+              />
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Garantía Bilingüe */}
-        <div className="border-t-2 border-gray-200 pt-6">
-          <h2 className="text-lg font-semibold text-gray-700 mb-4 text-center">
-            WARRANTY / GARANTÍA
-          </h2>
-          
-          {/* Garantía en Inglés */}
-          <div className="mb-6">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">English:</h3>
-            <div className="text-xs text-gray-600 space-y-2">
-              <p>
-                <strong>90-Day Limited Warranty:</strong> We guarantee our repairs for 90 days from the date of service. 
-                This warranty covers defects in workmanship and parts used in the repair.
+        {/* Contenido principal */}
+        <div className="relative z-0 p-12">
+          {/* Encabezado */}
+          <div className="flex items-start justify-between mb-8 pb-6 border-b-2 border-gray-300">
+            <div>
+              <img 
+                src="/logo-1plusphonefix.png" 
+                alt="1+PhoneFix" 
+                className="h-20 mb-3"
+              />
+              <p className="text-base font-semibold text-gray-800">1+PhoneFix</p>
+              <p className="text-sm text-gray-600">Reparación de Teléfonos</p>
+              <p className="text-sm text-gray-600">Austin, TX</p>
+              <p className="text-sm text-gray-600">Tel: (512) XXX-XXXX</p>
+            </div>
+            <div className="text-right">
+              <h1 className="text-4xl font-bold text-gray-800 mb-2">RECIBO</h1>
+              <p className="text-lg font-semibold text-gray-700">#{repair.codigo}</p>
+              <p className="text-sm text-gray-600 mt-2">
+                Fecha: {new Date(repair.fechaIngreso).toLocaleDateString('es-ES', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
               </p>
-              <p>
-                <strong>What's Covered:</strong> Malfunctions directly related to the repair performed, defective replacement parts.
-              </p>
-              <p>
-                <strong>What's NOT Covered:</strong> Physical damage (drops, liquid damage, cracks), normal wear and tear, 
-                unauthorized repairs or modifications, damage caused by misuse or neglect.
-              </p>
-              <p>
-                <strong>Warranty Claim:</strong> To make a warranty claim, bring your device and this invoice to our store. 
-                We will inspect the device and, if the issue is covered, repair or replace the defective part at no charge.
-              </p>
-              <p className="font-semibold">
-                This warranty is non-transferable and applies only to the original customer.
-              </p>
+              {isPagado && (
+                <div className="mt-2 inline-block bg-green-100 text-green-800 px-3 py-1 rounded font-semibold">
+                  ✓ PAGADO
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Garantía en Español */}
-          <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">Español:</h3>
-            <div className="text-xs text-gray-600 space-y-2">
-              <p>
-                <strong>Garantía Limitada de 90 Días:</strong> Garantizamos nuestras reparaciones por 90 días desde la fecha del servicio. 
-                Esta garantía cubre defectos en la mano de obra y las partes utilizadas en la reparación.
+          {/* Información del Cliente */}
+          <div className="mb-8">
+            <h2 className="text-xl font-bold text-gray-800 mb-4 border-b-2 border-gray-200 pb-2">
+              Información del Cliente
+            </h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-600">Cliente:</p>
+                <p className="text-base font-semibold">{repair.cliente || 'No especificado'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Teléfono:</p>
+                <p className="text-base font-semibold">{repair.telefono || 'No especificado'}</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-sm text-gray-600">Dispositivo:</p>
+                <p className="text-base font-semibold">{repair.dispositivo}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Descripción del Servicio */}
+          <div className="mb-8">
+            <h2 className="text-xl font-bold text-gray-800 mb-4 border-b-2 border-gray-200 pb-2">
+              Descripción del Servicio
+            </h2>
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-1">Problema Reportado:</p>
+              <p className="text-base">{repair.problema}</p>
+            </div>
+            {repair.diagnostico && (
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Diagnóstico:</p>
+                <p className="text-base">{repair.diagnostico}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Detalles de Costos */}
+          <div className="mb-8">
+            <h2 className="text-xl font-bold text-gray-800 mb-4 border-b-2 border-gray-200 pb-2">
+              Detalles de Costos
+            </h2>
+            <table className="w-full">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="text-left p-3 text-sm font-semibold text-gray-700 border">Concepto</th>
+                  <th className="text-right p-3 text-sm font-semibold text-gray-700 border">Monto</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="p-3 text-sm border">Mano de Obra</td>
+                  <td className="text-right p-3 text-sm border font-semibold">
+                    ${Number(repair.precioManoObra).toFixed(2)}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="p-3 text-sm border">Costo de Partes</td>
+                  <td className="text-right p-3 text-sm border font-semibold">
+                    ${Number(repair.costoPartes || 0).toFixed(2)}
+                  </td>
+                </tr>
+                <tr className="bg-gray-50">
+                  <td className="p-3 text-base font-bold border">TOTAL</td>
+                  <td className="text-right p-3 text-lg font-bold border text-green-600">
+                    ${Number(repair.precioTotal).toFixed(2)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Garantía */}
+          <div className="mb-8 bg-blue-50 border-2 border-blue-300 rounded-lg p-6">
+            <h2 className="text-xl font-bold text-blue-800 mb-3 flex items-center gap-2">
+              <span>🛡️</span>
+              Garantía de Servicio
+            </h2>
+            <div className="space-y-2">
+              <p className="text-base font-semibold text-blue-900">
+                Este servicio cuenta con una garantía de 60 días
               </p>
-              <p>
-                <strong>Qué Está Cubierto:</strong> Fallas directamente relacionadas con la reparación realizada, partes de reemplazo defectuosas.
+              <p className="text-sm text-blue-800">
+                Válida hasta: <span className="font-bold">
+                  {fechaGarantia.toLocaleDateString('es-ES', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </span>
               </p>
-              <p>
-                <strong>Qué NO Está Cubierto:</strong> Daños físicos (caídas, daño por líquidos, grietas), desgaste normal, 
-                reparaciones o modificaciones no autorizadas, daños causados por mal uso o negligencia.
+              <div className="mt-4 text-xs text-blue-700 space-y-1">
+                <p>• La garantía cubre defectos en la reparación realizada</p>
+                <p>• No cubre daños por mal uso o accidentes posteriores</p>
+                <p>• Debe presentar este recibo para hacer válida la garantía</p>
+                <p>• La garantía es válida únicamente en 1+PhoneFix</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Notas Adicionales */}
+          {repair.notas && (
+            <div className="mb-8">
+              <h2 className="text-lg font-bold text-gray-800 mb-2">Notas:</h2>
+              <p className="text-sm text-gray-700 bg-gray-50 p-4 rounded border border-gray-200">
+                {repair.notas}
               </p>
-              <p>
-                <strong>Reclamación de Garantía:</strong> Para hacer una reclamación de garantía, traiga su dispositivo y esta factura a nuestra tienda. 
-                Inspeccionaremos el dispositivo y, si el problema está cubierto, repararemos o reemplazaremos la parte defectuosa sin cargo.
+            </div>
+          )}
+
+          {/* Pie de página */}
+          <div className="mt-12 pt-6 border-t-2 border-gray-300">
+            <div className="text-center space-y-2">
+              <p className="text-sm text-gray-600">
+                Gracias por confiar en 1+PhoneFix
               </p>
-              <p className="font-semibold">
-                Esta garantía no es transferible y aplica solo al cliente original.
+              <p className="text-xs text-gray-500">
+                Este documento es un comprobante de servicio
+              </p>
+              <p className="text-xs text-gray-500">
+                Para consultas o soporte, contáctenos al (512) XXX-XXXX
               </p>
             </div>
           </div>
-        </div>
 
-        {/* Pie de página */}
-        <div className="mt-8 pt-6 border-t border-gray-200 text-center text-xs text-gray-500">
-          <p>Thank you for choosing 1+PhoneFix! / ¡Gracias por elegir 1+PhoneFix!</p>
-          <p className="mt-1">For questions or concerns, please contact us.</p>
+          {/* Firma del Cliente (espacio) */}
+          <div className="mt-12 pt-8">
+            <div className="flex justify-between items-end">
+              <div className="w-64">
+                <div className="border-t-2 border-gray-400 pt-2">
+                  <p className="text-sm text-gray-600 text-center">Firma del Cliente</p>
+                </div>
+              </div>
+              <div className="w-64">
+                <div className="border-t-2 border-gray-400 pt-2">
+                  <p className="text-sm text-gray-600 text-center">Firma del Técnico</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Estilos de impresión */}
       <style>{`
         @media print {
-          body * {
-            visibility: hidden;
+          body {
+            margin: 0;
+            padding: 0;
+          }
+          @page {
+            size: A4;
+            margin: 0;
           }
           .print\\:hidden {
             display: none !important;
           }
-          .max-w-4xl {
-            max-width: 100%;
-            margin: 0;
-            padding: 0;
-          }
-          .border-2 {
-            border: none;
+          .print\\:p-0 {
+            padding: 0 !important;
           }
         }
       `}</style>

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/card';
@@ -22,9 +22,19 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { trpc } from '@/lib/trpc';
-import { Wrench, Plus, DollarSign, Clock, CheckCircle, Package, Trash2, FileText } from 'lucide-react';
+import { Wrench, Plus, DollarSign, Clock, CheckCircle, Package, Trash2, FileText, Search, X } from 'lucide-react';
 import { FacturaReparacion } from '@/components/FacturaReparacion';
 import { toast } from 'sonner';
+
+interface ParteSelecc ionada {
+  id: string; // ID único temporal para React
+  partId?: number; // ID de la parte en inventario (undefined si es externa)
+  esExterna: boolean;
+  nombre: string;
+  cantidad: number;
+  costoUnitario: string;
+  cantidadDisponible?: number; // Solo para partes del inventario
+}
 
 export default function Reparaciones() {
   const { user } = useAuth();
@@ -32,17 +42,30 @@ export default function Reparaciones() {
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'pendiente' | 'en_proceso' | 'completada' | 'entregada'>('todos');
   const [facturaDialogOpen, setFacturaDialogOpen] = useState(false);
   const [reparacionSeleccionada, setReparacionSeleccionada] = useState<any>(null);
+  const [busquedaCliente, setBusquedaCliente] = useState('');
+  const [partesSeleccionadas, setPartesSeleccionadas] = useState<ParteSelecc ionada[]>([]);
+  const [siguienteCodigo, setSiguienteCodigo] = useState('REP-001');
 
   // Queries
   const { data: repairs = [], refetch } = trpc.repairs.list.useQuery();
   const { data: parts = [] } = trpc.inventoryParts.list.useQuery({ activo: 1 });
+  const { data: nextCodeData } = trpc.repairs.getNextCode.useQuery();
   
+  // Actualizar el código cuando se obtiene del servidor
+  useEffect(() => {
+    if (nextCodeData?.codigo) {
+      setSiguienteCodigo(nextCodeData.codigo);
+    }
+  }, [nextCodeData]);
+
   // Mutations
   const createMutation = trpc.repairs.create.useMutation({
     onSuccess: () => {
       toast.success('Reparación registrada exitosamente');
       refetch();
       setDialogOpen(false);
+      setPartesSeleccionadas([]);
+      setBusquedaCliente('');
     },
     onError: (error) => {
       toast.error('Error al registrar reparación: ' + error.message);
@@ -69,11 +92,36 @@ export default function Reparaciones() {
     },
   });
 
-  // Filtrar reparaciones
+  const addPartsMutation = trpc.repairs.addParts.useMutation({
+    onSuccess: () => {
+      toast.success('Partes agregadas exitosamente');
+      refetch();
+    },
+    onError: (error) => {
+      toast.error('Error al agregar partes: ' + error.message);
+    },
+  });
+
+  // Filtrar reparaciones por cliente
   const repairsFiltradas = useMemo(() => {
-    if (filtroEstado === 'todos') return repairs;
-    return repairs.filter(r => r.estado === filtroEstado);
-  }, [repairs, filtroEstado]);
+    let filtered = repairs;
+    
+    // Filtrar por estado
+    if (filtroEstado !== 'todos') {
+      filtered = filtered.filter(r => r.estado === filtroEstado);
+    }
+    
+    // Filtrar por búsqueda de cliente
+    if (busquedaCliente.trim()) {
+      const search = busquedaCliente.toLowerCase();
+      filtered = filtered.filter(r => 
+        r.cliente?.toLowerCase().includes(search) ||
+        r.telefono?.includes(search)
+      );
+    }
+    
+    return filtered;
+  }, [repairs, filtroEstado, busquedaCliente]);
 
   // Calcular totales
   const totales = useMemo(() => {
@@ -104,10 +152,80 @@ export default function Reparaciones() {
     };
   }, [repairs]);
 
+  // Agregar parte del inventario
+  const handleAgregarParteInventario = (partId: number) => {
+    const parte = parts.find(p => p.id === partId);
+    if (!parte) return;
+
+    const nuevaParte: ParteSelecc ionada = {
+      id: `inv-${Date.now()}-${Math.random()}`,
+      partId: parte.id,
+      esExterna: false,
+      nombre: parte.nombre,
+      cantidad: 1,
+      costoUnitario: parte.precioCompraUnitario,
+      cantidadDisponible: parte.cantidadActual,
+    };
+
+    setPartesSeleccionadas([...partesSeleccionadas, nuevaParte]);
+  };
+
+  // Agregar parte externa
+  const handleAgregarParteExterna = () => {
+    const nuevaParte: ParteSelecc ionada = {
+      id: `ext-${Date.now()}-${Math.random()}`,
+      esExterna: true,
+      nombre: '',
+      cantidad: 1,
+      costoUnitario: '0.00',
+    };
+
+    setPartesSeleccionadas([...partesSeleccionadas, nuevaParte]);
+  };
+
+  // Eliminar parte
+  const handleEliminarParte = (id: string) => {
+    setPartesSeleccionadas(partesSeleccionadas.filter(p => p.id !== id));
+  };
+
+  // Actualizar parte
+  const handleActualizarParte = (id: string, campo: keyof ParteSelecc ionada, valor: any) => {
+    setPartesSeleccionadas(partesSeleccionadas.map(p => 
+      p.id === id ? { ...p, [campo]: valor } : p
+    ));
+  };
+
+  // Calcular costo total de partes
+  const costoTotalPartes = useMemo(() => {
+    return partesSeleccionadas.reduce((sum, p) => 
+      sum + (Number(p.costoUnitario) * p.cantidad), 0
+    );
+  }, [partesSeleccionadas]);
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
+    // Validar partes
+    for (const parte of partesSeleccionadas) {
+      if (parte.esExterna && !parte.nombre.trim()) {
+        toast.error('Todas las partes externas deben tener un nombre');
+        return;
+      }
+      if (!parte.esExterna && parte.cantidadDisponible !== undefined && parte.cantidad > parte.cantidadDisponible) {
+        toast.error(`Stock insuficiente para ${parte.nombre}. Disponible: ${parte.cantidadDisponible}`);
+        return;
+      }
+    }
+
+    // Preparar datos de partes para el backend
+    const partesParaBackend = partesSeleccionadas.map(p => ({
+      partId: p.partId,
+      cantidad: p.cantidad,
+      nombre: p.esExterna ? p.nombre : undefined,
+      costoUnitario: p.esExterna ? p.costoUnitario : undefined,
+    }));
+
     createMutation.mutate({
       codigo: formData.get('codigo') as string,
       cliente: formData.get('cliente') as string || undefined,
@@ -119,6 +237,7 @@ export default function Reparaciones() {
       precioTotal: formData.get('precioTotal') as string,
       fechaIngreso: formData.get('fechaIngreso') as string,
       notas: formData.get('notas') as string || undefined,
+      partes: partesParaBackend.length > 0 ? partesParaBackend : undefined,
     });
   };
 
@@ -174,25 +293,40 @@ export default function Reparaciones() {
               Control de reparaciones y servicios
             </p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <Dialog open={dialogOpen} onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) {
+              setPartesSeleccionadas([]);
+              setBusquedaCliente('');
+            }
+          }}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
                 Nueva Reparación
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Registrar Nueva Reparación</DialogTitle>
                 <DialogDescription>
-                  Ingresa los detalles de la reparación
+                  Ingresa los detalles de la reparación y las partes utilizadas
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Código y Fecha */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="codigo">Código *</Label>
-                    <Input id="codigo" name="codigo" placeholder="REP-001" required />
+                    <Input 
+                      id="codigo" 
+                      name="codigo" 
+                      defaultValue={siguienteCodigo}
+                      placeholder="REP-001" 
+                      required 
+                      readOnly
+                      className="bg-gray-50"
+                    />
                   </div>
                   <div>
                     <Label htmlFor="fechaIngreso">Fecha de Ingreso *</Label>
@@ -206,32 +340,146 @@ export default function Reparaciones() {
                   </div>
                 </div>
 
+                {/* Cliente y Teléfono */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="cliente">Cliente</Label>
-                    <Input id="cliente" name="cliente" placeholder="Nombre del cliente" />
+                    <Input 
+                      id="cliente" 
+                      name="cliente" 
+                      placeholder="Nombre del cliente" 
+                    />
                   </div>
                   <div>
                     <Label htmlFor="telefono">Teléfono</Label>
-                    <Input id="telefono" name="telefono" placeholder="555-1234" />
+                    <Input 
+                      id="telefono" 
+                      name="telefono" 
+                      placeholder="555-1234" 
+                    />
                   </div>
                 </div>
 
+                {/* Dispositivo */}
                 <div>
                   <Label htmlFor="dispositivo">Dispositivo *</Label>
-                  <Input id="dispositivo" name="dispositivo" placeholder="iPhone 13 Pro" required />
+                  <Input 
+                    id="dispositivo" 
+                    name="dispositivo" 
+                    placeholder="iPhone 13 Pro" 
+                    required 
+                  />
                 </div>
 
+                {/* Problema y Diagnóstico */}
                 <div>
                   <Label htmlFor="problema">Problema Reportado *</Label>
-                  <Textarea id="problema" name="problema" placeholder="Descripción del problema" required />
+                  <Textarea 
+                    id="problema" 
+                    name="problema" 
+                    placeholder="Descripción del problema" 
+                    required 
+                  />
                 </div>
 
                 <div>
                   <Label htmlFor="diagnostico">Diagnóstico</Label>
-                  <Textarea id="diagnostico" name="diagnostico" placeholder="Diagnóstico técnico" />
+                  <Textarea 
+                    id="diagnostico" 
+                    name="diagnostico" 
+                    placeholder="Diagnóstico técnico" 
+                  />
                 </div>
 
+                {/* Partes Utilizadas */}
+                <div className="border rounded-lg p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-lg font-semibold">Partes Utilizadas</Label>
+                    <div className="flex gap-2">
+                      <Select onValueChange={(value) => handleAgregarParteInventario(Number(value))}>
+                        <SelectTrigger className="w-[200px]">
+                          <SelectValue placeholder="Del inventario" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {parts.map(part => (
+                            <SelectItem key={part.id} value={part.id.toString()}>
+                              {part.nombre} ({part.cantidadActual} disp.)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button 
+                        type="button" 
+                        variant="outline"
+                        onClick={handleAgregarParteExterna}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Fuera de Inv.
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Lista de partes seleccionadas */}
+                  {partesSeleccionadas.length > 0 && (
+                    <div className="space-y-2">
+                      {partesSeleccionadas.map(parte => (
+                        <div key={parte.id} className="flex items-center gap-2 p-2 border rounded">
+                          {parte.esExterna ? (
+                            <>
+                              <Input
+                                placeholder="Nombre de la parte"
+                                value={parte.nombre}
+                                onChange={(e) => handleActualizarParte(parte.id, 'nombre', e.target.value)}
+                                className="flex-1"
+                              />
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="Costo"
+                                value={parte.costoUnitario}
+                                onChange={(e) => handleActualizarParte(parte.id, 'costoUnitario', e.target.value)}
+                                className="w-24"
+                              />
+                            </>
+                          ) : (
+                            <>
+                              <span className="flex-1">{parte.nombre}</span>
+                              <span className="text-sm text-gray-500">
+                                ${parte.costoUnitario} c/u
+                              </span>
+                            </>
+                          )}
+                          <Input
+                            type="number"
+                            min="1"
+                            max={parte.cantidadDisponible}
+                            value={parte.cantidad}
+                            onChange={(e) => handleActualizarParte(parte.id, 'cantidad', Number(e.target.value))}
+                            className="w-20"
+                          />
+                          <span className="text-sm font-medium w-20 text-right">
+                            ${(Number(parte.costoUnitario) * parte.cantidad).toFixed(2)}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEliminarParte(parte.id)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      <div className="flex justify-end pt-2 border-t">
+                        <span className="font-semibold">
+                          Costo Total Partes: ${costoTotalPartes.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Precios */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="precioManoObra">Precio Mano de Obra *</Label>
@@ -241,6 +489,7 @@ export default function Reparaciones() {
                       type="number" 
                       step="0.01" 
                       placeholder="50.00" 
+                      defaultValue="50.00"
                       required 
                     />
                   </div>
@@ -252,22 +501,33 @@ export default function Reparaciones() {
                       type="number" 
                       step="0.01" 
                       placeholder="100.00" 
+                      defaultValue={( costoTotalPartes + 50).toFixed(2)}
                       required 
                     />
                   </div>
                 </div>
 
+                {/* Notas */}
                 <div>
                   <Label htmlFor="notas">Notas</Label>
-                  <Textarea id="notas" name="notas" placeholder="Observaciones adicionales" />
+                  <Textarea 
+                    id="notas" 
+                    name="notas" 
+                    placeholder="Observaciones adicionales" 
+                  />
                 </div>
 
+                {/* Botones */}
                 <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setDialogOpen(false)}
+                  >
                     Cancelar
                   </Button>
                   <Button type="submit" disabled={createMutation.isPending}>
-                    {createMutation.isPending ? 'Guardando...' : 'Guardar'}
+                    {createMutation.isPending ? 'Guardando...' : 'Guardar Reparación'}
                   </Button>
                 </div>
               </form>
@@ -280,223 +540,166 @@ export default function Reparaciones() {
           <Card className="p-4 bg-yellow-50 border-yellow-200">
             <div className="flex items-center gap-2 mb-2">
               <Clock className="h-5 w-5 text-yellow-600" />
-              <p className="text-sm font-medium text-yellow-600">Pendientes</p>
+              <span className="text-sm font-medium text-yellow-700">Pendientes</span>
             </div>
-            <p className="text-2xl font-bold text-yellow-700">{totales.pendientes}</p>
+            <p className="text-2xl font-bold text-yellow-900">{totales.pendientes}</p>
           </Card>
 
           <Card className="p-4 bg-blue-50 border-blue-200">
             <div className="flex items-center gap-2 mb-2">
               <Wrench className="h-5 w-5 text-blue-600" />
-              <p className="text-sm font-medium text-blue-600">En Proceso</p>
+              <span className="text-sm font-medium text-blue-700">En Proceso</span>
             </div>
-            <p className="text-2xl font-bold text-blue-700">{totales.enProceso}</p>
+            <p className="text-2xl font-bold text-blue-900">{totales.enProceso}</p>
           </Card>
 
           <Card className="p-4 bg-green-50 border-green-200">
             <div className="flex items-center gap-2 mb-2">
               <CheckCircle className="h-5 w-5 text-green-600" />
-              <p className="text-sm font-medium text-green-600">Completadas</p>
+              <span className="text-sm font-medium text-green-700">Completadas</span>
             </div>
-            <p className="text-2xl font-bold text-green-700">{totales.completadas}</p>
+            <p className="text-2xl font-bold text-green-900">{totales.completadas}</p>
           </Card>
 
-          <Card className="p-4 bg-emerald-50 border-emerald-200">
+          <Card className="p-4 bg-purple-50 border-purple-200">
             <div className="flex items-center gap-2 mb-2">
-              <DollarSign className="h-5 w-5 text-emerald-600" />
-              <p className="text-sm font-medium text-emerald-600">Ganancia</p>
+              <DollarSign className="h-5 w-5 text-purple-600" />
+              <span className="text-sm font-medium text-purple-700">Ganancia Total</span>
             </div>
-            <p className="text-2xl font-bold text-emerald-700">${totales.gananciaTotal.toFixed(2)}</p>
-            <p className="text-sm text-emerald-600">Neta</p>
+            <p className="text-2xl font-bold text-purple-900">
+              ${totales.gananciaTotal.toFixed(2)}
+            </p>
           </Card>
         </div>
 
-        {/* Filtros */}
+        {/* Filtros y Búsqueda */}
         <Card className="p-4">
-          <div className="flex items-center gap-4">
-            <Label>Filtrar por estado:</Label>
-            <div className="flex gap-2">
-              <Button
-                variant={filtroEstado === 'todos' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFiltroEstado('todos')}
-              >
-                Todos ({totales.total})
-              </Button>
-              <Button
-                variant={filtroEstado === 'pendiente' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFiltroEstado('pendiente')}
-              >
-                Pendientes ({totales.pendientes})
-              </Button>
-              <Button
-                variant={filtroEstado === 'en_proceso' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFiltroEstado('en_proceso')}
-              >
-                En Proceso ({totales.enProceso})
-              </Button>
-              <Button
-                variant={filtroEstado === 'completada' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFiltroEstado('completada')}
-              >
-                Completadas ({totales.completadas})
-              </Button>
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Buscar por nombre de cliente o teléfono..."
+                  value={busquedaCliente}
+                  onChange={(e) => setBusquedaCliente(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
             </div>
+            <Select value={filtroEstado} onValueChange={(value: any) => setFiltroEstado(value)}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los estados</SelectItem>
+                <SelectItem value="pendiente">Pendientes</SelectItem>
+                <SelectItem value="en_proceso">En Proceso</SelectItem>
+                <SelectItem value="completada">Completadas</SelectItem>
+                <SelectItem value="entregada">Entregadas</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </Card>
 
         {/* Lista de Reparaciones */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {repairsFiltradas.map((repair) => (
-            <Card key={repair.id} className="p-4">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Wrench className="h-5 w-5 text-blue-600" />
-                  <span className="text-sm font-mono text-gray-600">{repair.codigo}</span>
-                </div>
-                <span className={`px-2 py-1 rounded text-xs font-medium ${getEstadoBadge(repair.estado)}`}>
-                  {getEstadoTexto(repair.estado)}
-                </span>
-              </div>
-
-              <h3 className="font-semibold text-lg mb-1">{repair.dispositivo}</h3>
-              {repair.cliente && (
-                <p className="text-sm text-gray-600 mb-1">Cliente: {repair.cliente}</p>
-              )}
-              {repair.telefono && (
-                <p className="text-sm text-gray-600 mb-3">Tel: {repair.telefono}</p>
-              )}
-
-              <div className="bg-gray-50 p-3 rounded mb-3">
-                <p className="text-sm font-medium text-gray-700 mb-1">Problema:</p>
-                <p className="text-sm text-gray-600">{repair.problema}</p>
-              </div>
-
-              {repair.diagnostico && (
-                <div className="bg-blue-50 p-3 rounded mb-3">
-                  <p className="text-sm font-medium text-blue-700 mb-1">Diagnóstico:</p>
-                  <p className="text-sm text-blue-600">{repair.diagnostico}</p>
-                </div>
-              )}
-
-              <div className="border-t pt-3 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Precio Total:</span>
-                  <span className="font-semibold text-green-600">${Number(repair.precioTotal).toFixed(2)}</span>
-                </div>
-                {(repair.estado === 'completada' || repair.estado === 'entregada') && (
-                  <>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Costo Partes:</span>
-                      <span className="font-semibold text-orange-600">-${Number(repair.costoPartes).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm border-t pt-2">
-                      <span className="text-gray-600">Ganancia:</span>
-                      <span className="font-semibold text-emerald-600">${Number(repair.ganancia).toFixed(2)}</span>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {repair.notas && (
-                <p className="text-xs text-gray-500 mt-3 border-t pt-2">{repair.notas}</p>
-              )}
-
-              <div className="mt-4 space-y-2">
-                {/* Botón de Factura (solo para completadas o entregadas) */}
-                {(repair.estado === 'completada' || repair.estado === 'entregada') && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => {
-                      setReparacionSeleccionada(repair);
-                      setFacturaDialogOpen(true);
-                    }}
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Generar Factura
-                  </Button>
-                )}
-                
-                {repair.estado === 'pendiente' && (
-                  <Button
-                    size="sm"
-                    className="w-full"
-                    onClick={() => handleUpdateEstado(repair.id, 'en_proceso')}
-                  >
-                    Iniciar Reparación
-                  </Button>
-                )}
-                {repair.estado === 'en_proceso' && (
-                  <Button
-                    size="sm"
-                    className="w-full"
-                    onClick={() => handleUpdateEstado(repair.id, 'completada')}
-                  >
-                    Marcar Completada
-                  </Button>
-                )}
-                {repair.estado === 'completada' && (
-                  <Button
-                    size="sm"
-                    className="w-full"
-                    onClick={() => handleUpdateEstado(repair.id, 'entregada')}
-                  >
-                    Marcar Entregada
-                  </Button>
-                )}
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  className="w-full"
-                  onClick={() => handleDelete(repair.id)}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Eliminar
-                </Button>
-              </div>
+        <div className="space-y-4">
+          {repairsFiltradas.length === 0 ? (
+            <Card className="p-8 text-center">
+              <p className="text-gray-500">No hay reparaciones que mostrar</p>
             </Card>
-          ))}
+          ) : (
+            repairsFiltradas.map((repair) => (
+              <Card key={repair.id} className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-bold text-lg">{repair.codigo}</span>
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${getEstadoBadge(repair.estado)}`}>
+                        {getEstadoTexto(repair.estado)}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-gray-600">Cliente:</p>
+                        <p className="font-medium">{repair.cliente || 'Sin nombre'}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">Teléfono:</p>
+                        <p className="font-medium">{repair.telefono || 'Sin teléfono'}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">Dispositivo:</p>
+                        <p className="font-medium">{repair.dispositivo}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">Fecha de Ingreso:</p>
+                        <p className="font-medium">
+                          {new Date(repair.fechaIngreso).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">Precio Total:</p>
+                        <p className="font-medium text-green-600">${Number(repair.precioTotal).toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">Ganancia:</p>
+                        <p className="font-medium text-blue-600">${Number(repair.ganancia).toFixed(2)}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Select 
+                      value={repair.estado} 
+                      onValueChange={(value) => handleUpdateEstado(repair.id, value)}
+                    >
+                      <SelectTrigger className="w-[150px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pendiente">Pendiente</SelectItem>
+                        <SelectItem value="en_proceso">En Proceso</SelectItem>
+                        <SelectItem value="completada">Completada</SelectItem>
+                        <SelectItem value="entregada">Entregada</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setReparacionSeleccionada(repair);
+                        setFacturaDialogOpen(true);
+                      }}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Recibo
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDelete(repair.id)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Eliminar
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))
+          )}
         </div>
 
-        {repairsFiltradas.length === 0 && (
-          <Card className="p-12 text-center">
-            <Wrench className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">No hay reparaciones en esta categoría</p>
-          </Card>
-        )}
+        {/* Dialog de Factura */}
+        <Dialog open={facturaDialogOpen} onOpenChange={setFacturaDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Recibo de Reparación</DialogTitle>
+            </DialogHeader>
+            {reparacionSeleccionada && (
+              <FacturaReparacion repair={reparacionSeleccionada} />
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
-
-      {/* Dialog de Factura */}
-      <Dialog open={facturaDialogOpen} onOpenChange={setFacturaDialogOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Factura de Reparación</DialogTitle>
-            <DialogDescription>
-              Generar factura para el cliente
-            </DialogDescription>
-          </DialogHeader>
-          {reparacionSeleccionada && (
-            <FacturaReparacion
-              reparacion={{
-                id: reparacionSeleccionada.id,
-                cliente: reparacionSeleccionada.cliente || 'Cliente',
-                telefono: reparacionSeleccionada.telefono || 'N/A',
-                dispositivo: reparacionSeleccionada.dispositivo,
-                problema: reparacionSeleccionada.problema,
-                precio: Number(reparacionSeleccionada.precioTotal),
-                fecha: new Date(reparacionSeleccionada.fechaIngreso),
-                estado: reparacionSeleccionada.estado,
-              }}
-              taxRate={8.25}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </DashboardLayout>
   );
 }

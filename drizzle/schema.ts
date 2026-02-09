@@ -257,6 +257,7 @@ export const repairs = mysqlTable("repairs", {
   fechaCompletado: timestamp("fechaCompletado"),
   fechaEntrega: timestamp("fechaEntrega"),
   tienda: mysqlEnum("tienda", ["admin", "sucursal"]).default("admin").notNull(),
+  pagado: int("pagado").default(0).notNull(), // 0 = no pagado, 1 = pagado
   notas: text("notas"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -271,7 +272,9 @@ export type InsertRepair = typeof repairs.$inferInsert;
 export const repairParts = mysqlTable("repair_parts", {
   id: int("id").autoincrement().primaryKey(),
   repairId: int("repairId").notNull(), // FK a repairs
-  partId: int("partId").notNull(), // FK a inventory_parts
+  partId: int("partId"), // FK a inventory_parts (null si es parte externa)
+  esExterna: int("esExterna").default(0).notNull(), // 0 = del inventario, 1 = externa
+  nombreExterno: varchar("nombreExterno", { length: 200 }), // Nombre si es parte externa
   cantidad: int("cantidad").notNull(), // Cantidad de partes usadas
   costoUnitario: decimal("costoUnitario", { precision: 10, scale: 2 }).notNull(), // Costo al momento de usar
   costoTotal: decimal("costoTotal", { precision: 10, scale: 2 }).notNull(), // cantidad * costoUnitario

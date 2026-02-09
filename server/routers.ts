@@ -585,6 +585,14 @@ export const appRouter = router({
 
   // ==================== REPAIRS ====================
   repairs: router({
+    getNextCode: publicProcedure
+      .query(async ({ ctx }) => {
+        const { getNextRepairCode } = await import('./repair-utils');
+        const tienda = ctx.user?.tienda || 'admin';
+        const nextCode = await getNextRepairCode(tienda);
+        return { codigo: nextCode };
+      }),
+
     list: publicProcedure
       .input(z.object({
         estado: z.enum(['pendiente', 'en_proceso', 'completada', 'entregada']).optional(),
