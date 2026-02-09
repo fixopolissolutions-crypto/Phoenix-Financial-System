@@ -671,11 +671,11 @@ export async function createInventoryAccessory(data: InsertInventoryAccessory) {
         tienda, activo
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        accessoryData.codigo, accessoryData.nombre, accessoryData.categoria,
+        accessoryData.codigo, accessoryData.nombre, accessoryData.categoria || null,
         accessoryData.precioCompraUnitario, accessoryData.precioVentaUnitario,
         accessoryData.cantidadInicial, accessoryData.cantidadActual,
         accessoryData.cantidadVendida, accessoryData.stockMinimo,
-        accessoryData.tienda, accessoryData.activo
+        accessoryData.tienda, accessoryData.activo ?? 1
       ]
     );
     await connection.end();
@@ -783,11 +783,11 @@ export async function createInventoryPart(data: InsertInventoryPart) {
         tienda, activo
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        partData.codigo, partData.nombre, partData.categoria,
-        partData.compatibilidad, partData.precioCompraUnitario,
+        partData.codigo, partData.nombre, partData.categoria || null,
+        partData.compatibilidad || null, partData.precioCompraUnitario,
         partData.cantidadInicial, partData.cantidadActual,
         partData.cantidadUsada, partData.stockMinimo,
-        partData.tienda, partData.activo
+        partData.tienda, partData.activo ?? 1
       ]
     );
     await connection.end();
