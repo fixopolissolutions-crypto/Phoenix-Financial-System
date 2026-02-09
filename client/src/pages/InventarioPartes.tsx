@@ -97,8 +97,8 @@ export default function InventarioPartes() {
     createMutation.mutate({
       codigo: formData.get('codigo') as string,
       nombre: formData.get('nombre') as string,
-      categoria: (formData.get('categoria') as string) || null,
-      compatibilidad: (formData.get('compatibilidad') as string) || null,
+      categoria: (formData.get('categoria') as string) || '',
+      compatibilidad: (formData.get('compatibilidad') as string) || '',
       precioCompraUnitario: formData.get('precioCompraUnitario') as string,
       cantidadInicial: Number(formData.get('cantidadInicial')),
       stockMinimo: Number(formData.get('stockMinimo')),
