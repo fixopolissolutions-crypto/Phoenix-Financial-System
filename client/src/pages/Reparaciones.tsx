@@ -26,7 +26,7 @@ import { Wrench, Plus, DollarSign, Clock, CheckCircle, Package, Trash2, FileText
 import { FacturaReparacion } from '@/components/FacturaReparacion';
 import { toast } from 'sonner';
 
-interface ParteSelecc ionada {
+interface ParteSeleccionada {
   id: string; // ID único temporal para React
   partId?: number; // ID de la parte en inventario (undefined si es externa)
   esExterna: boolean;
@@ -43,7 +43,7 @@ export default function Reparaciones() {
   const [facturaDialogOpen, setFacturaDialogOpen] = useState(false);
   const [reparacionSeleccionada, setReparacionSeleccionada] = useState<any>(null);
   const [busquedaCliente, setBusquedaCliente] = useState('');
-  const [partesSeleccionadas, setPartesSeleccionadas] = useState<ParteSelecc ionada[]>([]);
+  const [partesSeleccionadas, setPartesSeleccionadas] = useState<ParteSeleccionada[]>([]);
   const [siguienteCodigo, setSiguienteCodigo] = useState('REP-001');
 
   // Queries
@@ -157,7 +157,7 @@ export default function Reparaciones() {
     const parte = parts.find(p => p.id === partId);
     if (!parte) return;
 
-    const nuevaParte: ParteSelecc ionada = {
+    const nuevaParte: ParteSeleccionada = {
       id: `inv-${Date.now()}-${Math.random()}`,
       partId: parte.id,
       esExterna: false,
@@ -172,7 +172,7 @@ export default function Reparaciones() {
 
   // Agregar parte externa
   const handleAgregarParteExterna = () => {
-    const nuevaParte: ParteSelecc ionada = {
+    const nuevaParte: ParteSeleccionada = {
       id: `ext-${Date.now()}-${Math.random()}`,
       esExterna: true,
       nombre: '',
@@ -189,7 +189,7 @@ export default function Reparaciones() {
   };
 
   // Actualizar parte
-  const handleActualizarParte = (id: string, campo: keyof ParteSelecc ionada, valor: any) => {
+  const handleActualizarParte = (id: string, campo: keyof ParteSeleccionada, valor: any) => {
     setPartesSeleccionadas(partesSeleccionadas.map(p => 
       p.id === id ? { ...p, [campo]: valor } : p
     ));
