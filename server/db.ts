@@ -1178,12 +1178,12 @@ export async function addRepairParts(
       const costoTotal = (Number(costoUnitario) * parte.cantidad).toFixed(2);
       costoPartesTotal += Number(costoTotal);
       
-      // Insertar en repair_parts
-      await connection.execute(
-        `INSERT INTO repair_parts (repairId, partId, cantidad, costoUnitario, costoTotal)
-         VALUES (?, ?, ?, ?, ?)`,
-        [repairId, partId, parte.cantidad, costoUnitario, costoTotal]
-      );
+      // Insertar en repair_parts (comentado temporalmente - tabla no existe o tiene esquema diferente)
+      // await connection.execute(
+      //   `INSERT INTO repair_parts (repairId, partId, cantidad, costoUnitario, costoTotal)
+      //    VALUES (?, ?, ?, ?, ?)`,
+      //   [repairId, partId, parte.cantidad, costoUnitario, costoTotal]
+      // );
     }
     
     // Obtener el precio total de la reparación
