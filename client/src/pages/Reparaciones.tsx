@@ -34,8 +34,8 @@ export default function Reparaciones() {
   const [reparacionSeleccionada, setReparacionSeleccionada] = useState<any>(null);
 
   // Queries
-  const { data: repairs = [], refetch } = trpc.repairs.list.useQuery({ tienda: user?.tienda });
-  const { data: parts = [] } = trpc.inventoryParts.list.useQuery({ tienda: user?.tienda, activo: 1 });
+  const { data: repairs = [], refetch } = trpc.repairs.list.useQuery();
+  const { data: parts = [] } = trpc.inventoryParts.list.useQuery({ activo: 1 });
   
   // Mutations
   const createMutation = trpc.repairs.create.useMutation({

@@ -26,7 +26,6 @@ export default function InventarioAccesorios() {
 
   // Queries
   const { data: accessories = [], refetch } = trpc.inventoryAccessories.list.useQuery({ 
-    tienda: user?.tienda,
     activo: 1 
   });
   

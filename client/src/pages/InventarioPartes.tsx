@@ -26,7 +26,6 @@ export default function InventarioPartes() {
 
   // Queries
   const { data: parts = [], refetch } = trpc.inventoryParts.list.useQuery({ 
-    tienda: user?.tienda,
     activo: 1 
   });
   

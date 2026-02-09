@@ -33,7 +33,7 @@ export default function InventarioTelefonos() {
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'disponible' | 'vendido' | 'reservado'>('todos');
 
   // Queries
-  const { data: phones = [], refetch } = trpc.inventoryPhones.list.useQuery({ tienda: user?.tienda });
+  const { data: phones = [], refetch } = trpc.inventoryPhones.list.useQuery();
   
   // Mutations
   const createMutation = trpc.inventoryPhones.create.useMutation({
