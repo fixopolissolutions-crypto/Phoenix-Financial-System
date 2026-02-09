@@ -159,7 +159,7 @@ export default function InventarioTelefonos() {
                   Registra un nuevo teléfono en el inventario
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form key={dialogOpen ? 'open' : 'closed'} onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="codigo">Código *</Label>
