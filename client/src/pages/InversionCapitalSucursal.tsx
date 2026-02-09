@@ -9,7 +9,7 @@ export default function InversionCapitalSucursal() {
   const { user } = useAuth();
 
   // Solo admin puede ver esta página
-  if (user?.tienda !== 'admin') {
+  if (user?.role !== 'admin') {
     return (
       <DashboardLayout>
         <div className="p-6">
