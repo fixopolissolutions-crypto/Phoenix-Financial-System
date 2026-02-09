@@ -342,7 +342,7 @@ export const appRouter = router({
         marca: z.string(),
         imei: z.string().optional(),
         carrier: z.string().optional(),
-        condicion: z.enum(['nuevo', 'usado', 'refurbished']).default('usado'),
+        condicion: z.enum(['nuevo', 'usado_a', 'usado_b', 'usado_c', 'para_partes']).default('usado_a'),
         precioCompra: z.string(),
         fechaCompra: z.string(),
         tienda: z.enum(['admin', 'sucursal']).default('admin'),
@@ -371,7 +371,7 @@ export const appRouter = router({
         marca: z.string().optional(),
         imei: z.string().optional(),
         carrier: z.string().optional(),
-        condicion: z.enum(['nuevo', 'usado', 'refurbished']).optional(),
+        condicion: z.enum(['nuevo', 'usado_a', 'usado_b', 'usado_c', 'para_partes']).optional(),
         precioCompra: z.string().optional(),
         notas: z.string().optional(),
       }))
