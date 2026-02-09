@@ -28,6 +28,7 @@ import { toast } from 'sonner';
 export default function InventarioTelefonos() {
   const { user } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [formKey, setFormKey] = useState(0);
   const [sellDialogOpen, setSellDialogOpen] = useState(false);
   const [selectedPhone, setSelectedPhone] = useState<any>(null);
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'disponible' | 'vendido' | 'reservado'>('todos');
@@ -41,6 +42,7 @@ export default function InventarioTelefonos() {
       toast.success('Teléfono agregado exitosamente');
       refetch();
       setDialogOpen(false);
+      setFormKey(prev => prev + 1);
     },
     onError: (error) => {
       toast.error('Error al agregar teléfono: ' + error.message);
@@ -159,7 +161,7 @@ export default function InventarioTelefonos() {
                   Registra un nuevo teléfono en el inventario
                 </DialogDescription>
               </DialogHeader>
-              <form key={dialogOpen ? 'open' : 'closed'} onSubmit={handleSubmit} className="space-y-4">
+              <form key={formKey} onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="codigo">Código *</Label>

@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 export default function InventarioPartes() {
   const { user } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [formKey, setFormKey] = useState(0);
   const [addStockDialogOpen, setAddStockDialogOpen] = useState(false);
   const [selectedPart, setSelectedPart] = useState<any>(null);
 
@@ -35,6 +36,7 @@ export default function InventarioPartes() {
       toast.success('Parte agregada exitosamente');
       refetch();
       setDialogOpen(false);
+      setFormKey(prev => prev + 1);
     },
     onError: (error) => {
       toast.error('Error al agregar parte: ' + error.message);
@@ -149,7 +151,7 @@ export default function InventarioPartes() {
                   Registra una nueva parte en el inventario
                 </DialogDescription>
               </DialogHeader>
-              <form key={dialogOpen ? 'open' : 'closed'} onSubmit={handleSubmit} className="space-y-4">
+              <form key={formKey} onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="codigo">Código *</Label>

@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 export default function InventarioAccesorios() {
   const { user } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [formKey, setFormKey] = useState(0);
   const [sellDialogOpen, setSellDialogOpen] = useState(false);
   const [addStockDialogOpen, setAddStockDialogOpen] = useState(false);
   const [selectedAccessory, setSelectedAccessory] = useState<any>(null);
@@ -35,6 +36,7 @@ export default function InventarioAccesorios() {
       toast.success('Accesorio agregado exitosamente');
       refetch();
       setDialogOpen(false);
+      setFormKey(prev => prev + 1);
     },
     onError: (error) => {
       toast.error('Error al agregar accesorio: ' + error.message);
@@ -182,7 +184,7 @@ export default function InventarioAccesorios() {
                   Registra un nuevo accesorio en el inventario
                 </DialogDescription>
               </DialogHeader>
-              <form key={dialogOpen ? 'open' : 'closed'} onSubmit={handleSubmit} className="space-y-4">
+              <form key={formKey} onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="codigo">Código *</Label>
