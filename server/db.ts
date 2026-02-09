@@ -643,12 +643,12 @@ export async function sellInventoryPhone(id: number, precioVenta: string, fechaV
       [ganancia, descripcion, phone.tienda, fechaVenta]
     );
     
-    // Registrar movimiento de inventario
-    await connection.execute(
-      `INSERT INTO inventory_movements (tipo, categoria, itemId, cantidad, monto, descripcion, fecha, tienda)
-       VALUES ('venta', 'telefono', ?, 1, ?, ?, ?, ?)`,
-      [id, precioVenta, descripcion, fechaVenta, phone.tienda]
-    );
+    // Registrar movimiento de inventario (comentado temporalmente)
+    // await connection.execute(
+    //   `INSERT INTO inventory_movements (tipo, categoria, itemId, cantidad, monto, descripcion, fecha, tienda)
+    //    VALUES ('venta', 'telefono', ?, 1, ?, ?, ?, ?)`,
+    //   [id, precioVenta, descripcion, fechaVenta, phone.tienda]
+    // );
     
     await connection.end();
     return { success: true, ganancia };
@@ -793,12 +793,12 @@ export async function sellAccessory(id: number, cantidad: number, fecha: Date) {
       [gananciaTotal, descripcion, accessory.tienda, fecha]
     );
     
-    // Registrar movimiento de inventario
-    await connection.execute(
-      `INSERT INTO inventory_movements (tipo, categoria, itemId, cantidad, monto, descripcion, fecha, tienda)
-       VALUES ('venta', 'accesorio', ?, ?, ?, ?, ?, ?)`,
-      [id, cantidad, montoVenta, descripcion, fecha, accessory.tienda]
-    );
+    // Registrar movimiento de inventario (comentado temporalmente)
+    // await connection.execute(
+    //   `INSERT INTO inventory_movements (tipo, categoria, itemId, cantidad, monto, descripcion, fecha, tienda)
+    //    VALUES ('venta', 'accesorio', ?, ?, ?, ?, ?, ?)`,
+    //   [id, cantidad, montoVenta, descripcion, fecha, accessory.tienda]
+    // );
     
     await connection.end();
     return { success: true, newCantidad, newVendida, ganancia: gananciaTotal };
