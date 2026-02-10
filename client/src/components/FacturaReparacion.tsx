@@ -10,6 +10,31 @@ export function FacturaReparacion({ repair }: FacturaReparacionProps) {
     window.print();
   };
 
+  // Agregar estilos de impresión
+  React.useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @media print {
+        @page {
+          size: A4;
+          margin: 0;
+        }
+        body {
+          margin: 0;
+          padding: 0;
+        }
+        * {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   // Calcular fecha de vencimiento de garantía (60 días)
   const fechaGarantia = new Date(repair.fechaIngreso);
   fechaGarantia.setDate(fechaGarantia.getDate() + 60);
