@@ -46,6 +46,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: 'Inversión de Capital', href: '/inversion-capital', icon: Package, roles: ['admin', 'sucursal'] },
     { name: 'Reparaciones', href: '/reparaciones', icon: Wrench, roles: ['admin', 'sucursal'] },
     { name: 'Proveedores', href: '/proveedores', icon: Users, roles: ['admin', 'sucursal'] },
+    { name: 'Configuración Tienda', href: '/configuracion-tienda', icon: Store, roles: ['admin', 'sucursal'] },
     ...(user.role === 'admin' ? [
       { name: 'Nómina', href: '/nomina', icon: Wallet, roles: ['admin'] },
       { name: 'Configuración', href: '/configuracion', icon: Settings, roles: ['admin'] },

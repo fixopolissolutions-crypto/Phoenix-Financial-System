@@ -373,6 +373,10 @@ async function startServer() {
     // Aplicar migraciones de base de datos
     await applyMigrations();
     
+    // Inicializar configuración de tiendas
+    const { initializeStoreConfig } = await import("../db");
+    await initializeStoreConfig();
+    
     // Iniciar scheduler para tareas programadas
     startScheduler();
   });

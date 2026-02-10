@@ -1,7 +1,7 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, publicProcedure, router } from "./_core/trpc";
+import { publicProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
 
@@ -685,6 +685,31 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         return await db.deleteRepair(input.id);
+      }),
+  }),
+
+  // ==================== STORE CONFIG ====================
+  storeConfig: router({
+    get: publicProcedure
+      .input(z.object({
+        tienda: z.enum(['admin', 'sucursal']),
+      }))
+      .query(async ({ input }) => {
+        return await db.getStoreConfig(input.tienda);
+      }),
+    update: publicProcedure
+      .input(z.object({
+        tienda: z.enum(['admin', 'sucursal']),
+        nombre: z.string(),
+        telefono: z.string().optional(),
+        direccion: z.string().optional(),
+        email: z.string().optional(),
+        ciudad: z.string().optional(),
+        estado: z.string().optional(),
+        codigoPostal: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return await db.updateStoreConfig(input);
       }),
   }),
 

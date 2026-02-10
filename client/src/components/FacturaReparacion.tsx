@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Printer } from 'lucide-react';
+import { trpc } from '@/lib/trpc';
 
 interface FacturaReparacionProps {
   repair: any;
@@ -9,6 +10,11 @@ export function FacturaReparacion({ repair }: FacturaReparacionProps) {
   const handlePrint = () => {
     window.print();
   };
+
+  // Obtener información de la tienda
+  const { data: storeInfo } = trpc.storeConfig.get.useQuery({
+    tienda: repair.tienda || 'admin',
+  });
 
   // Agregar estilos de impresión
   React.useEffect(() => {
@@ -92,10 +98,10 @@ export function FacturaReparacion({ repair }: FacturaReparacionProps) {
                 alt="1+PhoneFix" 
                 className="h-20 mb-3"
               />
-              <p className="text-base font-semibold text-gray-800">1+PhoneFix</p>
+              <p className="text-base font-semibold text-gray-800">{storeInfo?.nombre || '1+PhoneFix'}</p>
               <p className="text-sm text-gray-600">Reparación de Teléfonos</p>
-              <p className="text-sm text-gray-600">Austin, TX</p>
-              <p className="text-sm text-gray-600">Tel: (512) XXX-XXXX</p>
+              <p className="text-sm text-gray-600">{storeInfo?.ciudad || 'Austin'}, {storeInfo?.estado || 'TX'}</p>
+              <p className="text-sm text-gray-600">Tel: {storeInfo?.telefono || '(512) XXX-XXXX'}</p>
             </div>
             <div className="text-right">
               <h1 className="text-4xl font-bold text-gray-800 mb-2">RECIBO</h1>
@@ -261,13 +267,13 @@ export function FacturaReparacion({ repair }: FacturaReparacionProps) {
           <div className="mt-12 pt-6 border-t-2 border-gray-300">
             <div className="text-center space-y-2">
               <p className="text-sm text-gray-600">
-                Gracias por confiar en 1+PhoneFix
+                Gracias por confiar en {storeInfo?.nombre || '1+PhoneFix'}
               </p>
               <p className="text-xs text-gray-500">
                 Este documento es un comprobante de servicio
               </p>
               <p className="text-xs text-gray-500">
-                Para consultas o soporte, contáctenos al (512) XXX-XXXX
+                Para consultas o soporte, contáctenos al {storeInfo?.telefono || '(512) XXX-XXXX'}
               </p>
             </div>
           </div>

@@ -304,3 +304,23 @@ export const inventoryMovements = mysqlTable("inventory_movements", {
 
 export type InventoryMovement = typeof inventoryMovements.$inferSelect;
 export type InsertInventoryMovement = typeof inventoryMovements.$inferInsert;
+
+/**
+ * Configuración de Tiendas
+ */
+export const storeConfig = mysqlTable("store_config", {
+  id: int("id").autoincrement().primaryKey(),
+  tienda: mysqlEnum("tienda", ["admin", "sucursal"]).notNull().unique(),
+  nombre: varchar("nombre", { length: 200 }).notNull(), // Nombre del negocio
+  telefono: varchar("telefono", { length: 50 }), // Número de teléfono
+  direccion: text("direccion"), // Dirección física
+  email: varchar("email", { length: 320 }), // Email de contacto
+  ciudad: varchar("ciudad", { length: 100 }), // Ciudad
+  estado: varchar("estado", { length: 100 }), // Estado/Provincia
+  codigoPostal: varchar("codigoPostal", { length: 20 }), // Código postal
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type StoreConfig = typeof storeConfig.$inferSelect;
+export type InsertStoreConfig = typeof storeConfig.$inferInsert;

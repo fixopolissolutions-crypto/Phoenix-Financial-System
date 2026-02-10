@@ -16,7 +16,8 @@ import {
   inventoryParts, InsertInventoryPart, InventoryPart,
   repairs, InsertRepair, Repair,
   repairParts, InsertRepairPart, RepairPart,
-  inventoryMovements, InsertInventoryMovement, InventoryMovement
+  inventoryMovements, InsertInventoryMovement, InventoryMovement,
+  storeConfig
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1229,3 +1230,87 @@ export async function deleteRepair(id: number) {
 }
 // Force redeploy Wed Jan 14 21:16:08 EST 2026
 // Forced rebuild at 2026-01-21_13:16:40
+
+// ==================== STORE CONFIG ====================
+export async function getStoreConfig(tienda: 'admin' | 'sucursal') {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.select().from(storeConfig).where(eq(storeConfig.tienda, tienda));
+  return result[0] || null;
+}
+
+export async function updateStoreConfig(data: {
+  tienda: 'admin' | 'sucursal';
+  nombre: string;
+  telefono?: string;
+  direccion?: string;
+  email?: string;
+  ciudad?: string;
+  estado?: string;
+  codigoPostal?: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(storeConfig)
+    .set({
+      nombre: data.nombre,
+      telefono: data.telefono || null,
+      direccion: data.direccion || null,
+      email: data.email || null,
+      ciudad: data.ciudad || null,
+      estado: data.estado || null,
+      codigoPostal: data.codigoPostal || null,
+    })
+    .where(eq(storeConfig.tienda, data.tienda));
+  
+  return await getStoreConfig(data.tienda);
+}
+
+// Inicializar configuración de tiendas con datos por defecto
+export async function initializeStoreConfig() {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot initialize store config: database not available");
+    return;
+  }
+  
+  try {
+    // Verificar si ya existen configuraciones
+    const adminConfig = await getStoreConfig('admin');
+    const sucursalConfig = await getStoreConfig('sucursal');
+    
+    // Insertar configuración para admin si no existe
+    if (!adminConfig) {
+      await db.insert(storeConfig).values({
+        tienda: 'admin',
+        nombre: '1+PhoneFix - Admin',
+        telefono: '(512) XXX-XXXX',
+        email: 'admin@1plusphonefix.com',
+        direccion: '123 Main Street',
+        ciudad: 'Austin',
+        estado: 'TX',
+        codigoPostal: '78701',
+      });
+      console.log("[Database] Initialized store config for admin");
+    }
+    
+    // Insertar configuración para sucursal si no existe
+    if (!sucursalConfig) {
+      await db.insert(storeConfig).values({
+        tienda: 'sucursal',
+        nombre: '1+PhoneFix - Sucursal',
+        telefono: '(512) YYY-YYYY',
+        email: 'sucursal@1plusphonefix.com',
+        direccion: '456 Oak Avenue',
+        ciudad: 'Austin',
+        estado: 'TX',
+        codigoPostal: '78702',
+      });
+      console.log("[Database] Initialized store config for sucursal");
+    }
+  } catch (error) {
+    console.error("[Database] Failed to initialize store config:", error);
+  }
+}
