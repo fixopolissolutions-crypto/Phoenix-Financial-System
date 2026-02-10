@@ -203,7 +203,7 @@ export function generateReceiptPDF(repair: any, storeInfo: StoreConfig): Promise
 
       doc.fontSize(12)
          .fillColor('#1e40af')
-         .text('🛡️ WARRANTY / GARANTÍA', 60, warrantyTop + 10);
+         .text('WARRANTY / GARANTIA', 60, warrantyTop + 10);
 
       doc.fontSize(9)
          .fillColor('#1e3a8a')
@@ -262,12 +262,15 @@ export function generateReceiptPDF(repair: any, storeInfo: StoreConfig): Promise
       
       doc.fontSize(11)
          .fillColor('#1f2937')
+         .text(`Thank you for trusting ${storeInfo.nombre}`, { align: 'center' })
          .text(`Gracias por confiar en ${storeInfo.nombre}`, { align: 'center' });
+      
+      doc.moveDown(0.5);
       
       doc.fontSize(9)
          .fillColor('#6b7280')
-         .text('Este documento es un comprobante de servicio', { align: 'center' })
-         .text(`Para consultas o soporte, contáctenos al ${storeInfo.telefono}`, { align: 'center' });
+         .text('This document is a proof of service / Este documento es un comprobante de servicio', { align: 'center' })
+         .text(`For inquiries or support, contact us at / Para consultas o soporte, contactenos al ${storeInfo.telefono}`, { align: 'center' });
 
       // Firmas
       doc.moveDown(2);
