@@ -13,6 +13,7 @@ export const appRouter = router({
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      ctx.res.clearCookie('local_session', { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
     // Login local para admin/sucursal
@@ -21,18 +22,29 @@ export const appRouter = router({
         username: z.string(),
         password: z.string(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const credential = await db.getCredential(input.username);
         if (!credential || credential.password !== input.password) {
           return { success: false, error: 'Credenciales inválidas' };
         }
+        
+        // Crear sesión local con cookie
+        const sessionData = {
+          username: credential.username,
+          tienda: credential.tienda,
+          role: credential.tienda === 'admin' ? 'admin' : 'user',
+          loginMethod: 'local'
+        };
+        
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie('local_session', JSON.stringify(sessionData), {
+          ...cookieOptions,
+          maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
+        });
+        
         return { 
           success: true, 
-          user: { 
-            username: credential.username, 
-            tienda: credential.tienda,
-            role: credential.tienda === 'admin' ? 'admin' : 'user'
-          } 
+          user: sessionData
         };
       }),
   }),

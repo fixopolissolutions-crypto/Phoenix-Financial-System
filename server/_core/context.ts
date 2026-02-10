@@ -14,10 +14,31 @@ export async function createContext(
   let user: User | null = null;
 
   try {
+    // Intentar autenticación OAuth primero
     user = await sdk.authenticateRequest(opts.req);
   } catch (error) {
-    // Authentication is optional for public procedures.
-    user = null;
+    // Si falla OAuth, intentar sesión local
+    const localSession = opts.req.cookies?.local_session;
+    if (localSession) {
+      try {
+        const sessionData = JSON.parse(localSession);
+        // Crear un objeto User compatible con la sesión local
+        user = {
+          id: 0, // ID temporal para sesiones locales
+          openId: sessionData.username,
+          name: sessionData.username,
+          email: null,
+          loginMethod: 'local',
+          role: sessionData.role as 'admin' | 'user',
+          tienda: sessionData.tienda as 'admin' | 'sucursal',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          lastSignedIn: new Date(),
+        } as any;
+      } catch (e) {
+        user = null;
+      }
+    }
   }
 
   return {
