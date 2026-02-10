@@ -41,6 +41,12 @@ export function FacturaReparacion({ repair }: FacturaReparacionProps) {
 
   const isPagado = repair.pagado === 1;
 
+  // Calcular subtotal y taxes
+  const subtotal = Number(repair.precioTotal);
+  const taxRate = 0.0825; // 8.25% tax rate
+  const taxAmount = subtotal * taxRate;
+  const totalConTax = subtotal + taxAmount;
+
   return (
     <div className="relative">
       {/* Botón de imprimir (no se imprime) */}
@@ -150,7 +156,7 @@ export function FacturaReparacion({ repair }: FacturaReparacionProps) {
           {/* Detalles de Costos */}
           <div className="mb-8">
             <h2 className="text-xl font-bold text-gray-800 mb-4 border-b-2 border-gray-200 pb-2">
-              Detalles de Costos
+              Resumen de Costos
             </h2>
             <table className="w-full">
               <thead className="bg-gray-100">
@@ -161,21 +167,21 @@ export function FacturaReparacion({ repair }: FacturaReparacionProps) {
               </thead>
               <tbody>
                 <tr>
-                  <td className="p-3 text-sm border">Mano de Obra</td>
+                  <td className="p-3 text-sm border">Subtotal (Servicio de Reparación)</td>
                   <td className="text-right p-3 text-sm border font-semibold">
-                    ${Number(repair.precioManoObra).toFixed(2)}
+                    ${subtotal.toFixed(2)}
                   </td>
                 </tr>
                 <tr>
-                  <td className="p-3 text-sm border">Costo de Partes</td>
+                  <td className="p-3 text-sm border">Tax (8.25%)</td>
                   <td className="text-right p-3 text-sm border font-semibold">
-                    ${Number(repair.costoPartes || 0).toFixed(2)}
+                    ${taxAmount.toFixed(2)}
                   </td>
                 </tr>
                 <tr className="bg-gray-50">
-                  <td className="p-3 text-base font-bold border">TOTAL</td>
+                  <td className="p-3 text-base font-bold border">TOTAL A PAGAR</td>
                   <td className="text-right p-3 text-lg font-bold border text-green-600">
-                    ${Number(repair.precioTotal).toFixed(2)}
+                    ${totalConTax.toFixed(2)}
                   </td>
                 </tr>
               </tbody>
