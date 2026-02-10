@@ -157,31 +157,62 @@ export function FacturaReparacion({ repair }: FacturaReparacionProps) {
             </table>
           </div>
 
-          {/* Garantía */}
+          {/* Garantía / Warranty */}
           <div className="mb-8 bg-blue-50 border-2 border-blue-300 rounded-lg p-6">
             <h2 className="text-xl font-bold text-blue-800 mb-3 flex items-center gap-2">
               <span>🛡️</span>
-              Garantía de Servicio
+              WARRANTY / GARANTÍA
             </h2>
-            <div className="space-y-2">
-              <p className="text-base font-semibold text-blue-900">
-                Este servicio cuenta con una garantía de 60 días
+            
+            {/* English */}
+            <div className="mb-4 pb-4 border-b border-blue-300">
+              <p className="text-base font-semibold text-blue-900 mb-2">
+                English:
               </p>
-              <p className="text-sm text-blue-800">
-                Válida hasta: <span className="font-bold">
-                  {fechaGarantia.toLocaleDateString('es-ES', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </span>
+              <p className="text-sm text-blue-800 mb-2">
+                <strong>60-Day Limited Warranty:</strong> We guarantee our repairs for 60 days from the date of service. This warranty covers defects in workmanship and parts used in the repair.
               </p>
-              <div className="mt-4 text-xs text-blue-700 space-y-1">
-                <p>• La garantía cubre defectos en la reparación realizada</p>
-                <p>• No cubre daños por mal uso o accidentes posteriores</p>
-                <p>• Debe presentar este recibo para hacer válida la garantía</p>
-                <p>• La garantía es válida únicamente en 1+PhoneFix</p>
-              </div>
+              <p className="text-xs text-blue-700 mb-1">
+                <strong>What's Covered:</strong> Malfunctions directly related to the repair performed, defective replacement parts.
+              </p>
+              <p className="text-xs text-blue-700 mb-1">
+                <strong>What's NOT Covered:</strong> Physical damage (drops, liquid damage, cracks), normal wear and tear, unauthorized repairs or modifications, damage caused by misuse or neglect.
+              </p>
+              <p className="text-xs text-blue-700">
+                <strong>Warranty Claim:</strong> To make a warranty claim, bring your device and this invoice to our store. We will inspect the device and, if the issue is covered, repair or replace the defective part at no charge.
+              </p>
+              <p className="text-xs text-blue-700 italic mt-2">
+                This warranty is non-transferable and applies only to the original customer.
+              </p>
+            </div>
+            
+            {/* Español */}
+            <div>
+              <p className="text-base font-semibold text-blue-900 mb-2">
+                Español:
+              </p>
+              <p className="text-sm text-blue-800 mb-2">
+                <strong>Garantía Limitada de 60 Días:</strong> Garantizamos nuestras reparaciones por 60 días desde la fecha del servicio. Esta garantía cubre defectos en la mano de obra y las partes utilizadas en la reparación.
+              </p>
+              <p className="text-xs text-blue-700 mb-1">
+                <strong>Qué Está Cubierto:</strong> Fallas directamente relacionadas con la reparación realizada, partes de reemplazo defectuosas.
+              </p>
+              <p className="text-xs text-blue-700 mb-1">
+                <strong>Qué NO Está Cubierto:</strong> Daños físicos (caídas, daño por líquido, grietas), desgaste normal, reparaciones o modificaciones no autorizadas, daños causados por mal uso o negligencia.
+              </p>
+              <p className="text-xs text-blue-700">
+                <strong>Reclamación de Garantía:</strong> Para hacer una reclamación de garantía, traiga su dispositivo y esta factura a nuestra tienda. Inspeccionaremos el dispositivo y, si el problema está cubierto, repararemos o reemplazaremos la parte defectuosa sin cargo.
+              </p>
+              <p className="text-xs text-blue-700 italic mt-2">
+                Esta garantía no es transferible y se aplica solo al cliente original.
+              </p>
+              <p className="text-sm text-blue-800 font-bold mt-3">
+                Válida hasta: {fechaGarantia.toLocaleDateString('es-ES', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </p>
             </div>
           </div>
 

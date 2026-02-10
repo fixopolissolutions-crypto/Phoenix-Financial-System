@@ -219,12 +219,20 @@ export default function Reparaciones() {
     }
 
     // Preparar datos de partes para el backend
-    const partesParaBackend = partesSeleccionadas.map(p => ({
-      partId: p.partId,
-      cantidad: p.cantidad,
-      nombre: p.esExterna ? p.nombre : undefined,
-      costoUnitario: p.esExterna ? p.costoUnitario : undefined,
-    }));
+    const partesParaBackend = partesSeleccionadas.map(p => {
+      const parte: any = {
+        cantidad: p.cantidad,
+      };
+      
+      if (p.esExterna) {
+        parte.nombre = p.nombre;
+        parte.costoUnitario = p.costoUnitario;
+      } else {
+        parte.partId = p.partId;
+      }
+      
+      return parte;
+    });
 
     createMutation.mutate({
       codigo: formData.get('codigo') as string,
