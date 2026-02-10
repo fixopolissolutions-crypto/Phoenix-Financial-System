@@ -237,10 +237,10 @@ export function generateReceiptPDF(repair: any, storeInfo: StoreConfig): Promise
 
       doc.y = currentY + 25;
 
-      // ==================== GARANTÍA COMPACTA ====================
+      // ==================== GARANTÍA DESCRIPTIVA ====================
       
       const warrantyTop = doc.y;
-      doc.rect(50, warrantyTop, 495, 85)
+      doc.rect(50, warrantyTop, 495, 115)
          .lineWidth(1)
          .strokeColor('#000000')
          .stroke();
@@ -249,25 +249,35 @@ export function generateReceiptPDF(repair: any, storeInfo: StoreConfig): Promise
          .fillColor('#000000')
          .text('WARRANTY / GARANTIA (60 Days / Dias)', 60, warrantyTop + 8);
 
+      // Garantía en inglés
       doc.fontSize(7.5)
          .fillColor('#000000')
-         .text('English: ', 60, warrantyTop + 22, { continued: true })
-         .text('We guarantee repairs for 60 days. Covers malfunctions related to the repair. Does NOT cover physical damage or unauthorized repairs.', {
-           width: 475
-         });
+         .text('English:', 60, warrantyTop + 22);
+      
+      doc.fontSize(7)
+         .fillColor('#000000')
+         .text('60-Day Limited Warranty: We guarantee our repairs for 60 days from the date of service. ', 60, warrantyTop + 32, { width: 475 })
+         .text("What's Covered: Malfunctions directly related to the repair performed. ", { width: 475, continued: true })
+         .text("What's NOT Covered: Physical damage, normal wear and tear, unauthorized repairs, liquid damage, or workmanship issues caused by third parties. ", { width: 475, continued: true })
+         .text('This warranty does not cover defects in parts not replaced during the repair.', { width: 475 });
+
+      // Garantía en español
+      doc.fontSize(7.5)
+         .fillColor('#000000')
+         .text('Espanol:', 60, warrantyTop + 65);
+      
+      doc.fontSize(7)
+         .fillColor('#000000')
+         .text('Garantia Limitada de 60 Dias: Garantizamos nuestras reparaciones por 60 dias desde la fecha del servicio. ', 60, warrantyTop + 75, { width: 475 })
+         .text('Que Esta Cubierto: Fallas directamente relacionadas con la reparacion realizada. ', { width: 475, continued: true })
+         .text('Que NO Esta Cubierto: Danos fisicos, desgaste normal, reparaciones no autorizadas, danos por liquidos o trabajos realizados por terceros. ', { width: 475, continued: true })
+         .text('Esta garantia no cubre defectos en partes que no fueron reemplazadas durante la reparacion.', { width: 475 });
 
       doc.fontSize(7.5)
          .fillColor('#000000')
-         .text('Espanol: ', 60, warrantyTop + 45, { continued: true })
-         .text('Garantizamos reparaciones por 60 dias. Cubre fallas relacionadas con la reparacion. NO cubre danos fisicos o reparaciones no autorizadas.', {
-           width: 475
-         });
+         .text(`Valid until / Valida hasta: ${formatDate(fechaGarantia)}`, 60, warrantyTop + 100);
 
-      doc.fontSize(7.5)
-         .fillColor('#000000')
-         .text(`Valid until / Valida hasta: ${formatDate(fechaGarantia)}`, 60, warrantyTop + 68);
-
-      doc.y = warrantyTop + 90;
+      doc.y = warrantyTop + 120;
 
       // ==================== NOTAS ====================
       
