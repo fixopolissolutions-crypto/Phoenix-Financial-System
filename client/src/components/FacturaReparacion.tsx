@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import React from 'react';
 import { Printer } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 
