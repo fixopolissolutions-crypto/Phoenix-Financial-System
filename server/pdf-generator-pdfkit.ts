@@ -17,8 +17,8 @@ export function generateReceiptPDF(repair: any, storeInfo: StoreConfig): Promise
       const doc = new PDFDocument({
         size: 'A4',
         margins: {
-          top: 50,
-          bottom: 50,
+          top: 40,
+          bottom: 40,
           left: 50,
           right: 50
         }
@@ -37,16 +37,16 @@ export function generateReceiptPDF(repair: any, storeInfo: StoreConfig): Promise
       
       // Calcular subtotal y taxes
       const subtotal = Number(repair.precioTotal);
-      const taxRate = 0.0825; // 8.25% tax rate
+      const taxRate = 0.0825;
       const taxAmount = subtotal * taxRate;
       const totalConTax = subtotal + taxAmount;
       
       // Formatear fecha
       const formatDate = (date: Date | string) => {
         const d = new Date(date);
-        return d.toLocaleDateString('es-ES', {
-          day: '2-digit',
+        return d.toLocaleDateString('en-US', {
           month: '2-digit',
+          day: '2-digit',
           year: 'numeric'
         });
       };
@@ -55,8 +55,8 @@ export function generateReceiptPDF(repair: any, storeInfo: StoreConfig): Promise
       if (isPagado) {
         doc.save();
         doc.rotate(45, { origin: [300, 400] });
-        doc.fontSize(80)
-           .fillColor('#22c55e', 0.1)
+        doc.fontSize(70)
+           .fillColor('#22c55e', 0.08)
            .text('PAID / PAGADO', 150, 350, {
              width: 500,
              align: 'center'
@@ -64,240 +64,260 @@ export function generateReceiptPDF(repair: any, storeInfo: StoreConfig): Promise
         doc.restore();
       }
 
-      // Encabezado
-      doc.fontSize(18)
-         .fillColor('#1f2937')
-         .text(storeInfo.nombre, { align: 'left' });
+      // ==================== ENCABEZADO MODERNO ====================
       
-      doc.fontSize(10)
-         .fillColor('#6b7280')
-         .text('Phone Repair / Reparacion de Telefonos', { align: 'left' })
-         .text(`${storeInfo.ciudad}, ${storeInfo.estado}`, { align: 'left' })
-         .text(`Tel: ${storeInfo.telefono}`, { align: 'left' });
+      // Barra superior con color de marca
+      doc.rect(0, 0, 595, 8)
+         .fill('#3b82f6');
 
-      // Título RECIBO (derecha)
-      doc.fontSize(24)
-         .fillColor('#1f2937')
-         .text('RECEIPT / RECIBO', 350, 50, { align: 'right' });
+      // Logo/Icono (círculo con inicial)
+      doc.circle(70, 50, 20)
+         .fill('#3b82f6');
       
-      doc.fontSize(12)
-         .fillColor('#6b7280')
-         .text(`#${repair.codigo}`, 350, 80, { align: 'right' })
-         .text(`Date / Fecha: ${formatDate(repair.fechaIngreso)}`, 350, 95, { align: 'right' });
+      doc.fontSize(16)
+         .fillColor('#ffffff')
+         .text(storeInfo.nombre.charAt(0), 63, 42);
 
+      // Información de la tienda (izquierda)
+      doc.fontSize(14)
+         .fillColor('#1f2937')
+         .text(storeInfo.nombre, 100, 35);
+      
+      doc.fontSize(8)
+         .fillColor('#6b7280')
+         .text('Phone Repair / Reparacion de Telefonos', 100, 52)
+         .text(`${storeInfo.ciudad}, ${storeInfo.estado} | ${storeInfo.telefono}`, 100, 62);
+
+      // Título RECEIPT (derecha) - más pequeño
+      doc.fontSize(16)
+         .fillColor('#1f2937')
+         .text('RECEIPT / RECIBO', 350, 35, { align: 'right' });
+      
+      doc.fontSize(9)
+         .fillColor('#6b7280')
+         .text(`#${repair.codigo}`, 350, 53, { align: 'right' })
+         .text(`${formatDate(repair.fechaIngreso)}`, 350, 64, { align: 'right' });
+
+      // Badge de estado pagado
       if (isPagado) {
-        doc.fontSize(10)
+        doc.fontSize(8)
            .fillColor('#ffffff')
-           .rect(400, 115, 100, 20)
+           .rect(470, 35, 75, 16)
            .fill('#22c55e')
            .fillColor('#ffffff')
-           .text('PAID / PAGADO', 405, 119);
+           .text('PAID / PAGADO', 475, 39, { width: 65, align: 'center' });
       }
 
-      doc.moveDown(3);
+      doc.moveDown(2);
 
-      // Línea separadora
-      doc.moveTo(50, doc.y)
-         .lineTo(545, doc.y)
-         .stroke('#e5e7eb');
+      // Línea separadora elegante
+      doc.moveTo(50, 85)
+         .lineTo(545, 85)
+         .lineWidth(0.5)
+         .strokeColor('#e5e7eb')
+         .stroke();
 
-      doc.moveDown();
+      doc.y = 95;
 
-      // Información del Cliente
-      doc.fontSize(12)
-         .fillColor('#1f2937')
-         .text('Customer Information / Informacion del Cliente', { underline: true });
+      // ==================== INFORMACIÓN DEL CLIENTE ====================
       
-      doc.moveDown(0.5);
-      
+      // Sección con fondo sutil
+      const clientTop = doc.y;
+      doc.rect(50, clientTop, 495, 50)
+         .fill('#f9fafb');
+
       doc.fontSize(10)
+         .fillColor('#3b82f6')
+         .text('CUSTOMER INFO / INFO DEL CLIENTE', 60, clientTop + 8);
+      
+      doc.fontSize(8.5)
          .fillColor('#4b5563')
-         .text(`Customer / Cliente: `, { continued: true })
+         .text('Name / Nombre:', 60, clientTop + 23)
          .fillColor('#1f2937')
-         .text(repair.cliente || 'Not specified / No especificado');
+         .text(repair.cliente || 'N/A', 140, clientTop + 23);
       
       doc.fillColor('#4b5563')
-         .text(`Phone / Telefono: `, { continued: true })
+         .text('Phone / Tel:', 60, clientTop + 35)
          .fillColor('#1f2937')
-         .text(repair.telefono || 'Not specified / No especificado');
+         .text(repair.telefono || 'N/A', 140, clientTop + 35);
       
       doc.fillColor('#4b5563')
-         .text(`Device / Dispositivo: `, { continued: true })
+         .text('Device / Dispositivo:', 300, clientTop + 23)
          .fillColor('#1f2937')
-         .text(repair.dispositivo);
+         .text(repair.dispositivo, 400, clientTop + 23);
 
-      doc.moveDown();
+      doc.y = clientTop + 55;
 
-      // Descripción del Servicio
-      doc.fontSize(12)
-         .fillColor('#1f2937')
-         .text('Service Description / Descripcion del Servicio', { underline: true });
-      
-      doc.moveDown(0.5);
+      // ==================== SERVICIO ====================
       
       doc.fontSize(10)
+         .fillColor('#3b82f6')
+         .text('SERVICE / SERVICIO', 50);
+      
+      doc.moveDown(0.3);
+      
+      doc.fontSize(8.5)
          .fillColor('#4b5563')
-         .text(`Reported Problem / Problema Reportado: `, { continued: true })
+         .text('Problem / Problema: ', { continued: true })
          .fillColor('#1f2937')
          .text(repair.problema);
       
       if (repair.diagnostico) {
         doc.fillColor('#4b5563')
-           .text(`Diagnosis / Diagnostico: `, { continued: true })
+           .text('Diagnosis / Diagnostico: ', { continued: true })
            .fillColor('#1f2937')
            .text(repair.diagnostico);
       }
 
-      doc.moveDown();
+      doc.moveDown(0.8);
 
-      // Resumen de Costos
-      doc.fontSize(12)
-         .fillColor('#1f2937')
-         .text('Cost Summary / Resumen de Costos', { underline: true });
+      // ==================== COSTOS ====================
       
-      doc.moveDown(0.5);
+      doc.fontSize(10)
+         .fillColor('#3b82f6')
+         .text('COST BREAKDOWN / DESGLOSE DE COSTOS', 50);
+      
+      doc.moveDown(0.3);
 
-      // Tabla de costos
       const tableTop = doc.y;
       const col1X = 50;
-      const col2X = 400;
+      const col2X = 450;
 
-      // Encabezado de tabla
-      doc.rect(col1X, tableTop, 495, 20).fill('#f9fafb');
-      doc.fontSize(10)
-         .fillColor('#1f2937')
-         .text('Concept / Concepto', col1X + 5, tableTop + 5)
-         .text('Amount / Monto', col2X + 5, tableTop + 5);
+      // Encabezado
+      doc.rect(col1X, tableTop, 495, 18).fill('#f9fafb');
+      doc.fontSize(8.5)
+         .fillColor('#4b5563')
+         .text('Description / Descripcion', col1X + 8, tableTop + 5)
+         .text('Amount / Monto', col2X, tableTop + 5);
 
-      let currentY = tableTop + 25;
+      let currentY = tableTop + 23;
 
       // Subtotal
-      doc.fontSize(10)
+      doc.fontSize(8.5)
          .fillColor('#1f2937')
-         .text('Subtotal (Repair Service / Servicio de Reparacion)', col1X + 5, currentY)
-         .text(`$${subtotal.toFixed(2)}`, col2X + 5, currentY);
+         .text('Repair Service / Servicio de Reparacion', col1X + 8, currentY)
+         .text(`$${subtotal.toFixed(2)}`, col2X, currentY);
       
-      currentY += 20;
+      currentY += 15;
 
       // Tax
-      doc.text('Tax / Impuesto (8.25%)', col1X + 5, currentY)
-         .text(`$${taxAmount.toFixed(2)}`, col2X + 5, currentY);
+      doc.fillColor('#6b7280')
+         .text('Tax / Impuesto (8.25%)', col1X + 8, currentY)
+         .text(`$${taxAmount.toFixed(2)}`, col2X, currentY);
       
-      currentY += 20;
+      currentY += 18;
 
-      // Total
-      doc.rect(col1X, currentY - 5, 495, 25).fill('#f9fafb');
-      doc.fontSize(11)
-         .fillColor('#1f2937')
-         .text('TOTAL TO PAY / TOTAL A PAGAR', col1X + 5, currentY)
-         .fontSize(13)
-         .fillColor('#16a34a')
-         .text(`$${totalConTax.toFixed(2)}`, col2X + 5, currentY);
+      // Total con fondo
+      doc.rect(col1X, currentY - 3, 495, 20).fill('#3b82f6');
+      doc.fontSize(10)
+         .fillColor('#ffffff')
+         .text('TOTAL TO PAY / TOTAL A PAGAR', col1X + 8, currentY)
+         .fontSize(11)
+         .fillColor('#ffffff')
+         .text(`$${totalConTax.toFixed(2)}`, col2X, currentY);
 
-      doc.moveDown(2);
+      doc.y = currentY + 25;
 
-      // Garantía
+      // ==================== GARANTÍA COMPACTA ====================
+      
       const warrantyTop = doc.y;
-      doc.rect(50, warrantyTop, 495, 150)
+      doc.rect(50, warrantyTop, 495, 95)
          .fillAndStroke('#eff6ff', '#93c5fd');
 
-      doc.fontSize(12)
+      doc.fontSize(9)
          .fillColor('#1e40af')
-         .text('WARRANTY / GARANTIA', 60, warrantyTop + 10);
+         .text('WARRANTY / GARANTIA (60 Days / Dias)', 60, warrantyTop + 8);
 
-      doc.fontSize(9)
+      doc.fontSize(7.5)
          .fillColor('#1e3a8a')
-         .text('English:', 60, warrantyTop + 30)
-         .fontSize(8)
-         .text('60-Day Limited Warranty: We guarantee our repairs for 60 days from the date of service.', 60, warrantyTop + 45, {
-           width: 475,
-           align: 'left'
-         })
-         .text('What\'s Covered: Malfunctions directly related to the repair performed.', 60, warrantyTop + 60, {
-           width: 475
-         })
-         .text('What\'s NOT Covered: Physical damage, normal wear and tear, unauthorized repairs.', 60, warrantyTop + 72, {
+         .text('English: ', 60, warrantyTop + 22, { continued: true })
+         .text('We guarantee repairs for 60 days. Covers malfunctions related to the repair. Does NOT cover physical damage or unauthorized repairs.', {
            width: 475
          });
 
-      doc.fontSize(9)
+      doc.fontSize(7.5)
          .fillColor('#1e3a8a')
-         .text('Espanol:', 60, warrantyTop + 90)
-         .fontSize(8)
-         .text('Garantia Limitada de 60 Dias: Garantizamos nuestras reparaciones por 60 dias.', 60, warrantyTop + 105, {
-           width: 475
-         })
-         .text('Que Esta Cubierto: Fallas directamente relacionadas con la reparacion realizada.', 60, warrantyTop + 117, {
-           width: 475
-         })
-         .text('Que NO Esta Cubierto: Danos fisicos, desgaste normal, reparaciones no autorizadas.', 60, warrantyTop + 129, {
+         .text('Espanol: ', 60, warrantyTop + 50, { continued: true })
+         .text('Garantizamos reparaciones por 60 dias. Cubre fallas relacionadas con la reparacion. NO cubre danos fisicos o reparaciones no autorizadas.', {
            width: 475
          });
 
-      doc.fontSize(9)
+      doc.fontSize(7.5)
          .fillColor('#1e3a8a')
-         .text(`Valid until / Valida hasta: ${formatDate(fechaGarantia)}`, 60, warrantyTop + 145);
+         .text(`Valid until / Valida hasta: ${formatDate(fechaGarantia)}`, 60, warrantyTop + 78);
 
-      doc.moveDown(4);
+      doc.y = warrantyTop + 100;
 
-      // Notas
+      // ==================== NOTAS ====================
+      
       if (repair.notas) {
-        doc.fontSize(12)
-           .fillColor('#1f2937')
-           .text('Notes / Notas:', { underline: true });
+        doc.fontSize(9)
+           .fillColor('#3b82f6')
+           .text('NOTES / NOTAS', 50);
         
-        doc.moveDown(0.5);
+        doc.moveDown(0.3);
         
-        doc.fontSize(10)
+        doc.fontSize(8)
            .fillColor('#4b5563')
            .text(repair.notas, {
              width: 495
            });
         
-        doc.moveDown();
+        doc.moveDown(0.5);
       }
 
-      // Pie de página
-      doc.moveDown(2);
+      // ==================== PIE DE PÁGINA ====================
       
-      doc.fontSize(11)
+      doc.moveDown(0.8);
+      
+      // Mensaje de agradecimiento
+      doc.fontSize(9)
          .fillColor('#1f2937')
          .text(`Thank you for trusting ${storeInfo.nombre}`, { align: 'center' })
          .text(`Gracias por confiar en ${storeInfo.nombre}`, { align: 'center' });
       
-      doc.moveDown(0.5);
+      doc.moveDown(0.3);
       
-      doc.fontSize(9)
+      doc.fontSize(7.5)
          .fillColor('#6b7280')
-         .text('This document is a proof of service / Este documento es un comprobante de servicio', { align: 'center' })
-         .text(`For inquiries or support, contact us at / Para consultas o soporte, contactenos al ${storeInfo.telefono}`, { align: 'center' });
+         .text('This document is proof of service / Este documento es comprobante de servicio', { align: 'center' })
+         .text(`Contact / Contacto: ${storeInfo.telefono} | ${storeInfo.email}`, { align: 'center' });
 
-      // Firmas
-      doc.moveDown(2);
+      // ==================== FIRMAS ====================
+      
+      doc.moveDown(1.2);
       
       const signatureY = doc.y;
       
       // Firma del cliente
-      doc.moveTo(100, signatureY)
+      doc.moveTo(80, signatureY)
          .lineTo(250, signatureY)
-         .stroke('#9ca3af');
+         .lineWidth(0.5)
+         .strokeColor('#9ca3af')
+         .stroke();
       
-      doc.fontSize(9)
+      doc.fontSize(7.5)
          .fillColor('#6b7280')
-         .text('Customer Signature / Firma del Cliente', 100, signatureY + 5, {
-           width: 150,
+         .text('Customer Signature / Firma del Cliente', 80, signatureY + 5, {
+           width: 170,
            align: 'center'
          });
 
       // Firma del técnico
       doc.moveTo(345, signatureY)
-         .lineTo(495, signatureY)
-         .stroke('#9ca3af');
+         .lineTo(515, signatureY)
+         .lineWidth(0.5)
+         .strokeColor('#9ca3af')
+         .stroke();
       
       doc.text('Technician Signature / Firma del Tecnico', 345, signatureY + 5, {
-        width: 150,
+        width: 170,
         align: 'center'
       });
+
+      // Barra inferior con color de marca
+      doc.rect(0, 792, 595, 5)
+         .fill('#3b82f6');
 
       doc.end();
     } catch (error) {
