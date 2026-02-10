@@ -1,5 +1,7 @@
 import PDFDocument from 'pdfkit';
 import type { Repair } from "../drizzle/schema";
+import * as fs from 'fs';
+import * as path from 'path';
 
 interface StoreConfig {
   nombre: string;
@@ -51,12 +53,12 @@ export function generateReceiptPDF(repair: any, storeInfo: StoreConfig): Promise
         });
       };
 
-      // Marca de agua si está pagado
+      // Marca de agua si está pagado (en gris claro)
       if (isPagado) {
         doc.save();
         doc.rotate(45, { origin: [300, 400] });
         doc.fontSize(70)
-           .fillColor('#22c55e', 0.08)
+           .fillColor('#000000', 0.05)
            .text('PAID / PAGADO', 150, 350, {
              width: 500,
              align: 'center'
@@ -64,86 +66,92 @@ export function generateReceiptPDF(repair: any, storeInfo: StoreConfig): Promise
         doc.restore();
       }
 
-      // ==================== ENCABEZADO MODERNO ====================
+      // ==================== ENCABEZADO ====================
       
-      // Barra superior con color de marca
-      doc.rect(0, 0, 595, 8)
-         .fill('#3b82f6');
+      // Línea superior negra
+      doc.rect(0, 0, 595, 3)
+         .fill('#000000');
 
-      // Logo/Icono (círculo con inicial)
-      doc.circle(70, 50, 20)
-         .fill('#3b82f6');
-      
-      doc.fontSize(16)
-         .fillColor('#ffffff')
-         .text(storeInfo.nombre.charAt(0), 63, 42);
+      // Logo de 1+PhoneFix
+      try {
+        const logoPath = path.join(__dirname, '../client/public/1plusphonefix-logo.png');
+        if (fs.existsSync(logoPath)) {
+          doc.image(logoPath, 50, 25, { width: 100 });
+        }
+      } catch (error) {
+        console.log('Logo no encontrado, usando texto');
+      }
 
       // Información de la tienda (izquierda)
-      doc.fontSize(14)
-         .fillColor('#1f2937')
-         .text(storeInfo.nombre, 100, 35);
+      doc.fontSize(12)
+         .fillColor('#000000')
+         .text(storeInfo.nombre, 50, 50);
       
       doc.fontSize(8)
-         .fillColor('#6b7280')
-         .text('Phone Repair / Reparacion de Telefonos', 100, 52)
-         .text(`${storeInfo.ciudad}, ${storeInfo.estado} | ${storeInfo.telefono}`, 100, 62);
+         .fillColor('#333333')
+         .text('Phone Repair / Reparacion de Telefonos', 50, 65)
+         .text(`${storeInfo.ciudad}, ${storeInfo.estado} | ${storeInfo.telefono}`, 50, 75);
 
-      // Título RECEIPT (derecha) - más pequeño
-      doc.fontSize(16)
-         .fillColor('#1f2937')
+      // Título RECEIPT (derecha)
+      doc.fontSize(18)
+         .fillColor('#000000')
          .text('RECEIPT / RECIBO', 350, 35, { align: 'right' });
       
       doc.fontSize(9)
-         .fillColor('#6b7280')
-         .text(`#${repair.codigo}`, 350, 53, { align: 'right' })
-         .text(`${formatDate(repair.fechaIngreso)}`, 350, 64, { align: 'right' });
+         .fillColor('#666666')
+         .text(`#${repair.codigo}`, 350, 55, { align: 'right' })
+         .text(`${formatDate(repair.fechaIngreso)}`, 350, 66, { align: 'right' });
 
-      // Badge de estado pagado
+      // Badge de estado pagado (solo borde negro)
       if (isPagado) {
+        doc.rect(470, 35, 75, 16)
+           .lineWidth(1.5)
+           .strokeColor('#000000')
+           .stroke();
+        
         doc.fontSize(8)
-           .fillColor('#ffffff')
-           .rect(470, 35, 75, 16)
-           .fill('#22c55e')
-           .fillColor('#ffffff')
+           .fillColor('#000000')
            .text('PAID / PAGADO', 475, 39, { width: 65, align: 'center' });
       }
 
       doc.moveDown(2);
 
-      // Línea separadora elegante
-      doc.moveTo(50, 85)
-         .lineTo(545, 85)
-         .lineWidth(0.5)
-         .strokeColor('#e5e7eb')
+      // Línea separadora
+      doc.moveTo(50, 90)
+         .lineTo(545, 90)
+         .lineWidth(1)
+         .strokeColor('#000000')
          .stroke();
 
-      doc.y = 95;
+      doc.y = 100;
 
       // ==================== INFORMACIÓN DEL CLIENTE ====================
       
-      // Sección con fondo sutil
+      // Sección con borde
       const clientTop = doc.y;
       doc.rect(50, clientTop, 495, 50)
-         .fill('#f9fafb');
+         .lineWidth(0.5)
+         .strokeColor('#000000')
+         .stroke();
 
       doc.fontSize(10)
-         .fillColor('#3b82f6')
+         .fillColor('#000000')
          .text('CUSTOMER INFO / INFO DEL CLIENTE', 60, clientTop + 8);
       
       doc.fontSize(8.5)
-         .fillColor('#4b5563')
+         .fillColor('#333333')
          .text('Name / Nombre:', 60, clientTop + 23)
-         .fillColor('#1f2937')
+         .fillColor('#000000')
          .text(repair.cliente || 'N/A', 140, clientTop + 23);
       
-      doc.fillColor('#4b5563')
+      doc.fillColor('#333333')
          .text('Phone / Tel:', 60, clientTop + 35)
-         .fillColor('#1f2937')
+         .fillColor('#000000')
          .text(repair.telefono || 'N/A', 140, clientTop + 35);
       
-      doc.fillColor('#4b5563')
+      doc.fillColor('#333333')
          .text('Device / Dispositivo:', 300, clientTop + 23)
-         .fillColor('#1f2937')
+         .fillColor('#000000')
          .text(repair.dispositivo, 400, clientTop + 23);
 
       doc.y = clientTop + 55;
@@ -151,21 +159,21 @@ export function generateReceiptPDF(repair: any, storeInfo: StoreConfig): Promise
       // ==================== SERVICIO ====================
       
       doc.fontSize(10)
-         .fillColor('#3b82f6')
+         .fillColor('#000000')
          .text('SERVICE / SERVICIO', 50);
       
       doc.moveDown(0.3);
       
       doc.fontSize(8.5)
-         .fillColor('#4b5563')
+         .fillColor('#333333')
          .text('Problem / Problema: ', { continued: true })
-         .fillColor('#1f2937')
+         .fillColor('#000000')
          .text(repair.problema);
       
       if (repair.diagnostico) {
-        doc.fillColor('#4b5563')
+        doc.fillColor('#333333')
            .text('Diagnosis / Diagnostico: ', { continued: true })
-           .fillColor('#1f2937')
+           .fillColor('#000000')
            .text(repair.diagnostico);
       }
 
@@ -174,7 +182,7 @@ export function generateReceiptPDF(repair: any, storeInfo: StoreConfig): Promise
       // ==================== COSTOS ====================
       
       doc.fontSize(10)
-         .fillColor('#3b82f6')
+         .fillColor('#000000')
          .text('COST BREAKDOWN / DESGLOSE DE COSTOS', 50);
       
       doc.moveDown(0.3);
@@ -183,32 +191,43 @@ export function generateReceiptPDF(repair: any, storeInfo: StoreConfig): Promise
       const col1X = 50;
       const col2X = 450;
 
-      // Encabezado
-      doc.rect(col1X, tableTop, 495, 18).fill('#f9fafb');
+      // Encabezado con fondo gris claro
+      doc.rect(col1X, tableTop, 495, 18)
+         .fill('#f0f0f0');
+      
       doc.fontSize(8.5)
-         .fillColor('#4b5563')
+         .fillColor('#000000')
          .text('Description / Descripcion', col1X + 8, tableTop + 5)
          .text('Amount / Monto', col2X, tableTop + 5);
 
       let currentY = tableTop + 23;
 
+      // Línea
+      doc.moveTo(col1X, currentY - 3)
+         .lineTo(col1X + 495, currentY - 3)
+         .lineWidth(0.5)
+         .strokeColor('#cccccc')
+         .stroke();
+
       // Subtotal
       doc.fontSize(8.5)
-         .fillColor('#1f2937')
+         .fillColor('#000000')
          .text('Repair Service / Servicio de Reparacion', col1X + 8, currentY)
          .text(`$${subtotal.toFixed(2)}`, col2X, currentY);
       
       currentY += 15;
 
       // Tax
-      doc.fillColor('#6b7280')
+      doc.fillColor('#333333')
          .text('Tax / Impuesto (8.25%)', col1X + 8, currentY)
          .text(`$${taxAmount.toFixed(2)}`, col2X, currentY);
       
       currentY += 18;
 
-      // Total con fondo
-      doc.rect(col1X, currentY - 3, 495, 20).fill('#3b82f6');
+      // Total con fondo negro y texto blanco
+      doc.rect(col1X, currentY - 3, 495, 20)
+         .fill('#000000');
+      
       doc.fontSize(10)
          .fillColor('#ffffff')
          .text('TOTAL TO PAY / TOTAL A PAGAR', col1X + 8, currentY)
@@ -221,44 +240,46 @@ export function generateReceiptPDF(repair: any, storeInfo: StoreConfig): Promise
       // ==================== GARANTÍA COMPACTA ====================
       
       const warrantyTop = doc.y;
-      doc.rect(50, warrantyTop, 495, 95)
-         .fillAndStroke('#eff6ff', '#93c5fd');
+      doc.rect(50, warrantyTop, 495, 85)
+         .lineWidth(1)
+         .strokeColor('#000000')
+         .stroke();
 
       doc.fontSize(9)
-         .fillColor('#1e40af')
+         .fillColor('#000000')
          .text('WARRANTY / GARANTIA (60 Days / Dias)', 60, warrantyTop + 8);
 
       doc.fontSize(7.5)
-         .fillColor('#1e3a8a')
+         .fillColor('#000000')
          .text('English: ', 60, warrantyTop + 22, { continued: true })
          .text('We guarantee repairs for 60 days. Covers malfunctions related to the repair. Does NOT cover physical damage or unauthorized repairs.', {
            width: 475
          });
 
       doc.fontSize(7.5)
-         .fillColor('#1e3a8a')
-         .text('Espanol: ', 60, warrantyTop + 50, { continued: true })
+         .fillColor('#000000')
+         .text('Espanol: ', 60, warrantyTop + 45, { continued: true })
          .text('Garantizamos reparaciones por 60 dias. Cubre fallas relacionadas con la reparacion. NO cubre danos fisicos o reparaciones no autorizadas.', {
            width: 475
          });
 
       doc.fontSize(7.5)
-         .fillColor('#1e3a8a')
-         .text(`Valid until / Valida hasta: ${formatDate(fechaGarantia)}`, 60, warrantyTop + 78);
+         .fillColor('#000000')
+         .text(`Valid until / Valida hasta: ${formatDate(fechaGarantia)}`, 60, warrantyTop + 68);
 
-      doc.y = warrantyTop + 100;
+      doc.y = warrantyTop + 90;
 
       // ==================== NOTAS ====================
       
       if (repair.notas) {
         doc.fontSize(9)
-           .fillColor('#3b82f6')
+           .fillColor('#000000')
            .text('NOTES / NOTAS', 50);
         
         doc.moveDown(0.3);
         
         doc.fontSize(8)
-           .fillColor('#4b5563')
+           .fillColor('#333333')
            .text(repair.notas, {
              width: 495
            });
@@ -272,14 +293,14 @@ export function generateReceiptPDF(repair: any, storeInfo: StoreConfig): Promise
       
       // Mensaje de agradecimiento
       doc.fontSize(9)
-         .fillColor('#1f2937')
+         .fillColor('#000000')
          .text(`Thank you for trusting ${storeInfo.nombre}`, { align: 'center' })
          .text(`Gracias por confiar en ${storeInfo.nombre}`, { align: 'center' });
       
       doc.moveDown(0.3);
       
       doc.fontSize(7.5)
-         .fillColor('#6b7280')
+         .fillColor('#666666')
          .text('This document is proof of service / Este documento es comprobante de servicio', { align: 'center' })
          .text(`Contact / Contacto: ${storeInfo.telefono} | ${storeInfo.email}`, { align: 'center' });
 
@@ -293,11 +314,11 @@ export function generateReceiptPDF(repair: any, storeInfo: StoreConfig): Promise
       doc.moveTo(80, signatureY)
          .lineTo(250, signatureY)
          .lineWidth(0.5)
-         .strokeColor('#9ca3af')
+         .strokeColor('#000000')
          .stroke();
       
       doc.fontSize(7.5)
-         .fillColor('#6b7280')
+         .fillColor('#666666')
          .text('Customer Signature / Firma del Cliente', 80, signatureY + 5, {
            width: 170,
            align: 'center'
@@ -307,7 +328,7 @@ export function generateReceiptPDF(repair: any, storeInfo: StoreConfig): Promise
       doc.moveTo(345, signatureY)
          .lineTo(515, signatureY)
          .lineWidth(0.5)
-         .strokeColor('#9ca3af')
+         .strokeColor('#000000')
          .stroke();
       
       doc.text('Technician Signature / Firma del Tecnico', 345, signatureY + 5, {
@@ -315,9 +336,9 @@ export function generateReceiptPDF(repair: any, storeInfo: StoreConfig): Promise
         align: 'center'
       });
 
-      // Barra inferior con color de marca
-      doc.rect(0, 792, 595, 5)
-         .fill('#3b82f6');
+      // Línea inferior negra
+      doc.rect(0, 792, 595, 3)
+         .fill('#000000');
 
       doc.end();
     } catch (error) {
