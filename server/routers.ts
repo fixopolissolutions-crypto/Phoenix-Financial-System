@@ -702,8 +702,7 @@ export const appRouter = router({
     generatePDF: publicProcedure
       .input(z.object({ repairId: z.number() }))
       .mutation(async ({ input }) => {
-        const htmlPdf = await import('html-pdf-node');
-        const { generateReceiptHTML } = await import('./pdf-generator');
+        const { generateReceiptPDF } = await import('./pdf-generator-pdfkit');
         
         // Obtener la reparación
         const repair = await db.getRepairById(input.repairId);
@@ -717,23 +716,8 @@ export const appRouter = router({
           throw new Error('Configuración de tienda no encontrada');
         }
         
-        // Generar HTML del recibo
-        const html = generateReceiptHTML(repair, storeInfo);
-        
-        // Opciones para el PDF
-        const options = {
-          format: 'A4',
-          margin: {
-            top: '10mm',
-            right: '10mm',
-            bottom: '10mm',
-            left: '10mm',
-          },
-        };
-        
-        // Generar PDF
-        const file = { content: html };
-        const pdfBuffer = await htmlPdf.generatePdf(file, options);
+        // Generar PDF usando pdfkit
+        const pdfBuffer = await generateReceiptPDF(repair, storeInfo);
         
         // Convertir a base64 para enviar al cliente
         const base64 = pdfBuffer.toString('base64');
