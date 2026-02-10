@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, bigint } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, bigint, uniqueIndex } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -220,7 +220,7 @@ export type InsertInventoryAccessory = typeof inventoryAccessories.$inferInsert;
  */
 export const inventoryParts = mysqlTable("inventory_parts", {
   id: int("id").autoincrement().primaryKey(),
-  codigo: varchar("codigo", { length: 50 }).notNull().unique(), // PART-001, PART-002, etc.
+  codigo: varchar("codigo", { length: 50 }).notNull(), // PART-001, PART-002, etc.
   nombre: varchar("nombre", { length: 200 }).notNull(), // Pantalla iPhone 13 Pro OLED
   categoria: varchar("categoria", { length: 100 }), // Pantallas, Baterías, Cámaras, etc.
   compatibilidad: text("compatibilidad"), // iPhone 13 Pro, iPhone 13 Pro Max
@@ -233,7 +233,10 @@ export const inventoryParts = mysqlTable("inventory_parts", {
   activo: int("activo").default(1).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, (table) => ({
+  // Índice único compuesto: cada tienda puede tener sus propios códigos de partes
+  codigoTiendaIdx: uniqueIndex("codigo_tienda_idx").on(table.codigo, table.tienda),
+}));
 
 export type InventoryPart = typeof inventoryParts.$inferSelect;
 export type InsertInventoryPart = typeof inventoryParts.$inferInsert;

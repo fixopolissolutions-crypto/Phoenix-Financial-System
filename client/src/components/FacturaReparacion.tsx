@@ -556,7 +556,7 @@ export function FacturaReparacion({ repair }: FacturaReparacionProps) {
 
           .receipt-content {
             box-shadow: none;
-            padding: 20px;
+            padding: 15mm;
           }
 
           .no-print {
@@ -568,15 +568,63 @@ export function FacturaReparacion({ repair }: FacturaReparacionProps) {
             margin: 10mm;
           }
 
+          /* Reducir tamaños de fuente para impresión */
+          .receipt-title {
+            font-size: 24px !important;
+          }
+
+          .section-title {
+            font-size: 14px !important;
+            margin-bottom: 10px !important;
+          }
+
+          .warranty-title {
+            font-size: 14px !important;
+            margin-bottom: 10px !important;
+          }
+
+          .warranty-main {
+            font-size: 10px !important;
+            margin-bottom: 5px !important;
+          }
+
+          .warranty-detail {
+            font-size: 9px !important;
+            margin-bottom: 3px !important;
+          }
+
+          .warranty-note {
+            font-size: 9px !important;
+            margin-top: 5px !important;
+          }
+
+          .warranty-section {
+            padding: 12px !important;
+            margin-bottom: 15px !important;
+          }
+
+          .warranty-content {
+            margin-bottom: 10px !important;
+          }
+
+          .section {
+            margin-bottom: 15px !important;
+          }
+
+          .footer {
+            margin-top: 15px !important;
+          }
+
+          .signatures {
+            margin-top: 20px !important;
+          }
+
+          /* Evitar saltos de página innecesarios */
           .receipt-header {
             page-break-after: avoid;
           }
 
-          .section {
-            page-break-inside: avoid;
-          }
-
-          .warranty-section {
+          .cost-table {
             page-break-inside: avoid;
           }
 
