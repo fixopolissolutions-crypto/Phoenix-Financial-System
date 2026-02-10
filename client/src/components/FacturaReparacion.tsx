@@ -8,8 +8,38 @@ interface FacturaReparacionProps {
 }
 
 export function FacturaReparacion({ repair }: FacturaReparacionProps) {
-  const handlePrint = () => {
-    window.print();
+  const [isGeneratingPDF, setIsGeneratingPDF] = React.useState(false);
+  const generatePDFMutation = trpc.repairs.generatePDF.useMutation();
+
+  const handlePrint = async () => {
+    try {
+      setIsGeneratingPDF(true);
+      const result = await generatePDFMutation.mutateAsync({ repairId: repair.id });
+      
+      // Convertir base64 a blob
+      const byteCharacters = atob(result.pdf);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/pdf' });
+      
+      // Crear URL y descargar
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = result.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error al generar PDF:', error);
+      alert('Error al generar el PDF. Por favor intenta de nuevo.');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   // Obtener información de la tienda
@@ -32,11 +62,15 @@ export function FacturaReparacion({ repair }: FacturaReparacionProps) {
   return (
     <>
       <div className="receipt-container">
-        {/* Botón de imprimir (no se imprime) */}
+        {/* Botón de descargar PDF (no se imprime) */}
         <div className="flex justify-end mb-4 no-print">
-          <Button onClick={handlePrint} className="flex items-center gap-2">
+          <Button 
+            onClick={handlePrint} 
+            disabled={isGeneratingPDF}
+            className="flex items-center gap-2"
+          >
             <Printer className="w-4 h-4" />
-            Imprimir Recibo
+            {isGeneratingPDF ? 'Generando PDF...' : 'Descargar Recibo PDF'}
           </Button>
         </div>
 

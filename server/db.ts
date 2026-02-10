@@ -1228,6 +1228,15 @@ export async function deleteRepair(id: number) {
   await db.delete(repairs).where(eq(repairs.id, id));
   return { success: true };
 }
+
+export async function getRepairById(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.select().from(repairs).where(eq(repairs.id, id)).limit(1);
+  return result[0] || null;
+}
+
 // Force redeploy Wed Jan 14 21:16:08 EST 2026
 // Forced rebuild at 2026-01-21_13:16:40
 

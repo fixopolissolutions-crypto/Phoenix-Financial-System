@@ -698,6 +698,51 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         return await db.deleteRepair(input.id);
       }),
+
+    generatePDF: publicProcedure
+      .input(z.object({ repairId: z.number() }))
+      .mutation(async ({ input }) => {
+        const htmlPdf = await import('html-pdf-node');
+        const { generateReceiptHTML } = await import('./pdf-generator');
+        
+        // Obtener la reparación
+        const repair = await db.getRepairById(input.repairId);
+        if (!repair) {
+          throw new Error('Reparación no encontrada');
+        }
+        
+        // Obtener configuración de la tienda
+        const storeInfo = await db.getStoreConfig(repair.tienda);
+        if (!storeInfo) {
+          throw new Error('Configuración de tienda no encontrada');
+        }
+        
+        // Generar HTML del recibo
+        const html = generateReceiptHTML(repair, storeInfo);
+        
+        // Opciones para el PDF
+        const options = {
+          format: 'A4',
+          margin: {
+            top: '10mm',
+            right: '10mm',
+            bottom: '10mm',
+            left: '10mm',
+          },
+        };
+        
+        // Generar PDF
+        const file = { content: html };
+        const pdfBuffer = await htmlPdf.generatePdf(file, options);
+        
+        // Convertir a base64 para enviar al cliente
+        const base64 = pdfBuffer.toString('base64');
+        
+        return {
+          pdf: base64,
+          filename: `recibo-${repair.codigo}.pdf`,
+        };
+      }),
   }),
 
   // ==================== STORE CONFIG ====================
