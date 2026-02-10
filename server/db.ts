@@ -1314,3 +1314,48 @@ export async function initializeStoreConfig() {
     console.error("[Database] Failed to initialize store config:", error);
   }
 }
+
+// Migración: Actualizar constraint de unicidad en inventory_parts
+export async function migrateInventoryPartsUniqueConstraint() {
+  if (!process.env.DATABASE_URL) {
+    console.warn("[Migration] Cannot run migration: DATABASE_URL not available");
+    return;
+  }
+
+  const mysql = await import("mysql2/promise");
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  
+  try {
+    // Verificar si el índice antiguo existe
+    const [indexes] = await connection.execute(
+      `SHOW INDEX FROM inventory_parts WHERE Key_name = 'codigo'`
+    );
+    
+    if ((indexes as any[]).length > 0) {
+      console.log("[Migration] Removing old unique constraint on 'codigo'...");
+      await connection.execute(`ALTER TABLE inventory_parts DROP INDEX codigo`);
+      console.log("[Migration] Old constraint removed successfully");
+    }
+    
+    // Verificar si el nuevo índice ya existe
+    const [newIndexes] = await connection.execute(
+      `SHOW INDEX FROM inventory_parts WHERE Key_name = 'codigo_tienda_idx'`
+    );
+    
+    if ((newIndexes as any[]).length === 0) {
+      console.log("[Migration] Creating new unique constraint on 'codigo' + 'tienda'...");
+      await connection.execute(
+        `ALTER TABLE inventory_parts ADD UNIQUE INDEX codigo_tienda_idx (codigo, tienda)`
+      );
+      console.log("[Migration] New constraint created successfully");
+    } else {
+      console.log("[Migration] New constraint already exists, skipping");
+    }
+    
+    await connection.end();
+    console.log("[Migration] Inventory parts migration completed successfully");
+  } catch (error) {
+    await connection.end();
+    console.error("[Migration] Failed to migrate inventory_parts:", error);
+  }
+}

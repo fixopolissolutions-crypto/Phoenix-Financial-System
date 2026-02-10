@@ -376,8 +376,11 @@ async function startServer() {
     // Aplicar migraciones de base de datos
     await applyMigrations();
     
+    // Migrar constraint de inventory_parts
+    const { migrateInventoryPartsUniqueConstraint, initializeStoreConfig } = await import("../db");
+    await migrateInventoryPartsUniqueConstraint();
+    
     // Inicializar configuración de tiendas
-    const { initializeStoreConfig } = await import("../db");
     await initializeStoreConfig();
     
     // Iniciar scheduler para tareas programadas
