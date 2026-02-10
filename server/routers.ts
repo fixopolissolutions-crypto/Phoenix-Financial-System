@@ -49,6 +49,11 @@ export const appRouter = router({
       }),
   }),
 
+  // ==================== USER ====================
+  user: router({
+    me: publicProcedure.query(opts => opts.ctx.user),
+  }),
+
   // ==================== TRANSACTIONS ====================
   transactions: router({
     list: publicProcedure
@@ -647,7 +652,6 @@ export const appRouter = router({
             ...input,
             tienda,
             fechaIngreso: new Date(input.fechaIngreso),
-            ganancia: (Number(input.precioTotal) - Number(input.precioManoObra)).toFixed(2),
           });
           console.log('Reparación creada exitosamente:', result);
           return result;
