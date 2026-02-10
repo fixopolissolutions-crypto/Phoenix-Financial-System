@@ -702,30 +702,45 @@ export const appRouter = router({
     generatePDF: publicProcedure
       .input(z.object({ repairId: z.number() }))
       .mutation(async ({ input }) => {
-        const { generateReceiptPDF } = await import('./pdf-generator-pdfkit');
-        
-        // Obtener la reparación
-        const repair = await db.getRepairById(input.repairId);
-        if (!repair) {
-          throw new Error('Reparación no encontrada');
+        try {
+          console.log('[PDF] Iniciando generación de PDF para repairId:', input.repairId);
+          
+          const { generateReceiptPDF } = await import('./pdf-generator-pdfkit');
+          console.log('[PDF] Módulo pdfkit importado correctamente');
+          
+          // Obtener la reparación
+          const repair = await db.getRepairById(input.repairId);
+          console.log('[PDF] Reparación obtenida:', repair ? `${repair.codigo}` : 'null');
+          
+          if (!repair) {
+            throw new Error('Reparación no encontrada');
+          }
+          
+          // Obtener configuración de la tienda
+          const storeInfo = await db.getStoreConfig(repair.tienda);
+          console.log('[PDF] Store info obtenida:', storeInfo ? storeInfo.nombre : 'null');
+          
+          if (!storeInfo) {
+            throw new Error('Configuración de tienda no encontrada');
+          }
+          
+          // Generar PDF usando pdfkit
+          console.log('[PDF] Generando PDF...');
+          const pdfBuffer = await generateReceiptPDF(repair, storeInfo);
+          console.log('[PDF] PDF generado, tamaño:', pdfBuffer.length, 'bytes');
+          
+          // Convertir a base64 para enviar al cliente
+          const base64 = pdfBuffer.toString('base64');
+          console.log('[PDF] Convertido a base64, longitud:', base64.length);
+          
+          return {
+            pdf: base64,
+            filename: `recibo-${repair.codigo}.pdf`,
+          };
+        } catch (error) {
+          console.error('[PDF] Error al generar PDF:', error);
+          throw error;
         }
-        
-        // Obtener configuración de la tienda
-        const storeInfo = await db.getStoreConfig(repair.tienda);
-        if (!storeInfo) {
-          throw new Error('Configuración de tienda no encontrada');
-        }
-        
-        // Generar PDF usando pdfkit
-        const pdfBuffer = await generateReceiptPDF(repair, storeInfo);
-        
-        // Convertir a base64 para enviar al cliente
-        const base64 = pdfBuffer.toString('base64');
-        
-        return {
-          pdf: base64,
-          filename: `recibo-${repair.codigo}.pdf`,
-        };
       }),
   }),
 
