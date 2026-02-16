@@ -29,7 +29,33 @@ export async function applyMigrations() {
       }
     }
 
-    // Migración 2: Modificar partId para permitir NULL en repair_parts
+    // Migración 2: Crear tabla repair_parts si no existe
+    try {
+      await connection.execute(`
+        CREATE TABLE IF NOT EXISTS repair_parts (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          repairId INT NOT NULL,
+          partId INT NULL,
+          esExterna INT NOT NULL DEFAULT 0,
+          nombreExterno VARCHAR(200) NULL,
+          cantidad INT NOT NULL,
+          costoUnitario DECIMAL(10, 2) NOT NULL,
+          costoTotal DECIMAL(10, 2) NOT NULL,
+          createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (repairId) REFERENCES repairs(id) ON DELETE CASCADE,
+          FOREIGN KEY (partId) REFERENCES inventory_parts(id) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      console.log('[Migrations] ✅ Created repair_parts table');
+    } catch (error: any) {
+      if (error.code === 'ER_TABLE_EXISTS_ERROR') {
+        console.log('[Migrations] ⏭️  repair_parts table already exists');
+      } else {
+        console.log('[Migrations] ⚠️  Could not create repair_parts:', error.message);
+      }
+    }
+
+    // Migración 3: Modificar partId para permitir NULL en repair_parts
     try {
       await connection.execute(`
         ALTER TABLE repair_parts 
@@ -41,7 +67,7 @@ export async function applyMigrations() {
       console.log('[Migrations] ⚠️  Could not modify partId:', error.message);
     }
 
-    // Migración 3: Agregar campo 'esExterna' a repair_parts
+    // Migración 4: Agregar campo 'esExterna' a repair_parts
     try {
       await connection.execute(`
         ALTER TABLE repair_parts 
@@ -57,7 +83,7 @@ export async function applyMigrations() {
       }
     }
 
-    // Migración 4: Agregar campo 'nombreExterno' a repair_parts
+    // Migración 5: Agregar campo 'nombreExterno' a repair_parts
     try {
       await connection.execute(`
         ALTER TABLE repair_parts 
@@ -73,7 +99,7 @@ export async function applyMigrations() {
       }
     }
 
-    // Migración 5: Crear tabla store_config
+    // Migración 6: Crear tabla store_config
     try {
       await connection.execute(`
         CREATE TABLE IF NOT EXISTS store_config (
