@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { trpc } from '../lib/trpc';
 import { useUser } from '../hooks/useUser';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 export default function Servidor() {
   const { user } = useUser();
