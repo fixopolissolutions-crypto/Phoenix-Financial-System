@@ -238,7 +238,7 @@ export default function Reparaciones() {
       codigo: formData.get('codigo') as string,
       cliente: formData.get('cliente') as string || undefined,
       telefono: formData.get('telefono') as string || undefined,
-      dispositivo: formData.get('dispositivo') as string,
+      dispositivo: formData.get('dispositivo') as string || undefined,
       problema: formData.get('problema') as string,
       diagnostico: formData.get('diagnostico') as string || undefined,
       precioManoObra: formData.get('precioManoObra') as string,

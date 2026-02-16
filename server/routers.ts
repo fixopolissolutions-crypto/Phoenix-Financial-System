@@ -631,7 +631,7 @@ export const appRouter = router({
         codigo: z.string(),
         cliente: z.string().optional(),
         telefono: z.string().optional(),
-        dispositivo: z.string(),
+        dispositivo: z.string().optional(),
         problema: z.string(),
         diagnostico: z.string().optional(),
         precioManoObra: z.string(),
