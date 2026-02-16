@@ -984,18 +984,18 @@ export async function createRepair(data: InsertRepair & { partes?: { partId: num
 
   const repairData = {
     codigo: data.codigo,
-    cliente: data.cliente,
-    telefono: data.telefono,
-    dispositivo: data.dispositivo,
+    cliente: data.cliente ?? null,
+    telefono: data.telefono ?? null,
+    dispositivo: data.dispositivo ?? null,
     problema: data.problema,
-    diagnostico: data.diagnostico,
+    diagnostico: data.diagnostico ?? null,
     precioManoObra: data.precioManoObra,
     precioTotal: data.precioTotal,
     costoPartes: costoPartes.toFixed(2),
     ganancia: ganancia.toFixed(2),
     fechaIngreso: data.fechaIngreso,
     tienda: data.tienda,
-    notas: data.notas || null,
+    notas: data.notas ?? null,
   };
 
   // Usar mysql2 directamente
