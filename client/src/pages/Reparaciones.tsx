@@ -45,6 +45,7 @@ export default function Reparaciones() {
   const [busquedaCliente, setBusquedaCliente] = useState('');
   const [partesSeleccionadas, setPartesSeleccionadas] = useState<ParteSeleccionada[]>([]);
   const [siguienteCodigo, setSiguienteCodigo] = useState('REP-001');
+  const [precioTotal, setPrecioTotal] = useState<number>(0);
 
   // Queries
   const { data: repairs = [], refetch } = trpc.repairs.list.useQuery();
@@ -201,6 +202,17 @@ export default function Reparaciones() {
       sum + (Number(p.costoUnitario) * p.cantidad), 0
     );
   }, [partesSeleccionadas]);
+
+  // Calcular mano de obra automáticamente
+  const manoDeObra = useMemo(() => {
+    const mano = precioTotal - costoTotalPartes;
+    return mano >= 0 ? mano : 0;
+  }, [precioTotal, costoTotalPartes]);
+
+  // Actualizar precio total cuando cambian las partes
+  useEffect(() => {
+    setPrecioTotal(costoTotalPartes + 50); // Sugerencia inicial: costo partes + $50 de mano de obra
+  }, [costoTotalPartes]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -487,19 +499,7 @@ export default function Reparaciones() {
                 </div>
 
                 {/* Precios */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="precioManoObra">Precio Mano de Obra *</Label>
-                    <Input 
-                      id="precioManoObra" 
-                      name="precioManoObra" 
-                      type="number" 
-                      step="0.01" 
-                      placeholder="50.00" 
-                      defaultValue="50.00"
-                      required 
-                    />
-                  </div>
+                <div className="space-y-4">
                   <div>
                     <Label htmlFor="precioTotal">Precio Total al Cliente *</Label>
                     <Input 
@@ -508,10 +508,39 @@ export default function Reparaciones() {
                       type="number" 
                       step="0.01" 
                       placeholder="100.00" 
-                      defaultValue={( costoTotalPartes + 50).toFixed(2)}
+                      value={precioTotal.toFixed(2)}
+                      onChange={(e) => setPrecioTotal(parseFloat(e.target.value) || 0)}
                       required 
                     />
                   </div>
+                  
+                  {/* Mostrar cálculos automáticos */}
+                  <div className="bg-blue-50 p-4 rounded-lg space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium">Costo Total Partes:</span>
+                      <span className="font-bold">${costoTotalPartes.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium">Mano de Obra (calculada):</span>
+                      <span className="font-bold text-green-600">
+                        ${manoDeObra.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm border-t pt-2">
+                      <span className="font-semibold">Ganancia Total:</span>
+                      <span className="font-bold text-blue-600">
+                        ${manoDeObra.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Campo oculto para mano de obra (calculado automáticamente) */}
+                  <input 
+                    type="hidden" 
+                    id="precioManoObra" 
+                    name="precioManoObra" 
+                    value={manoDeObra.toFixed(2)}
+                  />
                 </div>
 
                 {/* Notas */}
