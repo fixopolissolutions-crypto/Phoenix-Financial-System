@@ -135,6 +135,18 @@ export async function applyMigrations() {
       }
     }
 
+    // Migración 7: Hacer dispositivo nullable en repairs
+    try {
+      await connection.execute(`
+        ALTER TABLE repairs 
+        MODIFY COLUMN dispositivo VARCHAR(200) NULL 
+        COMMENT 'Modelo del dispositivo (opcional)'
+      `);
+      console.log('[Migrations] ✅ Made dispositivo nullable in repairs table');
+    } catch (error: any) {
+      console.log('[Migrations] ⚠️  Could not modify dispositivo:', error.message);
+    }
+
     await connection.end();
     console.log('[Migrations] ✅ All migrations completed successfully');
     
