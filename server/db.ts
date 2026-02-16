@@ -121,11 +121,13 @@ export async function getTransactions(filters?: {
   let query = db.select().from(transactions);
   
   const conditions = [];
+  
+  // Filtro por tienda OBLIGATORIO (siempre aplicar)
+  const tienda = filters?.tienda || 'admin';
+  conditions.push(eq(transactions.tienda, tienda));
+  
   if (filters?.tipo) {
     conditions.push(eq(transactions.tipo, filters.tipo));
-  }
-  if (filters?.tienda) {
-    conditions.push(eq(transactions.tienda, filters.tienda));
   }
   
   // Usar DATE() de MySQL para comparar solo la fecha, sin la hora
@@ -558,11 +560,13 @@ export async function getInventoryPhones(filters?: { estado?: 'disponible' | 've
   let query = db.select().from(inventoryPhones);
   
   const conditions = [];
+  
+  // Filtro por tienda OBLIGATORIO (siempre aplicar)
+  const tienda = filters?.tienda || 'admin';
+  conditions.push(eq(inventoryPhones.tienda, tienda));
+  
   if (filters?.estado) {
     conditions.push(eq(inventoryPhones.estado, filters.estado));
-  }
-  if (filters?.tienda) {
-    conditions.push(eq(inventoryPhones.tienda, filters.tienda));
   }
 
   if (conditions.length > 0) {
@@ -676,9 +680,11 @@ export async function getInventoryAccessories(filters?: { tienda?: 'admin' | 'su
   let query = db.select().from(inventoryAccessories);
   
   const conditions = [];
-  if (filters?.tienda) {
-    conditions.push(eq(inventoryAccessories.tienda, filters.tienda));
-  }
+  
+  // Filtro por tienda OBLIGATORIO (siempre aplicar)
+  const tienda = filters?.tienda || 'admin';
+  conditions.push(eq(inventoryAccessories.tienda, tienda));
+  
   if (filters?.activo !== undefined) {
     conditions.push(eq(inventoryAccessories.activo, filters.activo));
   }
@@ -828,9 +834,11 @@ export async function getInventoryParts(filters?: { tienda?: 'admin' | 'sucursal
   let query = db.select().from(inventoryParts);
   
   const conditions = [];
-  if (filters?.tienda) {
-    conditions.push(eq(inventoryParts.tienda, filters.tienda));
-  }
+  
+  // Filtro por tienda OBLIGATORIO (siempre aplicar)
+  const tienda = filters?.tienda || 'admin';
+  conditions.push(eq(inventoryParts.tienda, tienda));
+  
   if (filters?.activo !== undefined) {
     conditions.push(eq(inventoryParts.activo, filters.activo));
   }
@@ -945,11 +953,13 @@ export async function getRepairs(filters?: {
   let query = db.select().from(repairs);
   
   const conditions = [];
+  
+  // Filtro por tienda OBLIGATORIO (siempre aplicar)
+  const tienda = filters?.tienda || 'admin';
+  conditions.push(eq(repairs.tienda, tienda));
+  
   if (filters?.estado) {
     conditions.push(eq(repairs.estado, filters.estado));
-  }
-  if (filters?.tienda) {
-    conditions.push(eq(repairs.tienda, filters.tienda));
   }
   if (filters?.fechaInicio) {
     conditions.push(gte(repairs.fechaIngreso, filters.fechaInicio));
