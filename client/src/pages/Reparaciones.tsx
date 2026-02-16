@@ -370,12 +370,11 @@ export default function Reparaciones() {
 
                 {/* Dispositivo */}
                 <div>
-                  <Label htmlFor="dispositivo">Dispositivo *</Label>
+                  <Label htmlFor="dispositivo">Dispositivo</Label>
                   <Input 
                     id="dispositivo" 
                     name="dispositivo" 
                     placeholder="iPhone 13 Pro" 
-                    required 
                   />
                 </div>
 
