@@ -1,7 +1,9 @@
 import mysql from 'mysql2/promise';
 
 /**
- * Obtiene el siguiente código de reparación disponible (REP-001, REP-002, etc.)
+ * Obtiene el siguiente código de reparación disponible con prefijo por tienda
+ * Admin: ADM-001, ADM-002, etc.
+ * Sucursal: SUC-001, SUC-002, etc.
  * @param tienda - La tienda para la cual generar el código
  * @returns El siguiente código disponible
  */
@@ -24,25 +26,28 @@ export async function getNextRepairCode(tienda: string): Promise<string> {
     
     await connection.end();
     
+    // Determinar el prefijo según la tienda
+    const prefix = tienda === 'admin' ? 'ADM' : 'SUC';
+    
     if (!Array.isArray(rows) || rows.length === 0) {
-      // No hay reparaciones previas, empezar con REP-001
-      return 'REP-001';
+      // No hay reparaciones previas, empezar con XXX-001
+      return `${prefix}-001`;
     }
     
     const lastCode = (rows[0] as any).codigo as string;
     
-    // Extraer el número del código (REP-001 -> 001)
-    const match = lastCode.match(/REP-(\d+)/);
+    // Extraer el número del código (ADM-001 -> 001 o SUC-001 -> 001)
+    const match = lastCode.match(/(ADM|SUC|REP)-(\d+)/);
     if (!match) {
-      // Si el formato no es válido, empezar con REP-001
-      return 'REP-001';
+      // Si el formato no es válido, empezar con XXX-001
+      return `${prefix}-001`;
     }
     
-    const lastNumber = parseInt(match[1], 10);
+    const lastNumber = parseInt(match[2], 10);
     const nextNumber = lastNumber + 1;
     
-    // Formatear con ceros a la izquierda (001, 002, etc.)
-    const nextCode = `REP-${nextNumber.toString().padStart(3, '0')}`;
+    // Formatear con ceros a la izquierda y prefijo de tienda (ADM-001, SUC-001, etc.)
+    const nextCode = `${prefix}-${nextNumber.toString().padStart(3, '0')}`;
     
     return nextCode;
     
