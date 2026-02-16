@@ -1368,3 +1368,292 @@ export async function migrateInventoryPartsUniqueConstraint() {
     console.error("[Migration] Failed to migrate inventory_parts:", error);
   }
 }
+
+// ============================================
+// SERVICIOS DE SERVIDOR (UNLOCKERFAST API)
+// ============================================
+
+/**
+ * Obtener todos los servicios de servidor
+ */
+export async function getServerServices(tienda?: string) {
+  const connection = await mysql.createConnection(dbConfig);
+  try {
+    const query = tienda 
+      ? `SELECT * FROM server_services WHERE activo = 1 ORDER BY groupName, serviceName`
+      : `SELECT * FROM server_services WHERE activo = 1 ORDER BY groupName, serviceName`;
+    
+    const [rows] = await connection.execute(query);
+    await connection.end();
+    return rows;
+  } catch (error) {
+    await connection.end();
+    throw error;
+  }
+}
+
+/**
+ * Crear o actualizar un servicio de servidor
+ */
+export async function upsertServerService(data: any) {
+  const connection = await mysql.createConnection(dbConfig);
+  try {
+    const query = `
+      INSERT INTO server_services (serviceId, serviceName, groupName, serviceType, precio, precioVenta, tiempo, info, activo)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        serviceName = VALUES(serviceName),
+        groupName = VALUES(groupName),
+        serviceType = VALUES(serviceType),
+        precio = VALUES(precio),
+        precioVenta = VALUES(precioVenta),
+        tiempo = VALUES(tiempo),
+        info = VALUES(info),
+        activo = VALUES(activo),
+        updatedAt = NOW()
+    `;
+    
+    const [result] = await connection.execute(query, [
+      data.serviceId,
+      data.serviceName,
+      data.groupName ?? null,
+      data.serviceType,
+      data.precio,
+      data.precioVenta,
+      data.tiempo ?? null,
+      data.info ?? null,
+      data.activo ?? 1
+    ]);
+    
+    await connection.end();
+    return result;
+  } catch (error) {
+    await connection.end();
+    throw error;
+  }
+}
+
+/**
+ * Crear un pedido de servicio de servidor
+ */
+export async function createServerOrder(data: any) {
+  const connection = await mysql.createConnection(dbConfig);
+  try {
+    // Generar código único para el pedido
+    const [maxCodeResult] = await connection.execute(
+      `SELECT codigo FROM server_orders WHERE codigo LIKE 'ORD-%' ORDER BY id DESC LIMIT 1`
+    );
+    
+    let nextNumber = 1;
+    if ((maxCodeResult as any[]).length > 0) {
+      const lastCode = (maxCodeResult as any[])[0].codigo;
+      const lastNumber = parseInt(lastCode.split('-')[1]);
+      nextNumber = lastNumber + 1;
+    }
+    
+    const codigo = `ORD-${String(nextNumber).padStart(4, '0')}`;
+    
+    // Calcular ganancia
+    const ganancia = parseFloat(data.precioVenta) - parseFloat(data.precioCosto);
+    
+    const query = `
+      INSERT INTO server_orders (
+        codigo, serviceId, cliente, telefono, email, imei, customFields,
+        precioVenta, precioCosto, ganancia, estado, referenceId, resultado, notas, tienda, fechaPedido
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+    `;
+    
+    const [result] = await connection.execute(query, [
+      codigo,
+      data.serviceId,
+      data.cliente ?? null,
+      data.telefono ?? null,
+      data.email ?? null,
+      data.imei ?? null,
+      data.customFields ?? null,
+      data.precioVenta,
+      data.precioCosto,
+      ganancia,
+      data.estado ?? 'pendiente',
+      data.referenceId ?? null,
+      data.resultado ?? null,
+      data.notas ?? null,
+      data.tienda ?? 'admin'
+    ]);
+    
+    await connection.end();
+    return { ...result, codigo };
+  } catch (error) {
+    await connection.end();
+    throw error;
+  }
+}
+
+/**
+ * Obtener pedidos de servidor
+ */
+export async function getServerOrders(tienda?: string) {
+  const connection = await mysql.createConnection(dbConfig);
+  try {
+    const query = tienda
+      ? `SELECT so.*, ss.serviceName, ss.serviceType, ss.groupName 
+         FROM server_orders so
+         LEFT JOIN server_services ss ON so.serviceId = ss.id
+         WHERE so.tienda = ?
+         ORDER BY so.fechaPedido DESC`
+      : `SELECT so.*, ss.serviceName, ss.serviceType, ss.groupName 
+         FROM server_orders so
+         LEFT JOIN server_services ss ON so.serviceId = ss.id
+         ORDER BY so.fechaPedido DESC`;
+    
+    const params = tienda ? [tienda] : [];
+    const [rows] = await connection.execute(query, params);
+    await connection.end();
+    return rows;
+  } catch (error) {
+    await connection.end();
+    throw error;
+  }
+}
+
+/**
+ * Actualizar estado de un pedido de servidor
+ */
+export async function updateServerOrderStatus(id: number, data: any) {
+  const connection = await mysql.createConnection(dbConfig);
+  try {
+    const updates: string[] = [];
+    const values: any[] = [];
+    
+    if (data.estado !== undefined) {
+      updates.push('estado = ?');
+      values.push(data.estado);
+    }
+    
+    if (data.referenceId !== undefined) {
+      updates.push('referenceId = ?');
+      values.push(data.referenceId);
+    }
+    
+    if (data.resultado !== undefined) {
+      updates.push('resultado = ?');
+      values.push(data.resultado);
+    }
+    
+    if (data.notas !== undefined) {
+      updates.push('notas = ?');
+      values.push(data.notas);
+    }
+    
+    if (data.estado === 'completado' && !data.fechaCompletado) {
+      updates.push('fechaCompletado = NOW()');
+    }
+    
+    updates.push('updatedAt = NOW()');
+    values.push(id);
+    
+    const query = `UPDATE server_orders SET ${updates.join(', ')} WHERE id = ?`;
+    const [result] = await connection.execute(query, values);
+    
+    await connection.end();
+    return result;
+  } catch (error) {
+    await connection.end();
+    throw error;
+  }
+}
+
+/**
+ * Sincronizar servicios desde UnlockerFast API
+ */
+export async function syncServicesFromAPI(services: any[]) {
+  const connection = await mysql.createConnection(dbConfig);
+  try {
+    for (const service of services) {
+      await upsertServerService({
+        serviceId: service.SERVICEID,
+        serviceName: service.SERVICENAME,
+        groupName: service.GROUPNAME,
+        serviceType: service.SERVICETYPE,
+        precio: service.CREDIT,
+        precioVenta: parseFloat(service.CREDIT) * 1.5, // Margen del 50%
+        tiempo: service.TIME,
+        info: service.INFO,
+        activo: 1
+      });
+    }
+    
+    await connection.end();
+    return { success: true, count: services.length };
+  } catch (error) {
+    await connection.end();
+    throw error;
+  }
+}
+
+/**
+ * Migración: Crear tablas de servidor si no existen
+ */
+export async function migrateServerTables() {
+  const connection = await mysql.createConnection(dbConfig);
+  try {
+    console.log("[Migration] Creating server tables if they don't exist...");
+    
+    // Crear tabla server_services
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS server_services (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        serviceId VARCHAR(50) NOT NULL,
+        serviceName VARCHAR(300) NOT NULL,
+        groupName VARCHAR(200),
+        serviceType ENUM('IMEI', 'SERVER', 'REMOTE') NOT NULL,
+        precio DECIMAL(10, 2) NOT NULL,
+        precioVenta DECIMAL(10, 2) NOT NULL,
+        tiempo VARCHAR(100),
+        info TEXT,
+        activo INT DEFAULT 1 NOT NULL,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
+        UNIQUE KEY unique_serviceId (serviceId)
+      )
+    `);
+    console.log("[Migration] server_services table created/verified");
+    
+    // Crear tabla server_orders
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS server_orders (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        codigo VARCHAR(50) NOT NULL UNIQUE,
+        serviceId INT NOT NULL,
+        cliente VARCHAR(200),
+        telefono VARCHAR(50),
+        email VARCHAR(320),
+        imei VARCHAR(20),
+        customFields TEXT,
+        precioVenta DECIMAL(10, 2) NOT NULL,
+        precioCosto DECIMAL(10, 2) NOT NULL,
+        ganancia DECIMAL(10, 2) NOT NULL,
+        estado ENUM('pendiente', 'procesando', 'completado', 'fallido', 'cancelado') DEFAULT 'pendiente' NOT NULL,
+        referenceId VARCHAR(100),
+        resultado TEXT,
+        notas TEXT,
+        tienda ENUM('admin', 'sucursal') DEFAULT 'admin' NOT NULL,
+        fechaPedido TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        fechaCompletado TIMESTAMP NULL,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
+        INDEX idx_tienda (tienda),
+        INDEX idx_estado (estado),
+        INDEX idx_fechaPedido (fechaPedido)
+      )
+    `);
+    console.log("[Migration] server_orders table created/verified");
+    
+    await connection.end();
+    console.log("[Migration] Server tables migration completed successfully");
+  } catch (error) {
+    await connection.end();
+    console.error("[Migration] Failed to migrate server tables:", error);
+    throw error;
+  }
+}

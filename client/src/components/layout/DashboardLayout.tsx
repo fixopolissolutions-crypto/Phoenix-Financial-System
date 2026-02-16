@@ -16,6 +16,7 @@ import {
   Package,
   Wrench,
   Store,
+  Server,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -45,6 +46,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: 'Historial', href: '/historial', icon: History, roles: ['admin', 'sucursal'] },
     { name: 'Inversión de Capital', href: '/inversion-capital', icon: Package, roles: ['admin', 'sucursal'] },
     { name: 'Reparaciones', href: '/reparaciones', icon: Wrench, roles: ['admin', 'sucursal'] },
+    { name: 'Servidor', href: '/servidor', icon: Server, roles: ['admin', 'sucursal'] },
     { name: 'Proveedores', href: '/proveedores', icon: Users, roles: ['admin', 'sucursal'] },
     { name: 'Configuración Tienda', href: '/configuracion-tienda', icon: Store, roles: ['admin', 'sucursal'] },
     ...(user.role === 'admin' ? [

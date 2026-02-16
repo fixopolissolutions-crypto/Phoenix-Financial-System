@@ -22,6 +22,7 @@ import InventarioTelefonos from "./pages/InventarioTelefonos";
 import InventarioAccesorios from "./pages/InventarioAccesorios";
 import InventarioPartes from "./pages/InventarioPartes";
 import Reparaciones from "./pages/Reparaciones";
+import Servidor from "./pages/Servidor";
 import ConfiguracionTienda from "./pages/ConfiguracionTienda";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -85,6 +86,9 @@ function Router() {
       </Route>
       <Route path="/reparaciones">
         {() => <ProtectedRoute component={Reparaciones} />}
+      </Route>
+      <Route path="/servidor">
+        {() => <ProtectedRoute component={Servidor} />}
       </Route>
       <Route path="/configuracion-tienda">
         {() => <ProtectedRoute component={ConfiguracionTienda} />}
