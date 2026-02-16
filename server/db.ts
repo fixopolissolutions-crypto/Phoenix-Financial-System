@@ -980,7 +980,7 @@ export async function createRepair(data: InsertRepair & { partes?: { partId: num
     }
   }
 
-  const ganancia = Number(data.precioTotal) - Number(data.precioManoObra) - costoPartes;
+  const ganancia = Number(data.precioTotal) - costoPartes;
 
   const repairData = {
     codigo: data.codigo,
@@ -1186,9 +1186,9 @@ export async function addRepairParts(
       const nombreExterno = esExterna ? (parte.nombre || 'Parte externa') : null;
       
       await connection.execute(
-        `INSERT INTO repair_parts (repairId, partId, esExterna, nombreExterno, cantidad, costoUnitario, costoTotal)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [repairId, partId, esExterna, nombreExterno, parte.cantidad, costoUnitario, costoTotal]
+        `INSERT INTO repair_parts (repairId, partId, esExterna, nombreExterno, cantidad, precioUnitario)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [repairId, partId, esExterna, nombreExterno, parte.cantidad, costoUnitario]
       );
     }
     
@@ -1200,7 +1200,7 @@ export async function addRepairParts(
     
     if (Array.isArray(repairs) && repairs.length > 0) {
       const repair = repairs[0] as any;
-      const ganancia = Number(repair.precioTotal) - Number(repair.precioManoObra) - costoPartesTotal;
+      const ganancia = Number(repair.precioTotal) - costoPartesTotal;
       
       // Actualizar costoPartes y ganancia de la reparación
       await connection.execute(
