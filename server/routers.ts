@@ -4,7 +4,6 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import * as db from './db';
-import * as unlockerfast from './unlockerfast';
 
 export const appRouter = router({
   system: systemRouter,
@@ -798,117 +797,6 @@ export const appRouter = router({
           ...input,
           totalNomina: input.totalNomina || '0',
         });
-      }),
-  }),
-
-  // ============================================
-  // SERVIDOR (UNLOCKERFAST API)
-  // ============================================
-  server: router({
-    // Obtener información de la cuenta de UnlockerFast
-    getAccountInfo: publicProcedure
-      .query(async () => {
-        return await unlockerfast.getAccountInfo();
-      }),
-
-    // Sincronizar servicios desde UnlockerFast API
-    syncServices: publicProcedure
-      .mutation(async () => {
-        const services = await unlockerfast.getAllServices();
-        await db.syncServicesFromAPI(services);
-        return { success: true, count: services.length };
-      }),
-
-    // Obtener todos los servicios
-    getServices: publicProcedure
-      .input(z.object({
-        tienda: z.enum(['admin', 'sucursal']).optional(),
-      }).optional())
-      .query(async ({ input }) => {
-        return await db.getServerServices(input?.tienda);
-      }),
-
-    // Obtener pedidos de servidor
-    getOrders: publicProcedure
-      .input(z.object({
-        tienda: z.enum(['admin', 'sucursal']).optional(),
-      }).optional())
-      .query(async ({ input }) => {
-        return await db.getServerOrders(input?.tienda);
-      }),
-
-    // Crear un nuevo pedido
-    createOrder: publicProcedure
-      .input(z.object({
-        serviceId: z.number(),
-        cliente: z.string().optional(),
-        telefono: z.string().optional(),
-        email: z.string().optional(),
-        imei: z.string().optional(),
-        customFields: z.string().optional(),
-        precioVenta: z.string(),
-        precioCosto: z.string(),
-        notas: z.string().optional(),
-        tienda: z.enum(['admin', 'sucursal']),
-      }))
-      .mutation(async ({ input }) => {
-        // Crear el pedido en la base de datos local
-        const order = await db.createServerOrder(input);
-        
-        // Obtener el servicio para saber el serviceId de UnlockerFast
-        const [service] = await db.getServerServices();
-        const serviceData = (service as any[]).find((s: any) => s.id === input.serviceId);
-        
-        if (!serviceData) {
-          throw new Error('Service not found');
-        }
-        
-        try {
-          // Enviar el pedido a UnlockerFast API
-          const customFields = input.customFields ? JSON.parse(input.customFields) : undefined;
-          const apiResponse = await unlockerfast.placeOrder({
-            serviceId: serviceData.serviceId,
-            imei: input.imei,
-            customFields,
-          });
-          
-          // Actualizar el pedido con el referenceId de UnlockerFast
-          await db.updateServerOrderStatus((order as any).insertId, {
-            referenceId: apiResponse.referenceId,
-            estado: 'procesando',
-          });
-          
-          return { success: true, order, apiResponse };
-        } catch (error) {
-          // Si falla el pedido en la API, marcar como fallido
-          await db.updateServerOrderStatus((order as any).insertId, {
-            estado: 'fallido',
-            notas: `Error al enviar a UnlockerFast: ${error}`,
-          });
-          
-          throw error;
-        }
-      }),
-
-    // Actualizar estado de un pedido
-    updateOrderStatus: publicProcedure
-      .input(z.object({
-        id: z.number(),
-        estado: z.enum(['pendiente', 'procesando', 'completado', 'fallido', 'cancelado']).optional(),
-        resultado: z.string().optional(),
-        notas: z.string().optional(),
-      }))
-      .mutation(async ({ input }) => {
-        return await db.updateServerOrderStatus(input.id, input);
-      }),
-
-    // Consultar estado de un pedido en UnlockerFast
-    checkOrderStatus: publicProcedure
-      .input(z.object({
-        referenceId: z.string(),
-      }))
-      .query(async ({ input }) => {
-        return await unlockerfast.getOrderInfo(input.referenceId);
       }),
   }),
 });

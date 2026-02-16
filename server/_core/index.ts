@@ -377,11 +377,8 @@ async function startServer() {
     await applyMigrations();
     
     // Migrar constraint de inventory_parts
-    const { migrateInventoryPartsUniqueConstraint, initializeStoreConfig, migrateServerTables } = await import("../db");
+    const { migrateInventoryPartsUniqueConstraint, initializeStoreConfig } = await import("../db");
     await migrateInventoryPartsUniqueConstraint();
-    
-    // Migrar tablas de servidor
-    await migrateServerTables();
     
     // Inicializar configuración de tiendas
     await initializeStoreConfig();

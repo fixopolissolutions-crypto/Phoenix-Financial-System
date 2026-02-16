@@ -1,0 +1,338 @@
+# Terminal Full Output
+# Terminal: main
+# Command: cd /home/ubuntu && python3 test_unlockerfast_api.py
+# PID: 1683
+# Timestamp: 2026-02-15_21-32-56.446812
+# Original Length: 6372 characters
+# ----------------------------------------
+
+============================================================
+Probando API de UnlockerFast (Dhru Fusion)
+============================================================
+🔍 Probando endpoint: https://www.unlockerfast.com.mx/api
+  Método 1: headers
+    Status: 403
+    ⚠️  Status code: 403
+    Response: <style>
+    *{
+        transition: all 0.6s;
+    }
+    html {
+        height: 100%;
+    }
+    body{
+        font-family: 'Lato', sans-serif;
+        color: #888;
+        margin: 0;
+    }
+    #main{
+  Método 2: params
+    Status: 403
+    ⚠️  Status code: 403
+    Response: <style>
+    *{
+        transition: all 0.6s;
+    }
+    html {
+        height: 100%;
+    }
+    body{
+        font-family: 'Lato', sans-serif;
+        color: #888;
+        margin: 0;
+    }
+    #main{
+  Método 3: params
+    Status: 403
+    ⚠️  Status code: 403
+    Response: <style>
+    *{
+        transition: all 0.6s;
+    }
+    html {
+        height: 100%;
+    }
+    body{
+        font-family: 'Lato', sans-serif;
+        color: #888;
+        margin: 0;
+    }
+    #main{
+  Método 4: params
+    Status: 403
+    ⚠️  Status code: 403
+    Response: <style>
+    *{
+        transition: all 0.6s;
+    }
+    html {
+        height: 100%;
+    }
+    body{
+        font-family: 'Lato', sans-serif;
+        color: #888;
+        margin: 0;
+    }
+    #main{
+🔍 Probando endpoint: https://www.unlockerfast.com.mx/api/v2
+  Método 1: headers
+    Status: 403
+    ⚠️  Status code: 403
+    Response: <style>
+    *{
+        transition: all 0.6s;
+    }
+    html {
+        height: 100%;
+    }
+    body{
+        font-family: 'Lato', sans-serif;
+        color: #888;
+        margin: 0;
+    }
+    #main{
+  Método 2: params
+    Status: 403
+    ⚠️  Status code: 403
+    Response: <style>
+    *{
+        transition: all 0.6s;
+    }
+    html {
+        height: 100%;
+    }
+    body{
+        font-family: 'Lato', sans-serif;
+        color: #888;
+        margin: 0;
+    }
+    #main{
+  Método 3: params
+    Status: 403
+    ⚠️  Status code: 403
+    Response: <style>
+    *{
+        transition: all 0.6s;
+    }
+    html {
+        height: 100%;
+    }
+    body{
+        font-family: 'Lato', sans-serif;
+        color: #888;
+        margin: 0;
+    }
+    #main{
+  Método 4: params
+    Status: 403
+    ⚠️  Status code: 403
+    Response: <style>
+    *{
+        transition: all 0.6s;
+    }
+    html {
+        height: 100%;
+    }
+    body{
+        font-family: 'Lato', sans-serif;
+        color: #888;
+        margin: 0;
+    }
+    #main{
+🔍 Probando endpoint: https://www.unlockerfast.com.mx/api.php
+  Método 1: headers
+    Status: 200
+    ✅ Respuesta exitosa!
+    Content-Type: text/html; charset=UTF-8
+    Response (primeros 500 chars):
+    <style>
+    *{
+        transition: all 0.6s;
+    }
+    html {
+        height: 100%;
+    }
+    body{
+        font-family: 'Lato', sans-serif;
+        color: #888;
+        margin: 0;
+    }
+    #main{
+        display: table;
+        width: 100%;
+        height: 100vh;
+        text-align: center;
+    }
+    .fof{
+        display: table-cell;
+        vertical-align: middle;
+    }
+    .fof h1{
+        font-size: 50px;
+        display: inline-block;
+        padding-right: 12px;
+        animation: t
+  Método 2: params
+    Status: 200
+    ✅ Respuesta exitosa!
+    Content-Type: text/html; charset=UTF-8
+    Response (primeros 500 chars):
+    <style>
+    *{
+        transition: all 0.6s;
+    }
+    html {
+        height: 100%;
+    }
+    body{
+        font-family: 'Lato', sans-serif;
+        color: #888;
+        margin: 0;
+    }
+    #main{
+        display: table;
+        width: 100%;
+        height: 100vh;
+        text-align: center;
+    }
+    .fof{
+        display: table-cell;
+        vertical-align: middle;
+    }
+    .fof h1{
+        font-size: 50px;
+        display: inline-block;
+        padding-right: 12px;
+        animation: t
+  Método 3: params
+    Status: 200
+    ✅ Respuesta exitosa!
+    Content-Type: text/html; charset=UTF-8
+    Response (primeros 500 chars):
+    <style>
+    *{
+        transition: all 0.6s;
+    }
+    html {
+        height: 100%;
+    }
+    body{
+        font-family: 'Lato', sans-serif;
+        color: #888;
+        margin: 0;
+    }
+    #main{
+        display: table;
+        width: 100%;
+        height: 100vh;
+        text-align: center;
+    }
+    .fof{
+        display: table-cell;
+        vertical-align: middle;
+    }
+    .fof h1{
+        font-size: 50px;
+        display: inline-block;
+        padding-right: 12px;
+        animation: t
+  Método 4: params
+    Status: 200
+    ✅ Respuesta exitosa!
+    Content-Type: text/html; charset=UTF-8
+    Response (primeros 500 chars):
+    <style>
+    *{
+        transition: all 0.6s;
+    }
+    html {
+        height: 100%;
+    }
+    body{
+        font-family: 'Lato', sans-serif;
+        color: #888;
+        margin: 0;
+    }
+    #main{
+        display: table;
+        width: 100%;
+        height: 100vh;
+        text-align: center;
+    }
+    .fof{
+        display: table-cell;
+        vertical-align: middle;
+    }
+    .fof h1{
+        font-size: 50px;
+        display: inline-block;
+        padding-right: 12px;
+        animation: t
+🔍 Probando endpoint: https://www.unlockerfast.com.mx/includes/api.php
+  Método 1: headers
+    Status: 403
+    ⚠️  Status code: 403
+    Response: <style>
+    *{
+        transition: all 0.6s;
+    }
+    html {
+        height: 100%;
+    }
+    body{
+        font-family: 'Lato', sans-serif;
+        color: #888;
+        margin: 0;
+    }
+    #main{
+  Método 2: params
+    Status: 403
+    ⚠️  Status code: 403
+    Response: <style>
+    *{
+        transition: all 0.6s;
+    }
+    html {
+        height: 100%;
+    }
+    body{
+        font-family: 'Lato', sans-serif;
+        color: #888;
+        margin: 0;
+    }
+    #main{
+  Método 3: params
+    Status: 403
+    ⚠️  Status code: 403
+    Response: <style>
+    *{
+        transition: all 0.6s;
+    }
+    html {
+        height: 100%;
+    }
+    body{
+        font-family: 'Lato', sans-serif;
+        color: #888;
+        margin: 0;
+    }
+    #main{
+  Método 4: params
+    Status: 403
+    ⚠️  Status code: 403
+    Response: <style>
+    *{
+        transition: all 0.6s;
+    }
+    html {
+        height: 100%;
+    }
+    body{
+        font-family: 'Lato', sans-serif;
+        color: #888;
+        margin: 0;
+    }
+    #main{
+============================================================
+Prueba completada
+============================================================

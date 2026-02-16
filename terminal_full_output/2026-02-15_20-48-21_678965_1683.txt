@@ -1,0 +1,72 @@
+# Terminal Full Output
+# Terminal: main
+# Command: cd /home/ubuntu && DATABASE_URL="mysql://root:yfLUdgLIlSBynDYzoWyhAuBvnbUVdReQ@metro.proxy.rlwy.net:42345/railway" node test-repair-creation.mjs
+# PID: 1683
+# Timestamp: 2026-02-15_20-48-21.678965
+# Original Length: 8562 characters
+# ----------------------------------------
+
+=== TEST DE CREACIÓN DE REPARACIONES ===
+✅ DATABASE_URL configurado
+URL: mysql://root:****@metro.proxy.rlwy.net:42345/railway 
+📡 Conectando a la base de datos...
+✅ Conexión exitosa
+🔍 Verificando tabla repairs...
+✅ Tabla repairs existe
+🔍 Verificando estructura de la tabla repairs...
+Columnas:
+┌─────────┬───────────────────┬───────────────────────────────────────────────────────────┬───────┬───────┬─────────────────────┬─────────────────────────────────────────────────┐
+│ (index) │ Field             │ Type                                                      │ Null  │ Key   │ Default             │ Extra                                           │
+├─────────┼───────────────────┼───────────────────────────────────────────────────────────┼───────┼───────┼─────────────────────┼─────────────────────────────────────────────────┤
+│ 0       │ [32m'id'[39m              │ [32m'int'[39m                                                     │ [32m'NO'[39m  │ [32m'PRI'[39m │ [1mnull[22m                │ [32m'auto_increment'[39m                                │
+│ 1       │ [32m'codigo'[39m          │ [32m'varchar(50)'[39m                                             │ [32m'NO'[39m  │ [32m'UNI'[39m │ [1mnull[22m                │ [32m''[39m                                              │
+│ 2       │ [32m'cliente'[39m         │ [32m'varchar(200)'[39m                                            │ [32m'YES'[39m │ [32m''[39m    │ [1mnull[22m                │ [32m''[39m                                              │
+│ 3       │ [32m'telefono'[39m        │ [32m'varchar(50)'[39m                                             │ [32m'YES'[39m │ [32m''[39m    │ [1mnull[22m                │ [32m''[39m                                              │
+│ 4       │ [32m'dispositivo'[39m     │ [32m'varchar(200)'[39m                                            │ [32m'NO'[39m  │ [32m''[39m    │ [1mnull[22m                │ [32m''[39m                                              │
+│ 5       │ [32m'problema'[39m        │ [32m'text'[39m                                                    │ [32m'NO'[39m  │ [32m''[39m    │ [1mnull[22m                │ [32m''[39m                                              │
+│ 6       │ [32m'diagnostico'[39m     │ [32m'text'[39m                                                    │ [32m'YES'[39m │ [32m''[39m    │ [1mnull[22m                │ [32m''[39m                                              │
+│ 7       │ [32m'precioManoObra'[39m  │ [32m'decimal(10,2)'[39m                                           │ [32m'NO'[39m  │ [32m''[39m    │ [1mnull[22m                │ [32m''[39m                                              │
+│ 8       │ [32m'precioTotal'[39m     │ [32m'decimal(10,2)'[39m                                           │ [32m'NO'[39m  │ [32m''[39m    │ [1mnull[22m                │ [32m''[39m                                              │
+│ 9       │ [32m'costoPartes'[39m     │ [32m'decimal(10,2)'[39m                                           │ [32m'NO'[39m  │ [32m''[39m    │ [32m'0.00'[39m              │ [32m''[39m                                              │
+│ 10      │ [32m'ganancia'[39m        │ [32m'decimal(10,2)'[39m                                           │ [32m'NO'[39m  │ [32m''[39m    │ [1mnull[22m                │ [32m''[39m                                              │
+│ 11      │ [32m'estado'[39m          │ [32m"enum('pendiente','en_proceso','completada','entregada')"[39m │ [32m'NO'[39m  │ [32m''[39m    │ [32m'pendiente'[39m         │ [32m''[39m                                              │
+│ 12      │ [32m'fechaIngreso'[39m    │ [32m'timestamp'[39m                                               │ [32m'NO'[39m  │ [32m''[39m    │ [1mnull[22m                │ [32m''[39m                                              │
+│ 13      │ [32m'fechaCompletado'[39m │ [32m'timestamp'[39m                                               │ [32m'YES'[39m │ [32m''[39m    │ [1mnull[22m                │ [32m''[39m                                              │
+│ 14      │ [32m'fechaEntrega'[39m    │ [32m'timestamp'[39m                                               │ [32m'YES'[39m │ [32m''[39m    │ [1mnull[22m                │ [32m''[39m                                              │
+│ 15      │ [32m'tienda'[39m          │ [32m"enum('admin','sucursal')"[39m                                │ [32m'NO'[39m  │ [32m''[39m    │ [32m'admin'[39m             │ [32m''[39m                                              │
+│ 16      │ [32m'notas'[39m           │ [32m'text'[39m                                                    │ [32m'YES'[39m │ [32m''[39m    │ [1mnull[22m                │ [32m''[39m                                              │
+│ 17      │ [32m'createdAt'[39m       │ [32m'timestamp'[39m                                               │ [32m'NO'[39m  │ [32m''[39m    │ [32m'CURRENT_TIMESTAMP'[39m │ [32m'DEFAULT_GENERATED'[39m                             │
+│ 18      │ [32m'updatedAt'[39m       │ [32m'timestamp'[39m                                               │ [32m'NO'[39m  │ [32m''[39m    │ [32m'CURRENT_TIMESTAMP'[39m │ [32m'DEFAULT_GENERATED on update CURRENT_TIMESTAMP'[39m │
+│ 19      │ [32m'pagado'[39m          │ [32m'int'[39m                                                     │ [32m'NO'[39m  │ [32m''[39m    │ [32m'0'[39m                 │ [32m''[39m                                              │
+└─────────┴───────────────────┴───────────────────────────────────────────────────────────┴───────┴───────┴─────────────────────┴─────────────────────────────────────────────────┘
+📝 Datos de prueba:
+{
+  "codigo": "TEST-001",
+  "cliente": "Cliente de Prueba",
+  "telefono": "555-1234",
+  "dispositivo": "iPhone 13 Pro",
+  "problema": "Pantalla rota",
+  "diagnostico": "Requiere reemplazo de pantalla",
+  "precioManoObra": "50.00",
+  "precioTotal": "150.00",
+  "costoPartes": "0.00",
+  "ganancia": "100.00",
+  "fechaIngreso": "2026-02-16T01:48:16.313Z",
+  "tienda": "admin",
+  "notas": "Prueba de creación"
+}
+🧮 Cálculo de ganancia:
+precioTotal (150.00) - precioManoObra (50.00) - costoPartes (0) = 100
+🧹 Limpiando registros de prueba anteriores...
+💾 Intentando insertar reparación de prueba...
+✅ Inserción exitosa!
+ID generado: [33m12[39m
+📊 Registro insertado:
+┌─────────┬────┬────────────┬─────────────────────┬────────────┬─────────────────┬─────────────────┬──────────────────────────────────┬────────────────┬─────────────┬─────────────┬──────────┬─────────────┬──────────────────────────┬─────────────────┬──────────────┬─────────┬──────────────────────┬──────────────────────────┬──────────────────────────┬────────┐
+│ (index) │ id │ codigo     │ cliente             │ telefono   │ dispositivo     │ problema        │ diagnostico                      │ precioManoObra │ precioTotal │ costoPartes │ ganancia │ estado      │ fechaIngreso             │ fechaCompletado │ fechaEntrega │ tienda  │ notas                │ createdAt                │ updatedAt                │ pagado │
+├─────────┼────┼────────────┼─────────────────────┼────────────┼─────────────────┼─────────────────┼──────────────────────────────────┼────────────────┼─────────────┼─────────────┼──────────┼─────────────┼──────────────────────────┼─────────────────┼──────────────┼─────────┼──────────────────────┼──────────────────────────┼──────────────────────────┼────────┤
+│ 0       │ [33m12[39m │ [32m'TEST-001'[39m │ [32m'Cliente de Prueba'[39m │ [32m'555-1234'[39m │ [32m'iPhone 13 Pro'[39m │ [32m'Pantalla rota'[39m │ [32m'Requiere reemplazo de pantalla'[39m │ [32m'50.00'[39m        │ [32m'150.00'[39m    │ [32m'0.00'[39m      │ [32m'100.00'[39m │ [32m'pendiente'[39m │ [35m2026-02-16T01:48:16.000Z[39m │ [1mnull[22m            │ [1mnull[22m         │ [32m'admin'[39m │ [32m'Prueba de creación'[39m │ [35m2026-02-16T06:48:18.000Z[39m │ [35m2026-02-16T06:48:18.000Z[39m │ [33m0[39m      │
+└─────────┴────┴────────────┴─────────────────────┴────────────┴─────────────────┴─────────────────┴──────────────────────────────────┴────────────────┴─────────────┴─────────────┴──────────┴─────────────┴──────────────────────────┴─────────────────┴──────────────┴─────────┴──────────────────────┴──────────────────────────┴──────────────────────────┴────────┘
+🧹 Limpiando registro de prueba...
+✅ Limpieza completada
+🔌 Conexión cerrada

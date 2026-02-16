@@ -1,0 +1,7 @@
+2026/02/16-02:37:19.965 3a2 Reusing MANIFEST /home/ubuntu/.browser_data_dir/Default/IndexedDB/https_www.postman.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/02/16-02:37:19.968 3a2 Recovering log #3
+2026/02/16-02:37:19.969 3a2 Reusing old log /home/ubuntu/.browser_data_dir/Default/IndexedDB/https_www.postman.com_0.indexeddb.leveldb/000003.log 
+2026/02/16-02:38:03.949 3a3 Level-0 table #5: started
+2026/02/16-02:38:03.962 3a3 Level-0 table #5: 9387 bytes OK
+2026/02/16-02:38:03.965 3a3 Delete type=0 #3
+2026/02/16-02:38:03.966 3a3 Manual compaction at level-0 from '\x00\x04\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x05\x00\x00\x00' @ 0 : 0; will stop at (end)

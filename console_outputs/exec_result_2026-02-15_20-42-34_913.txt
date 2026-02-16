@@ -1,0 +1,1 @@
+"[\n  {\n    \"text\": \"Learn more\",\n    \"visible\": true,\n    \"tag\": \"A\"\n  },\n  {\n    \"text\": \"Help\",\n    \"visible\": true,\n    \"tag\": \"A\"\n  },\n  {\n    \"text\": \"Privacy\",\n    \"visible\": true,\n    \"tag\": \"A\"\n  },\n  {\n    \"text\": \"Terms\",\n    \"visible\": true,\n    \"tag\": \"A\"\n  }\n]"

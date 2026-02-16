@@ -1,0 +1,1 @@
+"{\n  \"totalRequired\": 6,\n  \"invalidFields\": [\n    {\n      \"name\": \"dispositivo\",\n      \"type\": \"text\",\n      \"value\": \"\",\n      \"validationMessage\": \"Please fill out this field.\",\n      \"visible\": true\n    }\n  ]\n}"
