@@ -209,9 +209,11 @@ export default function Reparaciones() {
     return mano >= 0 ? mano : 0;
   }, [precioTotal, costoTotalPartes]);
 
-  // Actualizar precio total cuando cambian las partes
+  // Actualizar precio total cuando cambian las partes (solo si el precio es menor que el costo de partes)
   useEffect(() => {
-    setPrecioTotal(costoTotalPartes + 50); // Sugerencia inicial: costo partes + $50 de mano de obra
+    if (precioTotal < costoTotalPartes) {
+      setPrecioTotal(costoTotalPartes + 50); // Sugerencia inicial: costo partes + $50 de mano de obra
+    }
   }, [costoTotalPartes]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
