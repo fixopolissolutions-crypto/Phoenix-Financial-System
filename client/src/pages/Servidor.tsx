@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { trpc } from '../lib/trpc';
-import { useUser } from '../hooks/useUser';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 export default function Servidor() {
-  const { user } = useUser();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'servicios' | 'pedidos'>('servicios');
   const [showNewOrderModal, setShowNewOrderModal] = useState(false);
   const [selectedService, setSelectedService] = useState<any>(null);
