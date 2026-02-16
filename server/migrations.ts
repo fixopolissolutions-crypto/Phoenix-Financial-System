@@ -147,6 +147,37 @@ export async function applyMigrations() {
       console.log('[Migrations] ⚠️  Could not modify dispositivo:', error.message);
     }
 
+    // Migración 8: Agregar columnas costoUnitario y costoTotal a repair_parts si no existen
+    try {
+      await connection.execute(`
+        ALTER TABLE repair_parts 
+        ADD COLUMN costoUnitario DECIMAL(10,2) NOT NULL DEFAULT 0.00 
+        COMMENT 'Costo unitario de la parte'
+      `);
+      console.log('[Migrations] ✅ Added costoUnitario field to repair_parts');
+    } catch (error: any) {
+      if (error.code === 'ER_DUP_FIELDNAME') {
+        console.log('[Migrations] ⏭️  costoUnitario field already exists');
+      } else {
+        console.log('[Migrations] ⚠️  Could not add costoUnitario:', error.message);
+      }
+    }
+
+    try {
+      await connection.execute(`
+        ALTER TABLE repair_parts 
+        ADD COLUMN costoTotal DECIMAL(10,2) NOT NULL DEFAULT 0.00 
+        COMMENT 'Costo total (cantidad * costoUnitario)'
+      `);
+      console.log('[Migrations] ✅ Added costoTotal field to repair_parts');
+    } catch (error: any) {
+      if (error.code === 'ER_DUP_FIELDNAME') {
+        console.log('[Migrations] ⏭️  costoTotal field already exists');
+      } else {
+        console.log('[Migrations] ⚠️  Could not add costoTotal:', error.message);
+      }
+    }
+
     await connection.end();
     console.log('[Migrations] ✅ All migrations completed successfully');
     
