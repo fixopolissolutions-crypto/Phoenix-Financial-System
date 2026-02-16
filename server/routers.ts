@@ -639,8 +639,10 @@ export const appRouter = router({
         fechaIngreso: z.string(),
         notas: z.string().optional(),
         partes: z.array(z.object({
-          partId: z.number(),
+          partId: z.number().optional(), // Opcional para partes externas
           cantidad: z.number(),
+          nombre: z.string().optional(), // Para partes externas
+          costoUnitario: z.string().optional(), // Para partes externas
         })).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
