@@ -204,6 +204,41 @@ export async function applyMigrations() {
       }
     }
 
+    // Migración 10: Crear tabla config para configuración del sistema
+    try {
+      await connection.execute(`
+        CREATE TABLE IF NOT EXISTS config (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          \`key\` VARCHAR(100) NOT NULL UNIQUE,
+          value TEXT NULL,
+          updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      console.log('[Migrations] ✅ Created config table');
+
+      // Insertar valores por defecto
+      await connection.execute(`
+        INSERT IGNORE INTO config (\`key\`, value) VALUES
+          ('taxRate', '8.25'),
+          ('porcentajeAhorro', '30'),
+          ('porcentajeInversion', '20'),
+          ('porcentajeEmergencia', '10'),
+          ('porcentajeDisponible', '40'),
+          ('cajaChicaAdmin', '500'),
+          ('diaInicioSemana', '1'),
+          ('diaFinSemana', '0'),
+          ('zonaHoraria', 'America/Chicago'),
+          ('reportEmail', '')
+      `);
+      console.log('[Migrations] ✅ Inserted default config values');
+    } catch (error: any) {
+      if (error.code === 'ER_TABLE_EXISTS_ERROR') {
+        console.log('[Migrations] ⏭️  config table already exists');
+      } else {
+        console.log('[Migrations] ⚠️  Could not create config table:', error.message);
+      }
+    }
+
     await connection.end();
     console.log('[Migrations] ✅ All migrations completed successfully');
     
