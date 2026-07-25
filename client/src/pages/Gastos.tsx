@@ -22,7 +22,7 @@ interface Transaction {
   descripcion: string | null;
   categoria: string | null;
   proveedor: string | null;
-  tienda: 'admin' | 'sucursal';
+  tienda: 'admin';
   fecha: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -93,7 +93,7 @@ export default function Gastos() {
   
   const { data: gastos = [], isLoading } = trpc.transactions.list.useQuery({
     tipo: 'gasto',
-    tienda: user?.role as 'admin' | 'sucursal' | undefined,
+    tienda: 'admin',
     ...dateRange,
   });
 
@@ -157,7 +157,7 @@ export default function Gastos() {
       descripcion: descripcion || undefined,
       categoria: categoria || undefined,
       proveedor: proveedor || undefined,
-      tienda: user.role as 'admin' | 'sucursal',
+      tienda: 'admin',
       fecha: fechaSeleccionada + 'T12:00:00.000Z',
     });
   };

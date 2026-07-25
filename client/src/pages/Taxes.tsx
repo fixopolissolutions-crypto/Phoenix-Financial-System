@@ -10,7 +10,7 @@ const COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#8b5cf6'];
 
 export default function Taxes() {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  
 
   const data = useMemo(() => {
     const config = storage.getConfig();

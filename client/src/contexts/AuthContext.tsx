@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from '
 import { trpc } from '@/lib/trpc';
 
 interface UserData {
-  role: 'admin' | 'sucursal';
+  role: 'admin';
   name: string;
   username: string;
 }
@@ -44,8 +44,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (result.success && result.user) {
         const userData: UserData = {
-          role: result.user.tienda as 'admin' | 'sucursal',
-          name: result.user.tienda === 'admin' ? 'Fixopolis Solutions' : 'Fixopolis Solutions Sucursal',
+          role: 'admin' as const,
+          name: 'Fixopolis Solutions',
           username: result.user.username,
         };
         setUser(userData);

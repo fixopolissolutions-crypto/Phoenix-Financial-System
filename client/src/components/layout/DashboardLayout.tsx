@@ -44,27 +44,21 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   const navigation = [
-    { name: 'Dashboard Principal', href: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'sucursal'] },
-    ...(user.role === 'admin' ? [
-      { name: 'Dashboard General', href: '/dashboard-general', icon: Building2, roles: ['admin'] },
-      { name: 'Reportes', href: '/reportes', icon: FileText, roles: ['admin'] },
-      { name: 'Taxes', href: '/taxes', icon: Receipt, roles: ['admin'] },
-      { name: 'Inversión Capital Sucursal', href: '/inversion-capital-sucursal', icon: Store, roles: ['admin'] },
-    ] : []),
-    { name: 'Ingresos', href: '/ingresos', icon: TrendingUp, roles: ['admin', 'sucursal'] },
-    { name: 'Gastos', href: '/gastos', icon: TrendingDown, roles: ['admin', 'sucursal'] },
-    { name: 'Historial', href: '/historial', icon: History, roles: ['admin', 'sucursal'] },
-    { name: 'Inversión de Capital', href: '/inversion-capital', icon: Package, roles: ['admin', 'sucursal'] },
-    { name: 'Reparaciones', href: '/reparaciones', icon: Wrench, roles: ['admin', 'sucursal'] },
-    { name: 'Inventario Partes', href: '/inventario/partes', icon: Package, roles: ['admin', 'sucursal'], lowStock: lowStockParts },
-    { name: 'Inventario Accesorios', href: '/inventario/accesorios', icon: Package, roles: ['admin', 'sucursal'], lowStock: lowStockAccessories },
-    { name: 'Servidor', href: '/servidor', icon: Server, roles: ['admin', 'sucursal'] },
-    { name: 'Proveedores', href: '/proveedores', icon: Users, roles: ['admin', 'sucursal'] },
-    { name: 'Configuración Tienda', href: '/configuracion-tienda', icon: Store, roles: ['admin', 'sucursal'] },
-    ...(user.role === 'admin' ? [
-      { name: 'Nómina', href: '/nomina', icon: Wallet, roles: ['admin'] },
-      { name: 'Configuración', href: '/configuracion', icon: Settings, roles: ['admin'] },
-    ] : []),
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Reportes', href: '/reportes', icon: FileText },
+    { name: 'Taxes', href: '/taxes', icon: Receipt },
+    { name: 'Ingresos', href: '/ingresos', icon: TrendingUp },
+    { name: 'Gastos', href: '/gastos', icon: TrendingDown },
+    { name: 'Historial', href: '/historial', icon: History },
+    { name: 'Inversión de Capital', href: '/inversion-capital', icon: Package },
+    { name: 'Reparaciones', href: '/reparaciones', icon: Wrench },
+    { name: 'Inventario Partes', href: '/inventario/partes', icon: Package, lowStock: lowStockParts },
+    { name: 'Inventario Accesorios', href: '/inventario/accesorios', icon: Package, lowStock: lowStockAccessories },
+    { name: 'Servidor', href: '/servidor', icon: Server },
+    { name: 'Proveedores', href: '/proveedores', icon: Users },
+    { name: 'Configuración Tienda', href: '/configuracion-tienda', icon: Store },
+    { name: 'Nómina', href: '/nomina', icon: Wallet },
+    { name: 'Configuración', href: '/configuracion', icon: Settings },
   ];
 
   return (
@@ -78,7 +72,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
             <div>
               <h2 className="font-bold text-lg">{user.name}</h2>
-              <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
+              <p className="text-xs text-muted-foreground">Fixopolis Solutions</p>
             </div>
           </div>
         </div>

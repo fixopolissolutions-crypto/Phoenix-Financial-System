@@ -24,7 +24,7 @@ interface Transaction {
   descripcion: string | null;
   categoria: string | null;
   proveedor: string | null;
-  tienda: 'admin' | 'sucursal';
+  tienda: 'admin';
   fecha: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -85,7 +85,7 @@ export default function Ingresos() {
   
   const { data: ingresos = [], isLoading } = trpc.transactions.list.useQuery({
     tipo: 'ingreso',
-    tienda: user?.role as 'admin' | 'sucursal' | undefined,
+    tienda: 'admin',
     ...dateRange,
   });
 
@@ -142,7 +142,7 @@ export default function Ingresos() {
       monto: monto,
       metodo,
       descripcion: descripcion || undefined,
-      tienda: user.role as 'admin' | 'sucursal',
+      tienda: 'admin',
       fecha: fechaSeleccionada + 'T12:00:00.000Z',
     });
   };

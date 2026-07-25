@@ -17,10 +17,10 @@ export default function Dashboard() {
   
   // Query para obtener todas las transacciones
   const { data: transacciones = [], isLoading: loadingTransactions } = trpc.transactions.list.useQuery({
-    tienda: user?.role as 'admin' | 'sucursal' | undefined,
+    tienda: 'admin',
   });
 
-  // Query para gráfica mensual — últimos 6 meses (todas las transacciones de la tienda)
+  // Query para gráfica mensual — últimos 6 meses
   const sixMonthsAgo = useMemo(() => {
     const d = new Date();
     d.setMonth(d.getMonth() - 5);
@@ -29,15 +29,9 @@ export default function Dashboard() {
   }, []);
 
   const { data: transaccionesMensuales = [] } = trpc.transactions.list.useQuery({
-    tienda: user?.role as 'admin' | 'sucursal' | undefined,
+    tienda: 'admin',
     fechaInicio: sixMonthsAgo,
   });
-
-  // Admin: también obtener datos de sucursal para comparación
-  const { data: transaccionesSucursal = [] } = trpc.transactions.list.useQuery(
-    { tienda: 'sucursal', fechaInicio: sixMonthsAgo },
-    { enabled: user?.role === 'admin' }
-  );
 
   // Query para reparaciones mensuales
   const { data: reparaciones = [] } = trpc.repairs.list.useQuery();
@@ -106,7 +100,7 @@ export default function Dashboard() {
     
     const gananciaNeta = (netoEfectivo + netoBanco) - totalGastos;
     
-    const cajaChica = user.role === 'admin' ? config.cajaChicaAdmin : config.cajaChicaSucursal;
+    const cajaChica = config.cajaChicaAdmin;
     
     // Calcular distribución sobre el INGRESO NETO
     const distribucionEfectivo = {
@@ -164,7 +158,7 @@ export default function Dashboard() {
     }));
     
     // Gráfica mensual — últimos 6 meses
-    const monthlyData: Record<string, { mes: string; ingresos: number; gastos: number; ganancia: number; ingresosSuc?: number; gastosSuc?: number; gananciaSuc?: number }> = {};
+    const monthlyData: Record<string, { mes: string; ingresos: number; gastos: number; ganancia: number }> = {};
     for (let i = 5; i >= 0; i--) {
       const d = new Date();
       d.setMonth(d.getMonth() - i);
@@ -181,24 +175,6 @@ export default function Dashboard() {
       else monthlyData[key].gastos += monto;
     });
     Object.values(monthlyData).forEach(m => { m.ganancia = m.ingresos - m.gastos; });
-
-    // Admin: datos de sucursal para comparación
-    if (user.role === 'admin') {
-      transaccionesSucursal.forEach(t => {
-        const d = new Date(t.fecha);
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        if (!monthlyData[key]) return;
-        const monto = parseFloat(t.monto);
-        if (!monthlyData[key].ingresosSuc) monthlyData[key].ingresosSuc = 0;
-        if (!monthlyData[key].gastosSuc) monthlyData[key].gastosSuc = 0;
-        if (!monthlyData[key].gananciaSuc) monthlyData[key].gananciaSuc = 0;
-        if (t.tipo === 'ingreso') monthlyData[key].ingresosSuc! += monto;
-        else monthlyData[key].gastosSuc! += monto;
-      });
-      Object.values(monthlyData).forEach(m => {
-        if (m.ingresosSuc !== undefined) m.gananciaSuc = (m.ingresosSuc || 0) - (m.gastosSuc || 0);
-      });
-    }
 
     const monthlyChartData = Object.values(monthlyData);
 
@@ -331,7 +307,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-sm font-medium text-purple-600">Caja Chica</p>
                 <p className="text-2xl font-bold text-purple-700">${data.cajaChica.toFixed(2)}</p>
-                <p className="text-xs text-purple-600 mt-1">{user?.role === 'admin' ? 'Principal' : 'Sucursal'}</p>
+                <p className="text-xs text-purple-600 mt-1">Principal</p>
               </div>
               <div className="p-3 bg-purple-200 rounded-full">
                 <Wallet className="h-6 w-6 text-purple-700" />
@@ -399,9 +375,7 @@ export default function Dashboard() {
             <Activity className="h-5 w-5" />
             Ganancia Mensual — Últimos 6 Meses
           </h3>
-          {user?.role === 'admin' && (
-            <p className="text-xs text-muted-foreground mb-4">Comparación Admin (azul) vs Sucursal (verde)</p>
-          )}
+          <p className="text-xs text-muted-foreground mb-4">Ganancia neta mensual de Fixopolis Solutions</p>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.monthlyChartData}>
@@ -410,14 +384,7 @@ export default function Dashboard() {
                 <YAxis tickFormatter={(v) => `$${v}`} />
                 <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
                 <Legend />
-                {user?.role === 'admin' ? (
-                  <>
-                    <Bar dataKey="ganancia" name="Admin Ganancia" fill="#3B82F6" radius={[4,4,0,0]} />
-                    <Bar dataKey="gananciaSuc" name="Sucursal Ganancia" fill="#10B981" radius={[4,4,0,0]} />
-                  </>
-                ) : (
-                  <Bar dataKey="ganancia" name="Ganancia" fill="#3B82F6" radius={[4,4,0,0]} />
-                )}
+                <Bar dataKey="ganancia" name="Ganancia" fill="#3B82F6" radius={[4,4,0,0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

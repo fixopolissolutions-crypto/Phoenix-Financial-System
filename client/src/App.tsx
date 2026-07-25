@@ -7,7 +7,6 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import DashboardGeneral from "./pages/DashboardGeneral";
 import Reportes from "./pages/Reportes";
 import Ingresos from "./pages/Ingresos";
 import Gastos from "./pages/Gastos";
@@ -17,7 +16,6 @@ import Configuracion from "./pages/Configuracion";
 import Taxes from "./pages/Taxes";
 import Historial from "./pages/Historial";
 import InversionCapital from "./pages/InversionCapital";
-import InversionCapitalSucursal from "./pages/InversionCapitalSucursal";
 import InventarioTelefonos from "./pages/InventarioTelefonos";
 import InventarioAccesorios from "./pages/InventarioAccesorios";
 import InventarioPartes from "./pages/InventarioPartes";
@@ -41,9 +39,6 @@ function Router() {
       <Route path="/" component={Login} />
       <Route path="/dashboard">
         {() => <ProtectedRoute component={Dashboard} />}
-      </Route>
-      <Route path="/dashboard-general">
-        {() => <ProtectedRoute component={DashboardGeneral} />}
       </Route>
       <Route path="/reportes">
         {() => <ProtectedRoute component={Reportes} />}
@@ -71,9 +66,6 @@ function Router() {
       </Route>
       <Route path="/inversion-capital">
         {() => <ProtectedRoute component={InversionCapital} />}
-      </Route>
-      <Route path="/inversion-capital-sucursal">
-        {() => <ProtectedRoute component={InversionCapitalSucursal} />}
       </Route>
       <Route path="/inventario/telefonos">
         {() => <ProtectedRoute component={InventarioTelefonos} />}

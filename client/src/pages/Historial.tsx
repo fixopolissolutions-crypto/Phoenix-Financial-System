@@ -26,7 +26,7 @@ interface Transaction {
   descripcion: string | null;
   categoria: string | null;
   proveedor: string | null;
-  tienda: 'admin' | 'sucursal';
+  tienda: 'admin';
   fecha: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -58,7 +58,7 @@ export default function Historial() {
   
   // Query para obtener todas las transacciones
   const { data: transacciones = [], isLoading } = trpc.transactions.list.useQuery({
-    tienda: user?.role as 'admin' | 'sucursal' | undefined,
+    tienda: 'admin',
   });
 
   // Mutations

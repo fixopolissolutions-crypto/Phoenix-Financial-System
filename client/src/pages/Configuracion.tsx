@@ -38,7 +38,6 @@ export default function Configuracion() {
   const [porcentajeEmergencia, setPorcentajeEmergencia] = useState('10');
   const [porcentajeDisponible, setPorcentajeDisponible] = useState('40');
   const [cajaChicaAdmin, setCajaChicaAdmin] = useState('500');
-  const [cajaChicaSucursal, setCajaChicaSucursal] = useState('300');
   const [taxRate, setTaxRate] = useState('8.25');
   const [diaInicioSemana, setDiaInicioSemana] = useState('1');
   const [diaFinSemana, setDiaFinSemana] = useState('0');
@@ -50,10 +49,7 @@ export default function Configuracion() {
   // Password states
   const [adminPassword, setAdminPassword] = useState('');
   const [adminPasswordConfirm, setAdminPasswordConfirm] = useState('');
-  const [sucursalPassword, setSucursalPassword] = useState('');
-  const [sucursalPasswordConfirm, setSucursalPasswordConfirm] = useState('');
   const [showAdminPassword, setShowAdminPassword] = useState(false);
-  const [showSucursalPassword, setShowSucursalPassword] = useState(false);
 
   const utils = trpc.useUtils();
   
@@ -85,7 +81,6 @@ export default function Configuracion() {
       setPorcentajeEmergencia(configData.porcentajeEmergencia || '10');
       setPorcentajeDisponible(configData.porcentajeDisponible || '40');
       setCajaChicaAdmin(configData.cajaChicaAdmin || '500');
-      setCajaChicaSucursal(configData.cajaChicaSucursal || '300');
       setTaxRate(configData.taxRate || '8.25');
       setDiaInicioSemana(configData.diaInicioSemana || '1');
       setDiaFinSemana(configData.diaFinSemana || '0');
@@ -115,7 +110,6 @@ export default function Configuracion() {
         setConfigMutation.mutateAsync({ key: 'porcentajeEmergencia', value: porcentajeEmergencia }),
         setConfigMutation.mutateAsync({ key: 'porcentajeDisponible', value: porcentajeDisponible }),
         setConfigMutation.mutateAsync({ key: 'cajaChicaAdmin', value: cajaChicaAdmin }),
-        setConfigMutation.mutateAsync({ key: 'cajaChicaSucursal', value: cajaChicaSucursal }),
         setConfigMutation.mutateAsync({ key: 'taxRate', value: taxRate }),
         setConfigMutation.mutateAsync({ key: 'diaInicioSemana', value: diaInicioSemana }),
         setConfigMutation.mutateAsync({ key: 'diaFinSemana', value: diaFinSemana }),
@@ -147,28 +141,6 @@ export default function Configuracion() {
       });
       setAdminPassword('');
       setAdminPasswordConfirm('');
-    } catch (error) {
-      // Error handled by mutation
-    }
-  };
-
-  const handleChangeSucursalPassword = async () => {
-    if (sucursalPassword.length < 4) {
-      toast.error('La contraseña debe tener al menos 4 caracteres');
-      return;
-    }
-    if (sucursalPassword !== sucursalPasswordConfirm) {
-      toast.error('Las contraseñas no coinciden');
-      return;
-    }
-    
-    try {
-      await changePasswordMutation.mutateAsync({
-        username: 'sucursal',
-        newPassword: sucursalPassword,
-      });
-      setSucursalPassword('');
-      setSucursalPasswordConfirm('');
     } catch (error) {
       // Error handled by mutation
     }
@@ -327,21 +299,7 @@ export default function Configuracion() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="cajaSucursal">Caja Chica - Fixopolis Solutions Sucursal (Sucursal)</Label>
-                <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="cajaSucursal"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    className="pl-10"
-                    value={cajaChicaSucursal}
-                    onChange={(e) => handleChange(setCajaChicaSucursal)(e.target.value)}
-                  />
-                </div>
-              </div>
+
             </div>
           </Card>
 
@@ -573,48 +531,7 @@ export default function Configuracion() {
                 </Button>
               </div>
 
-              {/* Sucursal Password */}
-              <div className="space-y-4 p-4 border rounded-lg">
-                <h3 className="font-semibold">Contraseña Sucursal</h3>
-                <div className="space-y-2">
-                  <Label>Nueva Contraseña</Label>
-                  <div className="relative">
-                    <Input
-                      type={showSucursalPassword ? 'text' : 'password'}
-                      value={sucursalPassword}
-                      onChange={(e) => setSucursalPassword(e.target.value)}
-                      placeholder="Mínimo 4 caracteres"
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2"
-                      onClick={() => setShowSucursalPassword(!showSucursalPassword)}
-                    >
-                      {showSucursalPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Confirmar Contraseña</Label>
-                  <Input
-                    type={showSucursalPassword ? 'text' : 'password'}
-                    value={sucursalPasswordConfirm}
-                    onChange={(e) => setSucursalPasswordConfirm(e.target.value)}
-                    placeholder="Confirmar contraseña"
-                  />
-                </div>
-                <Button 
-                  onClick={handleChangeSucursalPassword} 
-                  variant="outline" 
-                  className="w-full"
-                  disabled={changePasswordMutation.isPending}
-                >
-                  {changePasswordMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : null}
-                  Cambiar Contraseña Sucursal
-                </Button>
-              </div>
+
             </div>
           </Card>
         </div>

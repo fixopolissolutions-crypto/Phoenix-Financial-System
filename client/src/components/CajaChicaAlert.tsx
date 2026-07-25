@@ -27,74 +27,23 @@ export default function CajaChicaAlert({ umbral = 20 }: CajaChicaAlertProps) {
     const config = storage.getConfig();
     const nuevasAlertas: { tienda: string; disponible: number; cajaChica: number }[] = [];
 
-    // Verificar tienda principal (admin)
-    if (user.role === 'admin') {
-      const adminData = storage.getDailyData('admin');
-      const ingresosEfectivo = adminData.ingresos
-        .filter(i => i.metodo === 'efectivo')
-        .reduce((sum, i) => sum + i.monto, 0);
-      const gastosEfectivo = adminData.gastos
-        .filter(g => g.metodo === 'efectivo')
-        .reduce((sum, g) => sum + g.monto, 0);
-      
-      const taxRate = config.taxRate / 100;
-      const netoEfectivo = ingresosEfectivo * (1 - taxRate);
-      const disponibleEfectivo = netoEfectivo * (config.porcentajeDisponible / 100) - gastosEfectivo + config.cajaChicaAdmin;
-
-      const umbraLimite = config.cajaChicaAdmin * (umbral / 100);
-      
-      if (disponibleEfectivo < umbraLimite && disponibleEfectivo >= 0) {
-        nuevasAlertas.push({
-          tienda: 'Fixopolis Solutions',
-          disponible: disponibleEfectivo,
-          cajaChica: config.cajaChicaAdmin
-        });
-      }
-
-      // También verificar sucursal si es admin
-      const sucursalData = storage.getDailyData('sucursal');
-      const ingresosSucursal = sucursalData.ingresos
-        .filter(i => i.metodo === 'efectivo')
-        .reduce((sum, i) => sum + i.monto, 0);
-      const gastosSucursal = sucursalData.gastos
-        .filter(g => g.metodo === 'efectivo')
-        .reduce((sum, g) => sum + g.monto, 0);
-      
-      const netoSucursal = ingresosSucursal * (1 - taxRate);
-      const disponibleSucursal = netoSucursal * (config.porcentajeDisponible / 100) - gastosSucursal + config.cajaChicaSucursal;
-
-      const umbralSucursal = config.cajaChicaSucursal * (umbral / 100);
-      
-      if (disponibleSucursal < umbralSucursal && disponibleSucursal >= 0) {
-        nuevasAlertas.push({
-          tienda: 'Fixopolis Solutions Sucursal',
-          disponible: disponibleSucursal,
-          cajaChica: config.cajaChicaSucursal
-        });
-      }
-    } else {
-      // Sucursal solo ve su propia alerta
-      const sucursalData = storage.getDailyData('sucursal');
-      const ingresosEfectivo = sucursalData.ingresos
-        .filter(i => i.metodo === 'efectivo')
-        .reduce((sum, i) => sum + i.monto, 0);
-      const gastosEfectivo = sucursalData.gastos
-        .filter(g => g.metodo === 'efectivo')
-        .reduce((sum, g) => sum + g.monto, 0);
-      
-      const taxRate = config.taxRate / 100;
-      const netoEfectivo = ingresosEfectivo * (1 - taxRate);
-      const disponibleEfectivo = netoEfectivo * (config.porcentajeDisponible / 100) - gastosEfectivo + config.cajaChicaSucursal;
-
-      const umbraLimite = config.cajaChicaSucursal * (umbral / 100);
-      
-      if (disponibleEfectivo < umbraLimite && disponibleEfectivo >= 0) {
-        nuevasAlertas.push({
-          tienda: 'Fixopolis Solutions Sucursal',
-          disponible: disponibleEfectivo,
-          cajaChica: config.cajaChicaSucursal
-        });
-      }
+    const adminData = storage.getDailyData('admin');
+    const ingresosEfectivo = adminData.ingresos
+      .filter((i: any) => i.metodo === 'efectivo')
+      .reduce((sum: number, i: any) => sum + i.monto, 0);
+    const gastosEfectivo = adminData.gastos
+      .filter((g: any) => g.metodo === 'efectivo')
+      .reduce((sum: number, g: any) => sum + g.monto, 0);
+    const taxRate = config.taxRate / 100;
+    const netoEfectivo = ingresosEfectivo * (1 - taxRate);
+    const disponibleEfectivo = netoEfectivo * (config.porcentajeDisponible / 100) - gastosEfectivo + config.cajaChicaAdmin;
+    const umbraLimite = config.cajaChicaAdmin * (umbral / 100);
+    if (disponibleEfectivo < umbraLimite && disponibleEfectivo >= 0) {
+      nuevasAlertas.push({
+        tienda: 'Fixopolis Solutions',
+        disponible: disponibleEfectivo,
+        cajaChica: config.cajaChicaAdmin
+      });
     }
 
     setAlertas(nuevasAlertas.filter(a => !dismissed.includes(a.tienda)));
