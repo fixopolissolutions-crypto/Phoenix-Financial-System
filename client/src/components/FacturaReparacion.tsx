@@ -89,11 +89,11 @@ export function FacturaReparacion({ repair }: FacturaReparacionProps) {
             <div className="receipt-header">
               <div className="header-left">
                 <img 
-                  src="/logo-1plusphonefix.png" 
-                  alt="1+PhoneFix" 
+                  src="/logo-1plusfixopolis.png" 
+                  alt="Fixopolis Solutions" 
                   className="logo"
                 />
-                <p className="store-name">{storeInfo?.nombre || '1+PhoneFix'}</p>
+                <p className="store-name">{storeInfo?.nombre || 'Fixopolis Solutions'}</p>
                 <p className="store-subtitle">Reparación de Teléfonos</p>
                 <p className="store-info">{storeInfo?.ciudad || 'Austin'}, {storeInfo?.estado || 'TX'}</p>
                 <p className="store-info">Tel: {storeInfo?.telefono || '(512) XXX-XXXX'}</p>
@@ -236,7 +236,7 @@ export function FacturaReparacion({ repair }: FacturaReparacionProps) {
             {/* Pie de página */}
             <div className="footer">
               <p className="footer-main">
-                Gracias por confiar en {storeInfo?.nombre || '1+PhoneFix'}
+                Gracias por confiar en {storeInfo?.nombre || 'Fixopolis Solutions'}
               </p>
               <p className="footer-sub">
                 Este documento es un comprobante de servicio

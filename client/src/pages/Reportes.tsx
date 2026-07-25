@@ -159,7 +159,7 @@ export default function Reportes() {
   // Datos para gráfica comparativa
   const chartData = useMemo(() => [
     {
-      name: '1+PhoneFix',
+      name: 'Fixopolis Solutions',
       Ingresos: data.admin.totalIngresos,
       Gastos: data.admin.totalGastos,
       Neto: data.admin.totalNeto,
@@ -186,13 +186,13 @@ export default function Reportes() {
       
       if (tipo === 'admin') {
         reportData = data.admin;
-        titulo = '1+PhoneFix - Reporte Semanal';
+        titulo = 'Fixopolis Solutions - Reporte Semanal';
       } else if (tipo === 'sucursal') {
         reportData = data.sucursal;
-        titulo = '1+PhoneFix Downtown - Reporte Semanal';
+        titulo = 'Fixopolis Solutions Sucursal - Reporte Semanal';
       } else {
         reportData = data.general;
-        titulo = '1+PhoneFix - Reporte General';
+        titulo = 'Fixopolis Solutions - Reporte General';
       }
 
       // Crear PDF
@@ -466,7 +466,7 @@ export default function Reportes() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <Building2 className="h-5 w-5 text-blue-600" />
-                1+PhoneFix (Principal)
+                Fixopolis Solutions (Principal)
               </h3>
               <Button 
                 variant="outline" 
@@ -507,7 +507,7 @@ export default function Reportes() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <Store className="h-5 w-5 text-orange-600" />
-                1+PhoneFix Downtown
+                Fixopolis Solutions Sucursal
               </h3>
               <Button 
                 variant="outline" 

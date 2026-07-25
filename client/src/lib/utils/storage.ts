@@ -13,19 +13,19 @@ interface Credentials {
 }
 
 const STORAGE_KEYS = {
-  ADMIN_DATA: 'phonefix_admin_data',
-  SUCURSAL_DATA: 'phonefix_sucursal_data',
-  CONFIG: 'phonefix_config',
-  PROVIDERS: 'phonefix_providers',
-  EMPLOYEES: 'phonefix_employees',
-  REPORTS: 'phonefix_reports',
-  LAST_RESET: 'phonefix_last_reset',
-  LAST_WEEKLY_RESET: 'phonefix_last_weekly_reset',
-  CURRENT_USER: 'phonefix_current_user',
-  HISTORICAL_DATA: 'phonefix_historical',
-  CREDENTIALS: 'phonefix_credentials',
-  WEEKLY_DATA_ADMIN: 'phonefix_weekly_admin',
-  WEEKLY_DATA_SUCURSAL: 'phonefix_weekly_sucursal',
+  ADMIN_DATA: 'fixopolis_admin_data',
+  SUCURSAL_DATA: 'fixopolis_sucursal_data',
+  CONFIG: 'fixopolis_config',
+  PROVIDERS: 'fixopolis_providers',
+  EMPLOYEES: 'fixopolis_employees',
+  REPORTS: 'fixopolis_reports',
+  LAST_RESET: 'fixopolis_last_reset',
+  LAST_WEEKLY_RESET: 'fixopolis_last_weekly_reset',
+  CURRENT_USER: 'fixopolis_current_user',
+  HISTORICAL_DATA: 'fixopolis_historical',
+  CREDENTIALS: 'fixopolis_credentials',
+  WEEKLY_DATA_ADMIN: 'fixopolis_weekly_admin',
+  WEEKLY_DATA_SUCURSAL: 'fixopolis_weekly_sucursal',
 } as const;
 
 export const storage = {

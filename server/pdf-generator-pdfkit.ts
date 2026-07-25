@@ -72,9 +72,9 @@ export function generateReceiptPDF(repair: any, storeInfo: StoreConfig): Promise
       doc.rect(0, 0, 595, 3)
          .fill('#000000');
 
-      // Logo de 1+PhoneFix
+      // Logo de Fixopolis Solutions
       try {
-        const logoPath = path.join(__dirname, '../client/public/1plusphonefix-logo.png');
+        const logoPath = path.join(__dirname, '../client/public/1plusfixopolis-logo.png');
         if (fs.existsSync(logoPath)) {
           doc.image(logoPath, 50, 25, { width: 100 });
         }

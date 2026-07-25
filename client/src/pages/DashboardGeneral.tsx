@@ -245,14 +245,14 @@ export default function DashboardGeneral() {
 
         {/* Desglose por Tienda */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* 1+PhoneFix Principal */}
+          {/* Fixopolis Solutions Principal */}
           <Card className="p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
                 <Building2 className="w-6 h-6 text-blue-600" />
               </div>
               <div>
-                <h2 className="text-xl font-bold">1+PhoneFix</h2>
+                <h2 className="text-xl font-bold">Fixopolis Solutions</h2>
                 <p className="text-sm text-muted-foreground">Tienda Principal</p>
               </div>
             </div>
@@ -303,14 +303,14 @@ export default function DashboardGeneral() {
             </div>
           </Card>
 
-          {/* 1+PhoneFix Downtown */}
+          {/* Fixopolis Solutions Sucursal */}
           <Card className="p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
                 <Store className="w-6 h-6 text-purple-600" />
               </div>
               <div>
-                <h2 className="text-xl font-bold">1+PhoneFix Downtown</h2>
+                <h2 className="text-xl font-bold">Fixopolis Solutions Sucursal</h2>
                 <p className="text-sm text-muted-foreground">Sucursal</p>
               </div>
             </div>

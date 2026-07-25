@@ -165,8 +165,8 @@ async function startServer() {
         
         // Insert users
         `INSERT INTO users (id, name, email, role, store_name) VALUES
-        ('admin-user-id', 'Administrador', 'admin@phonefix.com', 'admin', '1+PhoneFix'),
-        ('sucursal-user-id', 'Sucursal Downtown', 'sucursal@phonefix.com', 'sucursal', 'Downtown')
+        ('admin-user-id', 'Administrador', 'admin@fixopolis.com', 'admin', 'Fixopolis Solutions'),
+        ('sucursal-user-id', 'Sucursal Downtown', 'sucursal@fixopolis.com', 'sucursal', 'Downtown')
         ON DUPLICATE KEY UPDATE 
           name = VALUES(name),
           email = VALUES(email),
@@ -299,7 +299,7 @@ async function startServer() {
         // Generate HTML report
         const htmlPath = await generateWeeklyPDFReport({
           tienda,
-          tiendaNombre: tienda === 'admin' ? '1+PhoneFix Principal' : '1+PhoneFix Downtown',
+          tiendaNombre: tienda === 'admin' ? 'Fixopolis Solutions Principal' : 'Fixopolis Solutions Sucursal',
           weekStart,
           weekEnd,
           totalIngresos,
@@ -314,7 +314,7 @@ async function startServer() {
         // Send email with HTML report
         await sendWeeklyReportEmail({
           to: reportEmail,
-          tienda: tienda === 'admin' ? '1+PhoneFix Principal' : '1+PhoneFix Downtown',
+          tienda: tienda === 'admin' ? 'Fixopolis Solutions Principal' : 'Fixopolis Solutions Sucursal',
           weekStart,
           weekEnd,
           htmlPath,

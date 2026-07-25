@@ -45,7 +45,7 @@ export default function CajaChicaAlert({ umbral = 20 }: CajaChicaAlertProps) {
       
       if (disponibleEfectivo < umbraLimite && disponibleEfectivo >= 0) {
         nuevasAlertas.push({
-          tienda: '1+PhoneFix',
+          tienda: 'Fixopolis Solutions',
           disponible: disponibleEfectivo,
           cajaChica: config.cajaChicaAdmin
         });
@@ -67,7 +67,7 @@ export default function CajaChicaAlert({ umbral = 20 }: CajaChicaAlertProps) {
       
       if (disponibleSucursal < umbralSucursal && disponibleSucursal >= 0) {
         nuevasAlertas.push({
-          tienda: '1+PhoneFix Downtown',
+          tienda: 'Fixopolis Solutions Sucursal',
           disponible: disponibleSucursal,
           cajaChica: config.cajaChicaSucursal
         });
@@ -90,7 +90,7 @@ export default function CajaChicaAlert({ umbral = 20 }: CajaChicaAlertProps) {
       
       if (disponibleEfectivo < umbraLimite && disponibleEfectivo >= 0) {
         nuevasAlertas.push({
-          tienda: '1+PhoneFix Downtown',
+          tienda: 'Fixopolis Solutions Sucursal',
           disponible: disponibleEfectivo,
           cajaChica: config.cajaChicaSucursal
         });

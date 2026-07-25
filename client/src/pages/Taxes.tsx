@@ -84,7 +84,7 @@ export default function Taxes() {
   // Datos para gráficas
   const dailyChartData = [
     {
-      name: '1+PhoneFix',
+      name: 'Fixopolis Solutions',
       'Tax Efectivo': data.daily.admin.taxEfectivo,
       'Tax Banco': data.daily.admin.taxBanco,
     },
@@ -97,7 +97,7 @@ export default function Taxes() {
 
   const weeklyChartData = [
     {
-      name: '1+PhoneFix',
+      name: 'Fixopolis Solutions',
       'Tax Efectivo': data.weekly.admin.taxEfectivo,
       'Tax Banco': data.weekly.admin.taxBanco,
     },
@@ -150,11 +150,11 @@ export default function Taxes() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* 1+PhoneFix */}
+            {/* Fixopolis Solutions */}
             <div className="p-4 bg-white rounded-xl border shadow-sm">
               <div className="flex items-center gap-2 mb-4">
                 <Building2 className="w-5 h-5 text-blue-600" />
-                <h3 className="font-semibold">1+PhoneFix</h3>
+                <h3 className="font-semibold">Fixopolis Solutions</h3>
               </div>
               <div className="space-y-3">
                 <div className="flex justify-between">
@@ -243,11 +243,11 @@ export default function Taxes() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* 1+PhoneFix */}
+            {/* Fixopolis Solutions */}
             <div className="p-4 bg-white rounded-xl border shadow-sm">
               <div className="flex items-center gap-2 mb-4">
                 <Building2 className="w-5 h-5 text-blue-600" />
-                <h3 className="font-semibold">1+PhoneFix</h3>
+                <h3 className="font-semibold">Fixopolis Solutions</h3>
               </div>
               <div className="space-y-3">
                 <div className="flex justify-between">

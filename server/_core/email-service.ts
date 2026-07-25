@@ -131,7 +131,7 @@ function generateEmailHTML(options: EmailOptions): string {
     </div>
     <div class="footer">
       <p>Este es un correo automático generado por Phoenix Financial System</p>
-      <p>© 2026 1+PhoneFix. Todos los derechos reservados.</p>
+      <p>© 2026 Fixopolis Solutions. Todos los derechos reservados.</p>
     </div>
   </div>
 </body>
@@ -169,7 +169,7 @@ export async function sendWeeklyReportEmail(options: EmailOptions): Promise<void
     // Enviar email a cada destinatario
     for (const recipient of recipients) {
       const { data, error } = await resend.emails.send({
-        from: 'Phoenix Financial System <noreply@1phonefixsystem.shop>',
+        from: 'Phoenix Financial System <noreply@1fixopolissystem.shop>',
         to: recipient,
         subject: `📊 Reporte Semanal - ${options.tienda} (${formatDate(options.weekStart)} - ${formatDate(options.weekEnd)})`,
         html: emailHTML,

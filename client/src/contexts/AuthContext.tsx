@@ -17,7 +17,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'phonefix_user';
+const STORAGE_KEY = 'fixopolis_user';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserData | null>(null);
@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (result.success && result.user) {
         const userData: UserData = {
           role: result.user.tienda as 'admin' | 'sucursal',
-          name: result.user.tienda === 'admin' ? '1+PhoneFix' : '1+PhoneFix Downtown',
+          name: result.user.tienda === 'admin' ? 'Fixopolis Solutions' : 'Fixopolis Solutions Sucursal',
           username: result.user.username,
         };
         setUser(userData);

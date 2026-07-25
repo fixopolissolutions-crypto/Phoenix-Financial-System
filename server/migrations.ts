@@ -121,8 +121,8 @@ export async function applyMigrations() {
       // Insertar configuración por defecto
       await connection.execute(`
         INSERT INTO store_config (tienda, nombre, telefono, direccion, email, ciudad, estado) VALUES
-        ('admin', '1+PhoneFix', '(512) 555-0123', '123 Main St', 'admin@1phonefix.com', 'Austin', 'TX'),
-        ('sucursal', '1+PhoneFix Sucursal', '(512) 555-0124', '456 Branch Ave', 'sucursal@1phonefix.com', 'Austin', 'TX')
+        ('admin', 'Fixopolis Solutions', '(512) 555-0123', '123 Main St', 'admin@fixopolissolutions.com', 'Austin', 'TX'),
+        ('sucursal', 'Fixopolis Solutions Sucursal', '(512) 555-0124', '456 Branch Ave', 'sucursal@fixopolissolutions.com', 'Austin', 'TX')
         ON DUPLICATE KEY UPDATE 
           nombre = VALUES(nombre)
       `);

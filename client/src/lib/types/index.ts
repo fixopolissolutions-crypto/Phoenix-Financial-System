@@ -1,4 +1,4 @@
-// Types for PhoneFix Financial System
+// Types for Fixopolis Solutions Financial System
 
 export type UserRole = 'admin' | 'sucursal';
 

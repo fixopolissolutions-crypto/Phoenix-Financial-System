@@ -163,8 +163,8 @@ async function saveWeeklyHistory() {
     // Procesar por tienda
     const tiendas: ('admin' | 'sucursal')[] = ['admin', 'sucursal'];
     const tiendaNombres = {
-      admin: '1+PhoneFix Principal',
-      sucursal: '1+PhoneFix Downtown',
+      admin: 'Fixopolis Solutions Principal',
+      sucursal: 'Fixopolis Solutions Sucursal',
     };
     
     for (const tienda of tiendas) {

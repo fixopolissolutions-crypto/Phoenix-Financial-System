@@ -41,7 +41,7 @@ export default function Login() {
             <Building2 className="w-8 h-8 text-primary" />
           </div>
           <h1 className="text-3xl font-bold font-bold text-foreground mb-2">
-            1+PhoneFix
+            Fixopolis Solutions
           </h1>
           <p className="text-muted-foreground">Sistema de Gestión Financiera</p>
         </div>
@@ -92,7 +92,7 @@ export default function Login() {
         </form>
 
         <div className="mt-6 text-center text-xs text-muted-foreground">
-          <p>© 2026 1+PhoneFix - Todos los derechos reservados</p>
+          <p>© 2026 Fixopolis Solutions - Todos los derechos reservados</p>
         </div>
       </Card>
     </div>

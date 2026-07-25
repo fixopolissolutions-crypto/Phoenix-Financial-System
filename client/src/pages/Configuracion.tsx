@@ -312,7 +312,7 @@ export default function Configuracion() {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="cajaAdmin">Caja Chica - 1+PhoneFix (Principal)</Label>
+                <Label htmlFor="cajaAdmin">Caja Chica - Fixopolis Solutions (Principal)</Label>
                 <div className="relative">
                   <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
@@ -328,7 +328,7 @@ export default function Configuracion() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="cajaSucursal">Caja Chica - 1+PhoneFix Downtown (Sucursal)</Label>
+                <Label htmlFor="cajaSucursal">Caja Chica - Fixopolis Solutions Sucursal (Sucursal)</Label>
                 <div className="relative">
                   <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input

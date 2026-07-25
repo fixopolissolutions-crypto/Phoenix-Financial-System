@@ -47,7 +47,7 @@ export const generarReportePDF = (data: ReporteData, tipo: 'general' | 'tienda')
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(24);
   doc.setFont('helvetica', 'bold');
-  doc.text('1+PhoneFix', 14, 20);
+  doc.text('Fixopolis Solutions', 14, 20);
   
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
@@ -160,7 +160,7 @@ export const generarReportePDF = (data: ReporteData, tipo: 'general' | 'tienda')
   doc.setTextColor(150, 150, 150);
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.text('© 2026 1+PhoneFix - Sistema de Gestión Financiera', 14, footerY);
+  doc.text('© 2026 Fixopolis Solutions - Sistema de Gestión Financiera', 14, footerY);
   doc.text(`Página 1 de 1`, pageWidth - 30, footerY);
   
   // Descargar PDF
@@ -193,7 +193,7 @@ export const generarReporteTaxesPDF = (
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(24);
   doc.setFont('helvetica', 'bold');
-  doc.text('1+PhoneFix', 14, 20);
+  doc.text('Fixopolis Solutions', 14, 20);
   
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
@@ -241,7 +241,7 @@ export const generarReporteTaxesPDF = (
   
   doc.setTextColor(150, 150, 150);
   doc.setFontSize(8);
-  doc.text('© 2026 1+PhoneFix - Sistema de Gestión Financiera', 14, footerY);
+  doc.text('© 2026 Fixopolis Solutions - Sistema de Gestión Financiera', 14, footerY);
   
   doc.save(`Reporte_Taxes_${periodo.replace(/\s/g, '_')}.pdf`);
 };

@@ -1304,9 +1304,9 @@ export async function initializeStoreConfig() {
     if (!adminConfig) {
       await db.insert(storeConfig).values({
         tienda: 'admin',
-        nombre: '1+PhoneFix - Admin',
+        nombre: 'Fixopolis Solutions - Admin',
         telefono: '(512) XXX-XXXX',
-        email: 'admin@1plusphonefix.com',
+        email: 'admin@1plusfixopolis.com',
         direccion: '123 Main Street',
         ciudad: 'Austin',
         estado: 'TX',
@@ -1319,9 +1319,9 @@ export async function initializeStoreConfig() {
     if (!sucursalConfig) {
       await db.insert(storeConfig).values({
         tienda: 'sucursal',
-        nombre: '1+PhoneFix - Sucursal',
+        nombre: 'Fixopolis Solutions - Sucursal',
         telefono: '(512) YYY-YYYY',
-        email: 'sucursal@1plusphonefix.com',
+        email: 'sucursal@1plusfixopolis.com',
         direccion: '456 Oak Avenue',
         ciudad: 'Austin',
         estado: 'TX',

@@ -113,7 +113,7 @@ export function ConfiguracionTienda() {
                     name="nombre"
                     value={formData.nombre}
                     onChange={handleChange}
-                    placeholder="1+PhoneFix"
+                    placeholder="Fixopolis Solutions"
                     required
                   />
                 </div>
@@ -139,7 +139,7 @@ export function ConfiguracionTienda() {
                   type="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="contacto@1plusphonefix.com"
+                  placeholder="contacto@1plusfixopolis.com"
                 />
               </div>
             </div>
