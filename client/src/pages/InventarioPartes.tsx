@@ -15,7 +15,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { trpc } from '@/lib/trpc';
-import { Wrench, Plus, DollarSign, Package, Trash2, AlertCircle } from 'lucide-react';
+import { Wrench, Plus, DollarSign, Package, Trash2, AlertCircle, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function InventarioPartes() {
@@ -23,13 +23,12 @@ export default function InventarioPartes() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const [addStockDialogOpen, setAddStockDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedPart, setSelectedPart] = useState<any>(null);
 
   // Queries
-  const { data: parts = [], refetch } = trpc.inventoryParts.list.useQuery({ 
-    activo: 1 
-  });
-  
+  const { data: parts = [], refetch } = trpc.inventoryParts.list.useQuery({ activo: 1 });
+
   // Mutations
   const createMutation = trpc.inventoryParts.create.useMutation({
     onSuccess: () => {
@@ -40,6 +39,18 @@ export default function InventarioPartes() {
     },
     onError: (error) => {
       toast.error('Error al agregar parte: ' + error.message);
+    },
+  });
+
+  const updateMutation = trpc.inventoryParts.update.useMutation({
+    onSuccess: () => {
+      toast.success('Parte actualizada exitosamente');
+      refetch();
+      setEditDialogOpen(false);
+      setSelectedPart(null);
+    },
+    onError: (error) => {
+      toast.error('Error al actualizar parte: ' + error.message);
     },
   });
 
@@ -67,33 +78,17 @@ export default function InventarioPartes() {
 
   // Calcular totales
   const totales = useMemo(() => {
-    const inversionDisponible = parts.reduce((sum, p) => {
-      return sum + (Number(p.precioCompraUnitario) * Number(p.cantidadActual));
-    }, 0);
-    
-    const inversionUsada = parts.reduce((sum, p) => {
-      return sum + (Number(p.precioCompraUnitario) * Number(p.cantidadUsada));
-    }, 0);
-    
+    const inversionDisponible = parts.reduce((sum, p) => sum + (Number(p.precioCompraUnitario) * Number(p.cantidadActual)), 0);
+    const inversionUsada = parts.reduce((sum, p) => sum + (Number(p.precioCompraUnitario) * Number(p.cantidadUsada)), 0);
     const cantidadTotal = parts.reduce((sum, p) => sum + Number(p.cantidadActual), 0);
     const cantidadUsada = parts.reduce((sum, p) => sum + Number(p.cantidadUsada), 0);
-    
     const stockBajo = parts.filter(p => Number(p.cantidadActual) <= Number(p.stockMinimo));
-
-    return {
-      inversionDisponible,
-      inversionUsada,
-      cantidadTotal,
-      cantidadUsada,
-      tipos: parts.length,
-      stockBajo: stockBajo.length,
-    };
+    return { inversionDisponible, inversionUsada, cantidadTotal, cantidadUsada, tipos: parts.length, stockBajo: stockBajo.length };
   }, [parts]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    
     createMutation.mutate({
       codigo: formData.get('codigo') as string,
       nombre: formData.get('nombre') as string,
@@ -105,12 +100,24 @@ export default function InventarioPartes() {
     });
   };
 
+  const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedPart) return;
+    const formData = new FormData(e.currentTarget);
+    updateMutation.mutate({
+      id: selectedPart.id,
+      nombre: formData.get('nombre') as string,
+      categoria: (formData.get('categoria') as string) || '',
+      compatibilidad: (formData.get('compatibilidad') as string) || '',
+      precioCompraUnitario: formData.get('precioCompraUnitario') as string,
+      stockMinimo: Number(formData.get('stockMinimo')),
+    });
+  };
+
   const handleAddStock = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedPart) return;
-    
     const formData = new FormData(e.currentTarget);
-    
     addStockMutation.mutate({
       id: selectedPart.id,
       cantidad: Number(formData.get('cantidad')),
@@ -133,9 +140,7 @@ export default function InventarioPartes() {
               <Wrench className="h-8 w-8 text-gray-600" />
               🔧 Inventario de Partes
             </h1>
-            <p className="text-muted-foreground">
-              Control de partes para reparación
-            </p>
+            <p className="text-muted-foreground">Control de partes para reparación</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
@@ -147,9 +152,7 @@ export default function InventarioPartes() {
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Agregar Nueva Parte</DialogTitle>
-                <DialogDescription>
-                  Registra una nueva parte en el inventario
-                </DialogDescription>
+                <DialogDescription>Registra una nueva parte en el inventario</DialogDescription>
               </DialogHeader>
               <form key={formKey} onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -162,62 +165,30 @@ export default function InventarioPartes() {
                     <Input id="categoria" name="categoria" placeholder="Pantallas, Baterías, etc." />
                   </div>
                 </div>
-
                 <div>
                   <Label htmlFor="nombre">Nombre de la Parte *</Label>
                   <Input id="nombre" name="nombre" placeholder="Pantalla iPhone 13 Pro OLED" required />
                 </div>
-
                 <div>
                   <Label htmlFor="compatibilidad">Compatibilidad</Label>
-                  <Textarea 
-                    id="compatibilidad" 
-                    name="compatibilidad" 
-                    placeholder="iPhone 13 Pro, iPhone 13 Pro Max" 
-                  />
+                  <Textarea id="compatibilidad" name="compatibilidad" placeholder="iPhone 13 Pro, iPhone 13 Pro Max" />
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="precioCompraUnitario">Precio Compra Unitario *</Label>
-                    <Input 
-                      id="precioCompraUnitario" 
-                      name="precioCompraUnitario" 
-                      type="number" 
-                      step="0.01" 
-                      placeholder="50.00" 
-                      defaultValue="50.00"
-                      required 
-                    />
+                    <Input id="precioCompraUnitario" name="precioCompraUnitario" type="number" step="0.01" placeholder="50.00" defaultValue="50.00" required />
                   </div>
                   <div>
                     <Label htmlFor="cantidadInicial">Cantidad Inicial *</Label>
-                    <Input 
-                      id="cantidadInicial" 
-                      name="cantidadInicial" 
-                      type="number" 
-                      placeholder="10" 
-                      defaultValue="10"
-                      required 
-                    />
+                    <Input id="cantidadInicial" name="cantidadInicial" type="number" placeholder="10" defaultValue="10" required />
                   </div>
                 </div>
-
                 <div>
-                  <Label htmlFor="stockMinimo">Stock Mínimo *</Label>
-                  <Input 
-                    id="stockMinimo" 
-                    name="stockMinimo" 
-                    type="number" 
-                    defaultValue="2" 
-                    required 
-                  />
+                  <Label htmlFor="stockMinimo">Stock Mínimo (alerta de bajo stock) *</Label>
+                  <Input id="stockMinimo" name="stockMinimo" type="number" defaultValue="3" required />
                 </div>
-
                 <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                    Cancelar
-                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
                   <Button type="submit" disabled={createMutation.isPending}>
                     {createMutation.isPending ? 'Guardando...' : 'Guardar'}
                   </Button>
@@ -226,6 +197,19 @@ export default function InventarioPartes() {
             </DialogContent>
           </Dialog>
         </div>
+
+        {/* Alerta global de stock bajo */}
+        {totales.stockBajo > 0 && (
+          <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4 flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0" />
+            <div>
+              <p className="font-semibold text-yellow-800">
+                ⚠️ {totales.stockBajo} parte{totales.stockBajo > 1 ? 's' : ''} con stock bajo
+              </p>
+              <p className="text-sm text-yellow-700">Revisa las partes marcadas en amarillo y repón el inventario.</p>
+            </div>
+          </div>
+        )}
 
         {/* Resumen */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -237,7 +221,6 @@ export default function InventarioPartes() {
             <p className="text-2xl font-bold text-gray-700">{totales.cantidadTotal}</p>
             <p className="text-sm text-gray-600">{totales.tipos} tipos</p>
           </Card>
-
           <Card className="p-4 bg-orange-50 border-orange-200">
             <div className="flex items-center gap-2 mb-2">
               <DollarSign className="h-5 w-5 text-orange-600" />
@@ -246,7 +229,6 @@ export default function InventarioPartes() {
             <p className="text-2xl font-bold text-orange-700">${totales.inversionDisponible.toFixed(2)}</p>
             <p className="text-sm text-orange-600">En stock</p>
           </Card>
-
           <Card className="p-4 bg-blue-50 border-blue-200">
             <div className="flex items-center gap-2 mb-2">
               <Wrench className="h-5 w-5 text-blue-600" />
@@ -255,7 +237,6 @@ export default function InventarioPartes() {
             <p className="text-2xl font-bold text-blue-700">{totales.cantidadUsada}</p>
             <p className="text-sm text-blue-600">${totales.inversionUsada.toFixed(2)}</p>
           </Card>
-
           <Card className="p-4 bg-yellow-50 border-yellow-200">
             <div className="flex items-center gap-2 mb-2">
               <AlertCircle className="h-5 w-5 text-yellow-600" />
@@ -270,7 +251,6 @@ export default function InventarioPartes() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {parts.map((part) => {
             const stockBajo = Number(part.cantidadActual) <= Number(part.stockMinimo);
-
             return (
               <Card key={part.id} className={`p-4 ${stockBajo ? 'border-yellow-300 bg-yellow-50' : ''}`}>
                 <div className="flex items-start justify-between mb-3">
@@ -278,22 +258,15 @@ export default function InventarioPartes() {
                     <Wrench className="h-5 w-5 text-gray-600" />
                     <span className="text-sm font-mono text-gray-600">{part.codigo}</span>
                   </div>
-                  {stockBajo && (
-                    <AlertCircle className="h-5 w-5 text-yellow-600" />
-                  )}
+                  {stockBajo && <AlertCircle className="h-5 w-5 text-yellow-600" />}
                 </div>
-
                 <h3 className="font-semibold text-lg mb-1">{part.nombre}</h3>
-                {part.categoria && (
-                  <p className="text-sm text-gray-600 mb-2">{part.categoria}</p>
-                )}
-
+                {part.categoria && <p className="text-sm text-gray-600 mb-2">{part.categoria}</p>}
                 {part.compatibilidad && (
                   <p className="text-xs text-gray-500 mb-3 bg-gray-100 p-2 rounded">
                     Compatible: {part.compatibilidad}
                   </p>
                 )}
-
                 <div className="space-y-2 mb-3">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Stock:</span>
@@ -306,7 +279,6 @@ export default function InventarioPartes() {
                     <span className="font-semibold">{part.cantidadUsada}</span>
                   </div>
                 </div>
-
                 <div className="border-t pt-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Costo Unitario:</span>
@@ -319,19 +291,22 @@ export default function InventarioPartes() {
                     </span>
                   </div>
                 </div>
-
                 <div className="flex gap-2 mt-4">
                   <Button
                     size="sm"
                     variant="outline"
                     className="flex-1"
-                    onClick={() => {
-                      setSelectedPart(part);
-                      setAddStockDialogOpen(true);
-                    }}
+                    onClick={() => { setSelectedPart(part); setAddStockDialogOpen(true); }}
                   >
                     <Plus className="h-4 w-4 mr-1" />
-                    Agregar Stock
+                    Stock
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { setSelectedPart(part); setEditDialogOpen(true); }}
+                  >
+                    <Pencil className="h-4 w-4" />
                   </Button>
                   <Button
                     size="sm"
@@ -358,46 +333,78 @@ export default function InventarioPartes() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Agregar Stock</DialogTitle>
-              <DialogDescription>
-                {selectedPart?.nombre}
-              </DialogDescription>
+              <DialogDescription>{selectedPart?.nombre}</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleAddStock} className="space-y-4">
               <div>
                 <Label>Stock Actual</Label>
-                <p className="text-2xl font-bold text-gray-700">
-                  {selectedPart?.cantidadActual} unidades
-                </p>
+                <p className="text-2xl font-bold text-gray-700">{selectedPart?.cantidadActual} unidades</p>
               </div>
-
               <div>
                 <Label>Costo Unitario</Label>
                 <p className="text-xl font-semibold text-orange-600">
                   ${Number(selectedPart?.precioCompraUnitario || 0).toFixed(2)}
                 </p>
               </div>
-
               <div>
                 <Label htmlFor="cantidad">Cantidad a Agregar *</Label>
-                <Input 
-                  id="cantidad" 
-                  name="cantidad" 
-                  type="number" 
-                  min="1"
-                  placeholder="5" 
-                  required 
-                />
+                <Input id="cantidad" name="cantidad" type="number" min="1" placeholder="5" required />
               </div>
-
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setAddStockDialogOpen(false)}>
-                  Cancelar
-                </Button>
+                <Button type="button" variant="outline" onClick={() => setAddStockDialogOpen(false)}>Cancelar</Button>
                 <Button type="submit" disabled={addStockMutation.isPending}>
                   {addStockMutation.isPending ? 'Agregando...' : 'Agregar Stock'}
                 </Button>
               </div>
             </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog de Editar Parte */}
+        <Dialog open={editDialogOpen} onOpenChange={(open) => { setEditDialogOpen(open); if (!open) setSelectedPart(null); }}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Editar Parte</DialogTitle>
+              <DialogDescription>Modifica los datos de la parte seleccionada</DialogDescription>
+            </DialogHeader>
+            {selectedPart && (
+              <form onSubmit={handleEditSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Código (no editable)</Label>
+                    <Input value={selectedPart.codigo} disabled className="bg-gray-50" />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-categoria">Categoría</Label>
+                    <Input id="edit-categoria" name="categoria" defaultValue={selectedPart.categoria || ''} placeholder="Pantallas, Baterías, etc." />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="edit-nombre">Nombre de la Parte *</Label>
+                  <Input id="edit-nombre" name="nombre" defaultValue={selectedPart.nombre} required />
+                </div>
+                <div>
+                  <Label htmlFor="edit-compatibilidad">Compatibilidad</Label>
+                  <Textarea id="edit-compatibilidad" name="compatibilidad" defaultValue={selectedPart.compatibilidad || ''} placeholder="iPhone 13 Pro, iPhone 13 Pro Max" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-precioCompraUnitario">Precio Compra Unitario *</Label>
+                    <Input id="edit-precioCompraUnitario" name="precioCompraUnitario" type="number" step="0.01" defaultValue={selectedPart.precioCompraUnitario} required />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-stockMinimo">Stock Mínimo *</Label>
+                    <Input id="edit-stockMinimo" name="stockMinimo" type="number" defaultValue={selectedPart.stockMinimo} required />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
+                  <Button type="submit" disabled={updateMutation.isPending}>
+                    {updateMutation.isPending ? 'Guardando...' : 'Guardar Cambios'}
+                  </Button>
+                </div>
+              </form>
+            )}
           </DialogContent>
         </Dialog>
       </div>

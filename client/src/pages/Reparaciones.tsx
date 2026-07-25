@@ -22,18 +22,26 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { trpc } from '@/lib/trpc';
-import { Wrench, Plus, DollarSign, Clock, CheckCircle, Package, Trash2, FileText, Search, X } from 'lucide-react';
+import { Wrench, Plus, DollarSign, Clock, CheckCircle, Package, Trash2, FileText, Search, X, User, Phone, Smartphone, CalendarRange, CheckSquare } from 'lucide-react';
 import { FacturaReparacion } from '@/components/FacturaReparacion';
 import { toast } from 'sonner';
 
 interface ParteSeleccionada {
-  id: string; // ID único temporal para React
-  partId?: number; // ID de la parte en inventario (undefined si es externa)
+  id: string;
+  partId?: number;
   esExterna: boolean;
   nombre: string;
   cantidad: number;
   costoUnitario: string;
-  cantidadDisponible?: number; // Solo para partes del inventario
+  cantidadDisponible?: number;
+}
+
+interface RepairSummary {
+  codigo: string;
+  cliente: string;
+  dispositivo: string;
+  precioTotal: number;
+  manoDeObra: number;
 }
 
 export default function Reparaciones() {
@@ -42,17 +50,20 @@ export default function Reparaciones() {
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'pendiente' | 'en_proceso' | 'completada' | 'entregada'>('todos');
   const [facturaDialogOpen, setFacturaDialogOpen] = useState(false);
   const [reparacionSeleccionada, setReparacionSeleccionada] = useState<any>(null);
-  const [busquedaCliente, setBusquedaCliente] = useState('');
+  const [busqueda, setBusqueda] = useState('');
+  const [fechaInicio, setFechaInicio] = useState('');
+  const [fechaFin, setFechaFin] = useState('');
   const [partesSeleccionadas, setPartesSeleccionadas] = useState<ParteSeleccionada[]>([]);
   const [siguienteCodigo, setSiguienteCodigo] = useState('REP-001');
   const [precioTotal, setPrecioTotal] = useState<number>(0);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [repairSummary, setRepairSummary] = useState<RepairSummary | null>(null);
 
   // Queries
   const { data: repairs = [], refetch } = trpc.repairs.list.useQuery();
   const { data: parts = [] } = trpc.inventoryParts.list.useQuery({ activo: 1 });
   const { data: nextCodeData } = trpc.repairs.getNextCode.useQuery();
-  
-  // Actualizar el código cuando se obtiene del servidor
+
   useEffect(() => {
     if (nextCodeData?.codigo) {
       setSiguienteCodigo(nextCodeData.codigo);
@@ -61,12 +72,20 @@ export default function Reparaciones() {
 
   // Mutations
   const createMutation = trpc.repairs.create.useMutation({
-    onSuccess: () => {
-      toast.success('Reparación registrada exitosamente');
+    onSuccess: (result, variables) => {
+      // Mostrar tarjeta resumen
+      setRepairSummary({
+        codigo: variables.codigo,
+        cliente: variables.cliente || 'Sin nombre',
+        dispositivo: variables.dispositivo || 'Sin dispositivo',
+        precioTotal: parseFloat(variables.precioTotal),
+        manoDeObra: parseFloat(variables.precioManoObra),
+      });
+      setSummaryOpen(true);
       refetch();
       setDialogOpen(false);
-      setPartesSeleccionadas([]);
-      setBusquedaCliente('');
+      resetForm();
+      toast.success('Reparación registrada exitosamente');
     },
     onError: (error) => {
       toast.error('Error al registrar reparación: ' + error.message);
@@ -93,71 +112,63 @@ export default function Reparaciones() {
     },
   });
 
-  const addPartsMutation = trpc.repairs.addParts.useMutation({
-    onSuccess: () => {
-      toast.success('Partes agregadas exitosamente');
-      refetch();
-    },
-    onError: (error) => {
-      toast.error('Error al agregar partes: ' + error.message);
-    },
-  });
+  const resetForm = () => {
+    setPartesSeleccionadas([]);
+    setPrecioTotal(0);
+  };
 
-  // Filtrar reparaciones por cliente
+  // Filtrar reparaciones
   const repairsFiltradas = useMemo(() => {
     let filtered = repairs;
-    
-    // Filtrar por estado
+
     if (filtroEstado !== 'todos') {
       filtered = filtered.filter(r => r.estado === filtroEstado);
     }
-    
-    // Filtrar por búsqueda de cliente
-    if (busquedaCliente.trim()) {
-      const search = busquedaCliente.toLowerCase();
-      filtered = filtered.filter(r => 
+
+    if (busqueda.trim()) {
+      const search = busqueda.toLowerCase();
+      filtered = filtered.filter(r =>
         r.cliente?.toLowerCase().includes(search) ||
-        r.telefono?.includes(search)
+        r.telefono?.includes(search) ||
+        r.codigo?.toLowerCase().includes(search) ||
+        r.dispositivo?.toLowerCase().includes(search)
       );
     }
-    
+
+    if (fechaInicio) {
+      const inicio = new Date(fechaInicio);
+      filtered = filtered.filter(r => new Date(r.fechaIngreso) >= inicio);
+    }
+
+    if (fechaFin) {
+      const fin = new Date(fechaFin);
+      fin.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(r => new Date(r.fechaIngreso) <= fin);
+    }
+
     return filtered;
-  }, [repairs, filtroEstado, busquedaCliente]);
+  }, [repairs, filtroEstado, busqueda, fechaInicio, fechaFin]);
 
   // Calcular totales
   const totales = useMemo(() => {
     const pendientes = repairs.filter(r => r.estado === 'pendiente').length;
     const enProceso = repairs.filter(r => r.estado === 'en_proceso').length;
     const completadas = repairs.filter(r => r.estado === 'completada' || r.estado === 'entregada').length;
-    
     const ingresoTotal = repairs
       .filter(r => r.estado === 'completada' || r.estado === 'entregada')
       .reduce((sum, r) => sum + Number(r.precioTotal), 0);
-    
     const costoPartes = repairs
       .filter(r => r.estado === 'completada' || r.estado === 'entregada')
       .reduce((sum, r) => sum + Number(r.costoPartes), 0);
-    
     const gananciaTotal = repairs
       .filter(r => r.estado === 'completada' || r.estado === 'entregada')
       .reduce((sum, r) => sum + Number(r.ganancia), 0);
-
-    return {
-      pendientes,
-      enProceso,
-      completadas,
-      total: repairs.length,
-      ingresoTotal,
-      costoPartes,
-      gananciaTotal,
-    };
+    return { pendientes, enProceso, completadas, total: repairs.length, ingresoTotal, costoPartes, gananciaTotal };
   }, [repairs]);
 
-  // Agregar parte del inventario
   const handleAgregarParteInventario = (partId: number) => {
     const parte = parts.find(p => p.id === partId);
     if (!parte) return;
-
     const nuevaParte: ParteSeleccionada = {
       id: `inv-${Date.now()}-${Math.random()}`,
       partId: parte.id,
@@ -167,11 +178,9 @@ export default function Reparaciones() {
       costoUnitario: parte.precioCompraUnitario,
       cantidadDisponible: parte.cantidadActual,
     };
-
     setPartesSeleccionadas([...partesSeleccionadas, nuevaParte]);
   };
 
-  // Agregar parte externa
   const handleAgregarParteExterna = () => {
     const nuevaParte: ParteSeleccionada = {
       id: `ext-${Date.now()}-${Math.random()}`,
@@ -180,47 +189,57 @@ export default function Reparaciones() {
       cantidad: 1,
       costoUnitario: '0.00',
     };
-
     setPartesSeleccionadas([...partesSeleccionadas, nuevaParte]);
   };
 
-  // Eliminar parte
   const handleEliminarParte = (id: string) => {
     setPartesSeleccionadas(partesSeleccionadas.filter(p => p.id !== id));
   };
 
-  // Actualizar parte
   const handleActualizarParte = (id: string, campo: keyof ParteSeleccionada, valor: any) => {
-    setPartesSeleccionadas(partesSeleccionadas.map(p => 
+    setPartesSeleccionadas(partesSeleccionadas.map(p =>
       p.id === id ? { ...p, [campo]: valor } : p
     ));
   };
 
-  // Calcular costo total de partes
   const costoTotalPartes = useMemo(() => {
-    return partesSeleccionadas.reduce((sum, p) => 
+    return partesSeleccionadas.reduce((sum, p) =>
       sum + (Number(p.costoUnitario) * p.cantidad), 0
     );
   }, [partesSeleccionadas]);
 
-  // Calcular mano de obra automáticamente
   const manoDeObra = useMemo(() => {
     const mano = precioTotal - costoTotalPartes;
     return mano >= 0 ? mano : 0;
   }, [precioTotal, costoTotalPartes]);
 
-  // Actualizar precio total cuando cambian las partes (solo si el precio es menor que el costo de partes)
   useEffect(() => {
     if (precioTotal < costoTotalPartes) {
-      setPrecioTotal(costoTotalPartes + 50); // Sugerencia inicial: costo partes + $50 de mano de obra
+      setPrecioTotal(costoTotalPartes + 50);
     }
   }, [costoTotalPartes]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    
-    // Validar partes
+
+    const clienteVal = formData.get('cliente') as string;
+    const telefonoVal = formData.get('telefono') as string;
+    const dispositivoVal = formData.get('dispositivo') as string;
+
+    if (!clienteVal?.trim()) {
+      toast.error('El nombre del cliente es requerido');
+      return;
+    }
+    if (!telefonoVal?.trim()) {
+      toast.error('El teléfono del cliente es requerido');
+      return;
+    }
+    if (!dispositivoVal?.trim()) {
+      toast.error('El modelo del dispositivo es requerido');
+      return;
+    }
+
     for (const parte of partesSeleccionadas) {
       if (parte.esExterna && !parte.nombre.trim()) {
         toast.error('Todas las partes externas deben tener un nombre');
@@ -232,31 +251,26 @@ export default function Reparaciones() {
       }
     }
 
-    // Preparar datos de partes para el backend
     const partesParaBackend = partesSeleccionadas.map(p => {
-      const parte: any = {
-        cantidad: p.cantidad,
-      };
-      
+      const parte: any = { cantidad: p.cantidad };
       if (p.esExterna) {
         parte.nombre = p.nombre;
         parte.costoUnitario = p.costoUnitario;
       } else {
         parte.partId = p.partId;
       }
-      
       return parte;
     });
 
     createMutation.mutate({
       codigo: formData.get('codigo') as string,
-      cliente: formData.get('cliente') as string || undefined,
-      telefono: formData.get('telefono') as string || undefined,
-      dispositivo: formData.get('dispositivo') as string || undefined,
+      cliente: clienteVal,
+      telefono: telefonoVal,
+      dispositivo: dispositivoVal,
       problema: formData.get('problema') as string,
       diagnostico: formData.get('diagnostico') as string || undefined,
-      precioManoObra: formData.get('precioManoObra') as string,
-      precioTotal: formData.get('precioTotal') as string,
+      precioManoObra: manoDeObra.toFixed(2),
+      precioTotal: precioTotal.toFixed(2),
       fechaIngreso: formData.get('fechaIngreso') as string,
       notas: formData.get('notas') as string || undefined,
       partes: partesParaBackend.length > 0 ? partesParaBackend : undefined,
@@ -265,13 +279,8 @@ export default function Reparaciones() {
 
   const handleUpdateEstado = (id: number, nuevoEstado: string) => {
     const updateData: any = { id, estado: nuevoEstado as any };
-    
-    if (nuevoEstado === 'completada') {
-      updateData.fechaCompletado = new Date().toISOString();
-    } else if (nuevoEstado === 'entregada') {
-      updateData.fechaEntrega = new Date().toISOString();
-    }
-    
+    if (nuevoEstado === 'completada') updateData.fechaCompletado = new Date().toISOString();
+    else if (nuevoEstado === 'entregada') updateData.fechaEntrega = new Date().toISOString();
     updateMutation.mutate(updateData);
   };
 
@@ -282,24 +291,33 @@ export default function Reparaciones() {
   };
 
   const getEstadoBadge = (estado: string) => {
-    const badges = {
+    const badges: Record<string, string> = {
       pendiente: 'bg-yellow-100 text-yellow-700',
       en_proceso: 'bg-blue-100 text-blue-700',
       completada: 'bg-green-100 text-green-700',
       entregada: 'bg-gray-100 text-gray-700',
     };
-    return badges[estado as keyof typeof badges] || 'bg-gray-100 text-gray-700';
+    return badges[estado] || 'bg-gray-100 text-gray-700';
   };
 
   const getEstadoTexto = (estado: string) => {
-    const textos = {
+    const textos: Record<string, string> = {
       pendiente: 'Pendiente',
       en_proceso: 'En Proceso',
       completada: 'Completada',
       entregada: 'Entregada',
     };
-    return textos[estado as keyof typeof textos] || estado;
+    return textos[estado] || estado;
   };
+
+  const limpiarFiltros = () => {
+    setBusqueda('');
+    setFiltroEstado('todos');
+    setFechaInicio('');
+    setFechaFin('');
+  };
+
+  const hayFiltrosActivos = busqueda || filtroEstado !== 'todos' || fechaInicio || fechaFin;
 
   return (
     <DashboardLayout>
@@ -311,16 +329,11 @@ export default function Reparaciones() {
               <Wrench className="h-8 w-8 text-blue-600" />
               🔧 Reparaciones
             </h1>
-            <p className="text-muted-foreground">
-              Control de reparaciones y servicios
-            </p>
+            <p className="text-muted-foreground">Control de reparaciones y servicios</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={(open) => {
             setDialogOpen(open);
-            if (!open) {
-              setPartesSeleccionadas([]);
-              setBusquedaCliente('');
-            }
+            if (!open) resetForm();
           }}>
             <DialogTrigger asChild>
               <Button>
@@ -340,75 +353,87 @@ export default function Reparaciones() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="codigo">Código *</Label>
-                    <Input 
-                      id="codigo" 
-                      name="codigo" 
+                    <Input
+                      id="codigo"
+                      name="codigo"
                       defaultValue={siguienteCodigo}
-                      placeholder="REP-001" 
-                      required 
+                      placeholder="REP-001"
+                      required
                       readOnly
                       className="bg-gray-50"
                     />
                   </div>
                   <div>
                     <Label htmlFor="fechaIngreso">Fecha de Ingreso *</Label>
-                    <Input 
-                      id="fechaIngreso" 
-                      name="fechaIngreso" 
-                      type="date" 
+                    <Input
+                      id="fechaIngreso"
+                      name="fechaIngreso"
+                      type="date"
                       defaultValue={new Date().toISOString().split('T')[0]}
-                      required 
+                      required
                     />
                   </div>
                 </div>
 
-                {/* Cliente y Teléfono */}
+                {/* Cliente y Teléfono — REQUERIDOS */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="cliente">Cliente</Label>
-                    <Input 
-                      id="cliente" 
-                      name="cliente" 
-                      placeholder="Nombre del cliente" 
+                    <Label htmlFor="cliente" className="flex items-center gap-1">
+                      <User className="h-3.5 w-3.5" />
+                      Cliente *
+                    </Label>
+                    <Input
+                      id="cliente"
+                      name="cliente"
+                      placeholder="Nombre completo del cliente"
+                      required
                     />
                   </div>
                   <div>
-                    <Label htmlFor="telefono">Teléfono</Label>
-                    <Input 
-                      id="telefono" 
-                      name="telefono" 
-                      placeholder="555-1234" 
+                    <Label htmlFor="telefono" className="flex items-center gap-1">
+                      <Phone className="h-3.5 w-3.5" />
+                      Teléfono *
+                    </Label>
+                    <Input
+                      id="telefono"
+                      name="telefono"
+                      placeholder="555-1234"
+                      required
                     />
                   </div>
                 </div>
 
-                {/* Dispositivo */}
+                {/* Dispositivo — REQUERIDO en UI */}
                 <div>
-                  <Label htmlFor="dispositivo">Dispositivo</Label>
-                  <Input 
-                    id="dispositivo" 
-                    name="dispositivo" 
-                    placeholder="iPhone 13 Pro" 
+                  <Label htmlFor="dispositivo" className="flex items-center gap-1">
+                    <Smartphone className="h-3.5 w-3.5" />
+                    Modelo del Dispositivo *
+                  </Label>
+                  <Input
+                    id="dispositivo"
+                    name="dispositivo"
+                    placeholder="iPhone 13 Pro, Samsung Galaxy S22, etc."
+                    required
                   />
                 </div>
 
                 {/* Problema y Diagnóstico */}
                 <div>
                   <Label htmlFor="problema">Problema Reportado *</Label>
-                  <Textarea 
-                    id="problema" 
-                    name="problema" 
-                    placeholder="Descripción del problema" 
-                    required 
+                  <Textarea
+                    id="problema"
+                    name="problema"
+                    placeholder="Descripción del problema"
+                    required
                   />
                 </div>
 
                 <div>
                   <Label htmlFor="diagnostico">Diagnóstico</Label>
-                  <Textarea 
-                    id="diagnostico" 
-                    name="diagnostico" 
-                    placeholder="Diagnóstico técnico" 
+                  <Textarea
+                    id="diagnostico"
+                    name="diagnostico"
+                    placeholder="Diagnóstico técnico"
                   />
                 </div>
 
@@ -429,8 +454,8 @@ export default function Reparaciones() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <Button 
-                        type="button" 
+                      <Button
+                        type="button"
                         variant="outline"
                         onClick={handleAgregarParteExterna}
                       >
@@ -440,7 +465,6 @@ export default function Reparaciones() {
                     </div>
                   </div>
 
-                  {/* Lista de partes seleccionadas */}
                   {partesSeleccionadas.length > 0 && (
                     <div className="space-y-2">
                       {partesSeleccionadas.map(parte => (
@@ -465,9 +489,7 @@ export default function Reparaciones() {
                           ) : (
                             <>
                               <span className="flex-1">{parte.nombre}</span>
-                              <span className="text-sm text-gray-500">
-                                ${parte.costoUnitario} c/u
-                              </span>
+                              <span className="text-sm text-gray-500">${parte.costoUnitario} c/u</span>
                             </>
                           )}
                           <Input
@@ -504,19 +526,18 @@ export default function Reparaciones() {
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="precioTotal">Precio Total al Cliente *</Label>
-                    <Input 
-                      id="precioTotal" 
-                      name="precioTotal" 
-                      type="number" 
-                      step="0.01" 
-                      placeholder="100.00" 
+                    <Input
+                      id="precioTotal"
+                      name="precioTotal"
+                      type="number"
+                      step="0.01"
+                      placeholder="100.00"
                       value={precioTotal.toFixed(2)}
                       onChange={(e) => setPrecioTotal(parseFloat(e.target.value) || 0)}
-                      required 
+                      required
                     />
                   </div>
-                  
-                  {/* Mostrar cálculos automáticos */}
+
                   <div className="bg-blue-50 p-4 rounded-lg space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">Costo Total Partes:</span>
@@ -524,23 +545,18 @@ export default function Reparaciones() {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">Mano de Obra (calculada):</span>
-                      <span className="font-bold text-green-600">
-                        ${manoDeObra.toFixed(2)}
-                      </span>
+                      <span className="font-bold text-green-600">${manoDeObra.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-sm border-t pt-2">
                       <span className="font-semibold">Ganancia Total:</span>
-                      <span className="font-bold text-blue-600">
-                        ${manoDeObra.toFixed(2)}
-                      </span>
+                      <span className="font-bold text-blue-600">${manoDeObra.toFixed(2)}</span>
                     </div>
                   </div>
-                  
-                  {/* Campo oculto para mano de obra (calculado automáticamente) */}
-                  <input 
-                    type="hidden" 
-                    id="precioManoObra" 
-                    name="precioManoObra" 
+
+                  <input
+                    type="hidden"
+                    id="precioManoObra"
+                    name="precioManoObra"
                     value={manoDeObra.toFixed(2)}
                   />
                 </div>
@@ -548,18 +564,18 @@ export default function Reparaciones() {
                 {/* Notas */}
                 <div>
                   <Label htmlFor="notas">Notas</Label>
-                  <Textarea 
-                    id="notas" 
-                    name="notas" 
-                    placeholder="Observaciones adicionales" 
+                  <Textarea
+                    id="notas"
+                    name="notas"
+                    placeholder="Observaciones adicionales"
                   />
                 </div>
 
                 {/* Botones */}
                 <div className="flex justify-end gap-2">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
+                  <Button
+                    type="button"
+                    variant="outline"
                     onClick={() => setDialogOpen(false)}
                   >
                     Cancelar
@@ -573,7 +589,56 @@ export default function Reparaciones() {
           </Dialog>
         </div>
 
-        {/* Resumen */}
+        {/* Tarjeta Resumen post-creación */}
+        <Dialog open={summaryOpen} onOpenChange={setSummaryOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-green-700">
+                <CheckSquare className="h-5 w-5" />
+                Reparación Registrada
+              </DialogTitle>
+            </DialogHeader>
+            {repairSummary && (
+              <div className="space-y-4">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
+                  <div className="flex justify-between items-center border-b border-green-200 pb-2">
+                    <span className="text-sm text-gray-600">Código:</span>
+                    <span className="font-bold text-lg text-green-700">{repairSummary.codigo}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 flex items-center gap-1">
+                      <User className="h-3.5 w-3.5" /> Cliente:
+                    </span>
+                    <span className="font-medium">{repairSummary.cliente}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 flex items-center gap-1">
+                      <Smartphone className="h-3.5 w-3.5" /> Dispositivo:
+                    </span>
+                    <span className="font-medium">{repairSummary.dispositivo}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 flex items-center gap-1">
+                      <DollarSign className="h-3.5 w-3.5" /> Precio Total:
+                    </span>
+                    <span className="font-bold text-green-700">${repairSummary.precioTotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 flex items-center gap-1">
+                      <Wrench className="h-3.5 w-3.5" /> Mano de Obra:
+                    </span>
+                    <span className="font-bold text-blue-600">${repairSummary.manoDeObra.toFixed(2)}</span>
+                  </div>
+                </div>
+                <Button className="w-full" onClick={() => setSummaryOpen(false)}>
+                  Cerrar
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Resumen de estadísticas */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="p-4 bg-yellow-50 border-yellow-200">
             <div className="flex items-center gap-2 mb-2">
@@ -582,7 +647,6 @@ export default function Reparaciones() {
             </div>
             <p className="text-2xl font-bold text-yellow-900">{totales.pendientes}</p>
           </Card>
-
           <Card className="p-4 bg-blue-50 border-blue-200">
             <div className="flex items-center gap-2 mb-2">
               <Wrench className="h-5 w-5 text-blue-600" />
@@ -590,7 +654,6 @@ export default function Reparaciones() {
             </div>
             <p className="text-2xl font-bold text-blue-900">{totales.enProceso}</p>
           </Card>
-
           <Card className="p-4 bg-green-50 border-green-200">
             <div className="flex items-center gap-2 mb-2">
               <CheckCircle className="h-5 w-5 text-green-600" />
@@ -598,44 +661,78 @@ export default function Reparaciones() {
             </div>
             <p className="text-2xl font-bold text-green-900">{totales.completadas}</p>
           </Card>
-
           <Card className="p-4 bg-purple-50 border-purple-200">
             <div className="flex items-center gap-2 mb-2">
               <DollarSign className="h-5 w-5 text-purple-600" />
               <span className="text-sm font-medium text-purple-700">Ganancia Total</span>
             </div>
-            <p className="text-2xl font-bold text-purple-900">
-              ${totales.gananciaTotal.toFixed(2)}
-            </p>
+            <p className="text-2xl font-bold text-purple-900">${totales.gananciaTotal.toFixed(2)}</p>
           </Card>
         </div>
 
-        {/* Filtros y Búsqueda */}
+        {/* Filtros y Búsqueda — Tarea 2 */}
         <Card className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
+          <div className="space-y-3">
+            <div className="flex flex-col md:flex-row gap-3">
+              {/* Búsqueda */}
+              <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Buscar por nombre de cliente o teléfono..."
-                  value={busquedaCliente}
-                  onChange={(e) => setBusquedaCliente(e.target.value)}
+                  placeholder="Buscar por cliente, teléfono, código o dispositivo..."
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
                   className="pl-10"
                 />
               </div>
+              {/* Filtro Estado */}
+              <Select value={filtroEstado} onValueChange={(value: any) => setFiltroEstado(value)}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos los estados</SelectItem>
+                  <SelectItem value="pendiente">Pendiente</SelectItem>
+                  <SelectItem value="en_proceso">En Proceso</SelectItem>
+                  <SelectItem value="completada">Completada</SelectItem>
+                  <SelectItem value="entregada">Entregada</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={filtroEstado} onValueChange={(value: any) => setFiltroEstado(value)}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos los estados</SelectItem>
-                <SelectItem value="pendiente">Pendientes</SelectItem>
-                <SelectItem value="en_proceso">En Proceso</SelectItem>
-                <SelectItem value="completada">Completadas</SelectItem>
-                <SelectItem value="entregada">Entregadas</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Filtro Fechas */}
+            <div className="flex flex-col md:flex-row gap-3 items-center">
+              <div className="flex items-center gap-2">
+                <CalendarRange className="h-4 w-4 text-gray-500" />
+                <span className="text-sm text-gray-600 whitespace-nowrap">Rango de fechas:</span>
+              </div>
+              <div className="flex gap-2 flex-1">
+                <Input
+                  type="date"
+                  value={fechaInicio}
+                  onChange={(e) => setFechaInicio(e.target.value)}
+                  className="flex-1"
+                  placeholder="Desde"
+                />
+                <span className="text-gray-400 self-center">—</span>
+                <Input
+                  type="date"
+                  value={fechaFin}
+                  onChange={(e) => setFechaFin(e.target.value)}
+                  className="flex-1"
+                  placeholder="Hasta"
+                />
+              </div>
+              {hayFiltrosActivos && (
+                <Button variant="ghost" size="sm" onClick={limpiarFiltros} className="text-gray-500">
+                  <X className="h-4 w-4 mr-1" />
+                  Limpiar filtros
+                </Button>
+              )}
+            </div>
+            {hayFiltrosActivos && (
+              <p className="text-xs text-gray-500">
+                Mostrando {repairsFiltradas.length} de {repairs.length} reparaciones
+              </p>
+            )}
           </div>
         </Card>
 
@@ -656,24 +753,22 @@ export default function Reparaciones() {
                         {getEstadoTexto(repair.estado)}
                       </span>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                       <div>
-                        <p className="text-gray-600">Cliente:</p>
+                        <p className="text-gray-600 flex items-center gap-1"><User className="h-3 w-3" /> Cliente:</p>
                         <p className="font-medium">{repair.cliente || 'Sin nombre'}</p>
                       </div>
                       <div>
-                        <p className="text-gray-600">Teléfono:</p>
+                        <p className="text-gray-600 flex items-center gap-1"><Phone className="h-3 w-3" /> Teléfono:</p>
                         <p className="font-medium">{repair.telefono || 'Sin teléfono'}</p>
                       </div>
                       <div>
-                        <p className="text-gray-600">Dispositivo:</p>
-                        <p className="font-medium">{repair.dispositivo}</p>
+                        <p className="text-gray-600 flex items-center gap-1"><Smartphone className="h-3 w-3" /> Dispositivo:</p>
+                        <p className="font-medium">{repair.dispositivo || '—'}</p>
                       </div>
                       <div>
                         <p className="text-gray-600">Fecha de Ingreso:</p>
-                        <p className="font-medium">
-                          {new Date(repair.fechaIngreso).toLocaleDateString()}
-                        </p>
+                        <p className="font-medium">{new Date(repair.fechaIngreso).toLocaleDateString()}</p>
                       </div>
                       <div>
                         <p className="text-gray-600">Precio Total:</p>
@@ -686,8 +781,8 @@ export default function Reparaciones() {
                     </div>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <Select 
-                      value={repair.estado} 
+                    <Select
+                      value={repair.estado}
                       onValueChange={(value) => handleUpdateEstado(repair.id, value)}
                     >
                       <SelectTrigger className="w-[150px]">
@@ -741,4 +836,3 @@ export default function Reparaciones() {
     </DashboardLayout>
   );
 }
-// Force rebuild Mon Feb  9 17:52:40 EST 2026

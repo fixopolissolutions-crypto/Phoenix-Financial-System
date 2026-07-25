@@ -22,7 +22,8 @@ import InventarioTelefonos from "./pages/InventarioTelefonos";
 import InventarioAccesorios from "./pages/InventarioAccesorios";
 import InventarioPartes from "./pages/InventarioPartes";
 import Reparaciones from "./pages/Reparaciones";
-import ConfiguracionTienda from "./pages/ConfiguracionTienda";
+import ConfiguracionTienda from './pages/ConfiguracionTienda';
+import Servidor from './pages/Servidor';
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated } = useAuth();
@@ -88,6 +89,9 @@ function Router() {
       </Route>
       <Route path="/configuracion-tienda">
         {() => <ProtectedRoute component={ConfiguracionTienda} />}
+      </Route>
+      <Route path="/servidor">
+        {() => <ProtectedRoute component={Servidor} />}
       </Route>
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />

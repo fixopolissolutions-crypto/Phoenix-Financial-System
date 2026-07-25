@@ -775,6 +775,101 @@ export const appRouter = router({
       }),
   }),
 
+  // ==================== SERVIDOR (UnlockerFast) ====================
+  servidor: router({
+    list: publicProcedure
+      .query(async ({ ctx }) => {
+        const tienda = ctx.user?.tienda || 'admin';
+        return await db.getServidorRequests(tienda);
+      }),
+
+    create: publicProcedure
+      .input(z.object({
+        servicio: z.string(),
+        imei: z.string(),
+        notas: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const tienda = ctx.user?.tienda || 'admin';
+        const apiKey = process.env.UNLOCKERFAST_API_KEY || '6T0-V56-CPP-IGB-K0Q-54F-9TL-1WB';
+        const baseUrl = 'https://www.unlockerfast.com.mx';
+
+        let orderId: string | undefined;
+        let estado = 'pending';
+        let respuesta: string | undefined;
+        let costo: number | undefined;
+
+        try {
+          // Llamar a la API de UnlockerFast (Dhru Fusion)
+          const apiResponse = await fetch(`${baseUrl}/api`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              key: apiKey,
+              action: 'order',
+              service: input.servicio,
+              imei: input.imei,
+            }),
+          });
+          const apiData = await apiResponse.json();
+          respuesta = JSON.stringify(apiData);
+          if (apiData.status === 'success' || apiData.order) {
+            orderId = String(apiData.order || apiData.id || '');
+            estado = apiData.status || 'processing';
+            costo = parseFloat(apiData.charge || apiData.cost || '0') || undefined;
+          } else {
+            estado = apiData.status || 'error';
+          }
+        } catch (err: any) {
+          estado = 'api_error';
+          respuesta = JSON.stringify({ error: err.message });
+        }
+
+        return await db.createServidorRequest({
+          tienda,
+          servicio: input.servicio,
+          imei: input.imei,
+          notas: input.notas,
+          orderId,
+          estado,
+          respuesta,
+          costo,
+        });
+      }),
+
+    checkStatus: publicProcedure
+      .input(z.object({ id: z.number(), orderId: z.string() }))
+      .mutation(async ({ input }) => {
+        const apiKey = process.env.UNLOCKERFAST_API_KEY || '6T0-V56-CPP-IGB-K0Q-54F-9TL-1WB';
+        const baseUrl = 'https://www.unlockerfast.com.mx';
+
+        try {
+          const apiResponse = await fetch(`${baseUrl}/api`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              key: apiKey,
+              action: 'status',
+              order: input.orderId,
+            }),
+          });
+          const apiData = await apiResponse.json();
+          const nuevoEstado = apiData.status || 'unknown';
+          const respuesta = JSON.stringify(apiData);
+          await db.updateServidorRequest(input.id, { estado: nuevoEstado, respuesta });
+          return { estado: nuevoEstado, respuesta };
+        } catch (err: any) {
+          return { estado: 'error', respuesta: err.message };
+        }
+      }),
+
+    delete: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return await db.deleteServidorRequest(input.id);
+      }),
+  }),
+
   // ==================== DAILY HISTORY ====================
   history: router({
     list: publicProcedure

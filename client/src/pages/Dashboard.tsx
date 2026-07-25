@@ -1,4 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
+import { BarChart, Bar } from 'recharts';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/card';
 import { DollarSign, TrendingUp, TrendingDown, Activity, Receipt, Landmark, Loader2, Wallet } from 'lucide-react';
@@ -18,6 +19,28 @@ export default function Dashboard() {
   const { data: transacciones = [], isLoading: loadingTransactions } = trpc.transactions.list.useQuery({
     tienda: user?.role as 'admin' | 'sucursal' | undefined,
   });
+
+  // Query para gráfica mensual — últimos 6 meses (todas las transacciones de la tienda)
+  const sixMonthsAgo = useMemo(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 5);
+    d.setDate(1);
+    return d.toISOString().split('T')[0];
+  }, []);
+
+  const { data: transaccionesMensuales = [] } = trpc.transactions.list.useQuery({
+    tienda: user?.role as 'admin' | 'sucursal' | undefined,
+    fechaInicio: sixMonthsAgo,
+  });
+
+  // Admin: también obtener datos de sucursal para comparación
+  const { data: transaccionesSucursal = [] } = trpc.transactions.list.useQuery(
+    { tienda: 'sucursal', fechaInicio: sixMonthsAgo },
+    { enabled: user?.role === 'admin' }
+  );
+
+  // Query para reparaciones mensuales
+  const { data: reparaciones = [] } = trpc.repairs.list.useQuery();
 
   // Query para obtener configuración
   const { data: configData = {} } = trpc.config.getAll.useQuery();
@@ -140,6 +163,45 @@ export default function Dashboard() {
       value,
     }));
     
+    // Gráfica mensual — últimos 6 meses
+    const monthlyData: Record<string, { mes: string; ingresos: number; gastos: number; ganancia: number; ingresosSuc?: number; gastosSuc?: number; gananciaSuc?: number }> = {};
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const label = d.toLocaleDateString('es-MX', { month: 'short', year: '2-digit' });
+      monthlyData[key] = { mes: label, ingresos: 0, gastos: 0, ganancia: 0 };
+    }
+    transaccionesMensuales.forEach(t => {
+      const d = new Date(t.fecha);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (!monthlyData[key]) return;
+      const monto = parseFloat(t.monto);
+      if (t.tipo === 'ingreso') monthlyData[key].ingresos += monto;
+      else monthlyData[key].gastos += monto;
+    });
+    Object.values(monthlyData).forEach(m => { m.ganancia = m.ingresos - m.gastos; });
+
+    // Admin: datos de sucursal para comparación
+    if (user.role === 'admin') {
+      transaccionesSucursal.forEach(t => {
+        const d = new Date(t.fecha);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        if (!monthlyData[key]) return;
+        const monto = parseFloat(t.monto);
+        if (!monthlyData[key].ingresosSuc) monthlyData[key].ingresosSuc = 0;
+        if (!monthlyData[key].gastosSuc) monthlyData[key].gastosSuc = 0;
+        if (!monthlyData[key].gananciaSuc) monthlyData[key].gananciaSuc = 0;
+        if (t.tipo === 'ingreso') monthlyData[key].ingresosSuc! += monto;
+        else monthlyData[key].gastosSuc! += monto;
+      });
+      Object.values(monthlyData).forEach(m => {
+        if (m.ingresosSuc !== undefined) m.gananciaSuc = (m.ingresosSuc || 0) - (m.gastosSuc || 0);
+      });
+    }
+
+    const monthlyChartData = Object.values(monthlyData);
+
     return {
       totalEfectivo,
       totalBanco,
@@ -155,6 +217,7 @@ export default function Dashboard() {
       distribucionBanco,
       evolutionData: last7Days,
       gastosChartData,
+      monthlyChartData,
       config,
     };
   }, [user, transacciones, configData]);
@@ -330,6 +393,36 @@ export default function Dashboard() {
           </Card>
         </div>
 
+        {/* Gráfica Mensual de Ganancias — últimos 6 meses */}
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-1 flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            Ganancia Mensual — Últimos 6 Meses
+          </h3>
+          {user?.role === 'admin' && (
+            <p className="text-xs text-muted-foreground mb-4">Comparación Admin (azul) vs Sucursal (verde)</p>
+          )}
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data.monthlyChartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="mes" />
+                <YAxis tickFormatter={(v) => `$${v}`} />
+                <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+                <Legend />
+                {user?.role === 'admin' ? (
+                  <>
+                    <Bar dataKey="ganancia" name="Admin Ganancia" fill="#3B82F6" radius={[4,4,0,0]} />
+                    <Bar dataKey="gananciaSuc" name="Sucursal Ganancia" fill="#10B981" radius={[4,4,0,0]} />
+                  </>
+                ) : (
+                  <Bar dataKey="ganancia" name="Ganancia" fill="#3B82F6" radius={[4,4,0,0]} />
+                )}
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+
         {/* Gráficas */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="p-6">
@@ -389,3 +482,4 @@ export default function Dashboard() {
     </DashboardLayout>
   );
 }
+// Monthly chart section added below main component - see DashboardMonthlyChart component

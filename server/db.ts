@@ -1379,3 +1379,81 @@ export async function migrateInventoryPartsUniqueConstraint() {
   }
 }
 
+
+// ==================== SERVIDOR REQUESTS (UnlockerFast) ====================
+
+export async function getServidorRequests(tienda: 'admin' | 'sucursal') {
+  const db = await getDb();
+  if (!db) return [];
+  const connection = await mysql.createConnection(process.env.DATABASE_URL!);
+  try {
+    const [rows] = await connection.execute(
+      `SELECT * FROM servidor_requests WHERE tienda = ? ORDER BY createdAt DESC LIMIT 200`,
+      [tienda]
+    );
+    return rows as any[];
+  } finally {
+    await connection.end();
+  }
+}
+
+export async function createServidorRequest(data: {
+  tienda: 'admin' | 'sucursal';
+  servicio: string;
+  imei: string;
+  notas?: string;
+  orderId?: string;
+  estado?: string;
+  respuesta?: string;
+  costo?: number;
+}) {
+  const connection = await mysql.createConnection(process.env.DATABASE_URL!);
+  try {
+    const [result] = await connection.execute(
+      `INSERT INTO servidor_requests (tienda, servicio, imei, notas, orderId, estado, respuesta, costo)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        data.tienda,
+        data.servicio,
+        data.imei,
+        data.notas || null,
+        data.orderId || null,
+        data.estado || 'pending',
+        data.respuesta || null,
+        data.costo || null,
+      ]
+    );
+    const insertResult = result as any;
+    return { id: insertResult.insertId, ...data };
+  } finally {
+    await connection.end();
+  }
+}
+
+export async function updateServidorRequest(id: number, data: {
+  estado?: string;
+  respuesta?: string;
+  orderId?: string;
+  costo?: number;
+}) {
+  const connection = await mysql.createConnection(process.env.DATABASE_URL!);
+  try {
+    await connection.execute(
+      `UPDATE servidor_requests SET estado = COALESCE(?, estado), respuesta = COALESCE(?, respuesta), orderId = COALESCE(?, orderId), costo = COALESCE(?, costo) WHERE id = ?`,
+      [data.estado || null, data.respuesta || null, data.orderId || null, data.costo || null, id]
+    );
+    return { success: true };
+  } finally {
+    await connection.end();
+  }
+}
+
+export async function deleteServidorRequest(id: number) {
+  const connection = await mysql.createConnection(process.env.DATABASE_URL!);
+  try {
+    await connection.execute(`DELETE FROM servidor_requests WHERE id = ?`, [id]);
+    return { success: true };
+  } finally {
+    await connection.end();
+  }
+}

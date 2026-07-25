@@ -178,6 +178,32 @@ export async function applyMigrations() {
       }
     }
 
+    // Migración 9: Crear tabla servidor_requests para integración UnlockerFast
+    try {
+      await connection.execute(`
+        CREATE TABLE IF NOT EXISTS servidor_requests (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          tienda ENUM('admin', 'sucursal') NOT NULL DEFAULT 'admin',
+          servicio VARCHAR(300) NOT NULL COMMENT 'Nombre del servicio solicitado',
+          imei VARCHAR(100) NOT NULL COMMENT 'IMEI o número de serie',
+          notas TEXT NULL COMMENT 'Notas adicionales',
+          estado VARCHAR(50) NOT NULL DEFAULT 'pending' COMMENT 'Estado del pedido en UnlockerFast',
+          orderId VARCHAR(100) NULL COMMENT 'ID del pedido en UnlockerFast',
+          respuesta TEXT NULL COMMENT 'Respuesta completa de la API',
+          costo DECIMAL(10,2) NULL COMMENT 'Costo del servicio',
+          createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      console.log('[Migrations] ✅ Created servidor_requests table');
+    } catch (error: any) {
+      if (error.code === 'ER_TABLE_EXISTS_ERROR') {
+        console.log('[Migrations] ⏭️  servidor_requests table already exists');
+      } else {
+        console.log('[Migrations] ⚠️  Could not create servidor_requests:', error.message);
+      }
+    }
+
     await connection.end();
     console.log('[Migrations] ✅ All migrations completed successfully');
     
