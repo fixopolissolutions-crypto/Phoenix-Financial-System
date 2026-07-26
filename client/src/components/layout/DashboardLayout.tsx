@@ -23,6 +23,7 @@ import {
   Bell,
   ChevronRight,
   Flame,
+  ShoppingCart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
@@ -39,6 +40,7 @@ const navGroups = [
       { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
       { name: 'Reparaciones', href: '/reparaciones', icon: Wrench },
       { name: 'Servidor', href: '/servidor', icon: Server },
+      { name: 'Punto de Venta', href: '/pos', icon: ShoppingCart },
     ],
   },
   {

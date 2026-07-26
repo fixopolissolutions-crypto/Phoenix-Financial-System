@@ -896,6 +896,67 @@ export const appRouter = router({
         });
       }),
   }),
+
+  // ==================== POS ====================
+  pos: router({
+    getTransactions: publicProcedure
+      .input(z.object({
+        tienda: z.string().optional(),
+        limit: z.number().optional(),
+      }).optional())
+      .query(async ({ input, ctx }) => {
+        const tienda = input?.tienda || (ctx.user as any)?.tienda || 'admin';
+        return await db.getPosTransactions(tienda, input?.limit || 50);
+      }),
+
+    getTransaction: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return await db.getPosTransactionById(input.id);
+      }),
+
+    create: publicProcedure
+      .input(z.object({
+        items: z.array(z.object({
+          id: z.string(),
+          tipo: z.enum(['reparacion', 'accesorio', 'parte', 'servicio']),
+          nombre: z.string(),
+          precio: z.number(),
+          cantidad: z.number(),
+          subtotal: z.number(),
+        })),
+        subtotal: z.number(),
+        taxRate: z.number(),
+        taxAmount: z.number(),
+        total: z.number(),
+        metodoPago: z.enum(['efectivo', 'tarjeta', 'mixto']),
+        montoEfectivo: z.number().optional(),
+        montoTarjeta: z.number().optional(),
+        cambio: z.number().optional(),
+        clienteNombre: z.string().optional(),
+        clienteEmail: z.string().optional(),
+        clienteTelefono: z.string().optional(),
+        notas: z.string().optional(),
+        tienda: z.string().optional(),
+        cajero: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const tienda = input.tienda || (ctx.user as any)?.tienda || 'admin';
+        const cajero = input.cajero || (ctx.user as any)?.username || 'Admin';
+        const transaction = await db.createPosTransaction({ ...input, tienda, cajero });
+        // Registrar como ingreso en transactions
+        await db.createTransaction({
+          tipo: 'ingreso',
+          monto: String(transaction.total),
+          metodo: input.metodoPago === 'tarjeta' ? 'banco' : 'efectivo',
+          descripcion: `Venta POS ${transaction.codigo} - ${input.items.length} item(s)`,
+          categoria: 'Ventas POS',
+          tienda: tienda as any,
+          fecha: new Date(),
+        });
+        return transaction;
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

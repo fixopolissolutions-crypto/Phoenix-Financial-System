@@ -22,6 +22,8 @@ import InventarioPartes from "./pages/InventarioPartes";
 import Reparaciones from "./pages/Reparaciones";
 import ConfiguracionTienda from './pages/ConfiguracionTienda';
 import Servidor from './pages/Servidor';
+import POS from './pages/POS';
+import POSDisplay from './pages/POSDisplay';
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated } = useAuth();
@@ -85,6 +87,10 @@ function Router() {
       <Route path="/servidor">
         {() => <ProtectedRoute component={Servidor} />}
       </Route>
+      <Route path="/pos">
+        {() => <ProtectedRoute component={POS} />}
+      </Route>
+      <Route path="/pos/display" component={POSDisplay} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

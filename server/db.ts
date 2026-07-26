@@ -1457,3 +1457,144 @@ export async function deleteServidorRequest(id: number) {
     await connection.end();
   }
 }
+
+// ============================================================
+// POS TRANSACTIONS
+// ============================================================
+
+export interface PosItem {
+  id: string;
+  tipo: 'reparacion' | 'accesorio' | 'parte' | 'servicio';
+  nombre: string;
+  precio: number;
+  cantidad: number;
+  subtotal: number;
+}
+
+export async function getPosTransactions(tienda: string, limit = 50) {
+  const connection = await mysql.createConnection(process.env.DATABASE_URL!);
+  try {
+    const [rows] = await connection.execute(
+      `SELECT * FROM pos_transactions WHERE tienda = ? ORDER BY createdAt DESC LIMIT ?`,
+      [tienda, limit]
+    ) as any[];
+    return rows.map((r: any) => ({
+      ...r,
+      items: typeof r.items === 'string' ? JSON.parse(r.items) : r.items,
+      subtotal: parseFloat(r.subtotal),
+      taxRate: parseFloat(r.taxRate),
+      taxAmount: parseFloat(r.taxAmount),
+      total: parseFloat(r.total),
+      montoEfectivo: r.montoEfectivo ? parseFloat(r.montoEfectivo) : undefined,
+      montoTarjeta: r.montoTarjeta ? parseFloat(r.montoTarjeta) : undefined,
+      cambio: r.cambio ? parseFloat(r.cambio) : 0,
+    }));
+  } finally {
+    await connection.end();
+  }
+}
+
+export async function getPosTransactionById(id: number) {
+  const connection = await mysql.createConnection(process.env.DATABASE_URL!);
+  try {
+    const [rows] = await connection.execute(
+      `SELECT * FROM pos_transactions WHERE id = ?`,
+      [id]
+    ) as any[];
+    if (!rows.length) return null;
+    const r = rows[0];
+    return {
+      ...r,
+      items: typeof r.items === 'string' ? JSON.parse(r.items) : r.items,
+      subtotal: parseFloat(r.subtotal),
+      taxRate: parseFloat(r.taxRate),
+      taxAmount: parseFloat(r.taxAmount),
+      total: parseFloat(r.total),
+      montoEfectivo: r.montoEfectivo ? parseFloat(r.montoEfectivo) : undefined,
+      montoTarjeta: r.montoTarjeta ? parseFloat(r.montoTarjeta) : undefined,
+      cambio: r.cambio ? parseFloat(r.cambio) : 0,
+    };
+  } finally {
+    await connection.end();
+  }
+}
+
+export async function generatePosCode(tienda: string): Promise<string> {
+  const connection = await mysql.createConnection(process.env.DATABASE_URL!);
+  try {
+    const prefix = tienda === 'admin' ? 'POS' : 'PSC';
+    const [rows] = await connection.execute(
+      `SELECT codigo FROM pos_transactions WHERE tienda = ? AND codigo LIKE ? ORDER BY id DESC LIMIT 1`,
+      [tienda, `${prefix}-%`]
+    ) as any[];
+    if (!rows.length) return `${prefix}-001`;
+    const last = rows[0].codigo as string;
+    const num = parseInt(last.split('-')[1] || '0', 10);
+    return `${prefix}-${String(num + 1).padStart(3, '0')}`;
+  } finally {
+    await connection.end();
+  }
+}
+
+export async function createPosTransaction(data: {
+  items: any[];
+  subtotal: number;
+  taxRate: number;
+  taxAmount: number;
+  total: number;
+  metodoPago: 'efectivo' | 'tarjeta' | 'mixto';
+  montoEfectivo?: number;
+  montoTarjeta?: number;
+  cambio?: number;
+  clienteNombre?: string;
+  clienteEmail?: string;
+  clienteTelefono?: string;
+  notas?: string;
+  tienda: string;
+  cajero?: string;
+}) {
+  const connection = await mysql.createConnection(process.env.DATABASE_URL!);
+  try {
+    const codigo = await generatePosCode(data.tienda);
+    await connection.execute(
+      `INSERT INTO pos_transactions (codigo, items, subtotal, taxRate, taxAmount, total, metodoPago, montoEfectivo, montoTarjeta, cambio, clienteNombre, clienteEmail, clienteTelefono, notas, estado, tienda, cajero)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completada', ?, ?)`,
+      [
+        codigo,
+        JSON.stringify(data.items),
+        data.subtotal,
+        data.taxRate,
+        data.taxAmount,
+        data.total,
+        data.metodoPago,
+        data.montoEfectivo ?? null,
+        data.montoTarjeta ?? null,
+        data.cambio ?? 0,
+        data.clienteNombre ?? null,
+        data.clienteEmail ?? null,
+        data.clienteTelefono ?? null,
+        data.notas ?? null,
+        data.tienda,
+        data.cajero ?? null,
+      ]
+    );
+    const [rows] = await connection.execute(
+      `SELECT * FROM pos_transactions WHERE codigo = ?`,
+      [codigo]
+    ) as any[];
+    const r = rows[0];
+    return {
+      ...r,
+      items: typeof r.items === 'string' ? JSON.parse(r.items) : r.items,
+      subtotal: parseFloat(r.subtotal),
+      taxRate: parseFloat(r.taxRate),
+      taxAmount: parseFloat(r.taxAmount),
+      total: parseFloat(r.total),
+      montoEfectivo: r.montoEfectivo ? parseFloat(r.montoEfectivo) : undefined,
+      montoTarjeta: r.montoTarjeta ? parseFloat(r.montoTarjeta) : undefined,
+      cambio: r.cambio ? parseFloat(r.cambio) : 0,
+    };
+  } finally {
+    await connection.end();
+  }
+}
