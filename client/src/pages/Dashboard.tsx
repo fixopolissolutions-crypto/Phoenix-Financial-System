@@ -1,26 +1,30 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { BarChart, Bar } from 'recharts';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/card';
-import { DollarSign, TrendingUp, TrendingDown, Activity, Receipt, Landmark, Loader2, Wallet } from 'lucide-react';
+import {
+  DollarSign, TrendingUp, TrendingDown, Activity, Receipt, Landmark,
+  Loader2, Wallet, Wrench, Plus, Minus, ArrowUpRight, ArrowDownRight,
+  ChevronRight,
+} from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { useMemo, useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend, BarChart, Bar,
+} from 'recharts';
+import { useLocation } from 'wouter';
 
 const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EF4444', '#EC4899'];
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
   const utils = trpc.useContext();
-  
-  // Query para obtener todas las transacciones
-  const { data: transacciones = [], isLoading: loadingTransactions } = trpc.transactions.list.useQuery({
-    tienda: 'admin',
-  });
 
-  // Query para gráfica mensual — últimos 6 meses
+  const { data: transacciones = [], isLoading: loadingTransactions } = trpc.transactions.list.useQuery({ tienda: 'admin' });
+
   const sixMonthsAgo = useMemo(() => {
     const d = new Date();
     d.setMonth(d.getMonth() - 5);
@@ -33,31 +37,23 @@ export default function Dashboard() {
     fechaInicio: sixMonthsAgo,
   });
 
-  // Query para reparaciones mensuales
   const { data: reparaciones = [] } = trpc.repairs.list.useQuery();
-
-  // Query para obtener configuración
   const { data: configData = {} } = trpc.config.getAll.useQuery();
 
-  // Detectar cambio de día y actualizar automáticamente
   useEffect(() => {
     const checkMidnight = setInterval(() => {
       const newDate = new Date().toISOString().split('T')[0];
       if (newDate !== currentDate) {
-        console.log('Nuevo día detectado:', newDate);
         setCurrentDate(newDate);
-        // Invalidar queries para recargar datos
         utils.transactions.list.invalidate();
         utils.config.getAll.invalidate();
       }
-    }, 60000); // Verificar cada minuto
-
+    }, 60000);
     return () => clearInterval(checkMidnight);
   }, [currentDate, utils]);
 
   const data = useMemo(() => {
     if (!user) return null;
-    
     const config = {
       taxRate: parseFloat(configData.taxRate || '8.25'),
       porcentajeAhorro: parseFloat(configData.porcentajeAhorro || '30'),
@@ -65,78 +61,55 @@ export default function Dashboard() {
       porcentajeEmergencia: parseFloat(configData.porcentajeEmergencia || '10'),
       porcentajeDisponible: parseFloat(configData.porcentajeDisponible || '40'),
       cajaChicaAdmin: parseFloat(configData.cajaChicaAdmin || '500'),
-      cajaChicaSucursal: parseFloat(configData.cajaChicaSucursal || '300'),
     };
 
-    // Filtrar transacciones de hoy
     const today = new Date().toISOString().split('T')[0];
-    const transaccionesHoy = transacciones.filter(t => {
-      const fecha = new Date(t.fecha).toISOString().split('T')[0];
-      return fecha === today;
-    });
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
-    const ingresos = transaccionesHoy.filter(t => t.tipo === 'ingreso');
-    const gastos = transaccionesHoy.filter(t => t.tipo === 'gasto');
-    
-    const totalEfectivo = ingresos
-      .filter(i => i.metodo === 'efectivo')
-      .reduce((sum, i) => sum + parseFloat(i.monto), 0);
-    
-    const totalBanco = ingresos
-      .filter(i => i.metodo === 'banco')
-      .reduce((sum, i) => sum + parseFloat(i.monto), 0);
-    
-    const totalGastos = gastos.reduce((sum, g) => sum + parseFloat(g.monto), 0);
-    
-    // Calcular taxes
-    const taxRate = config.taxRate;
-    const taxEfectivo = totalEfectivo * (taxRate / 100);
-    const taxBanco = totalBanco * (taxRate / 100);
+    const transHoy = transacciones.filter(t => new Date(t.fecha).toISOString().split('T')[0] === today);
+    const transAyer = transacciones.filter(t => new Date(t.fecha).toISOString().split('T')[0] === yesterday);
+
+    const calcTotals = (trans: typeof transacciones) => {
+      const efectivo = trans.filter(t => t.tipo === 'ingreso' && t.metodo === 'efectivo').reduce((s, t) => s + parseFloat(t.monto), 0);
+      const banco = trans.filter(t => t.tipo === 'ingreso' && t.metodo === 'banco').reduce((s, t) => s + parseFloat(t.monto), 0);
+      const gastos = trans.filter(t => t.tipo === 'gasto').reduce((s, t) => s + parseFloat(t.monto), 0);
+      return { efectivo, banco, gastos, ganancia: efectivo + banco - gastos };
+    };
+
+    const hoy = calcTotals(transHoy);
+    const ayer = calcTotals(transAyer);
+
+    const taxEfectivo = hoy.efectivo * (config.taxRate / 100);
+    const taxBanco = hoy.banco * (config.taxRate / 100);
     const totalTax = taxEfectivo + taxBanco;
-    
-    // Ingreso neto después de taxes
-    const netoEfectivo = totalEfectivo - taxEfectivo;
-    const netoBanco = totalBanco - taxBanco;
-    
-    const gananciaNeta = (netoEfectivo + netoBanco) - totalGastos;
-    
-    const cajaChica = config.cajaChicaAdmin;
-    
-    // Calcular distribución sobre el INGRESO NETO
+    const netoEfectivo = hoy.efectivo - taxEfectivo;
+    const netoBanco = hoy.banco - taxBanco;
+    const gananciaNeta = (netoEfectivo + netoBanco) - hoy.gastos;
+
+    const pct = (curr: number, prev: number) => prev === 0 ? null : ((curr - prev) / prev) * 100;
+
     const distribucionEfectivo = {
       ahorro: netoEfectivo * config.porcentajeAhorro / 100,
       inversion: netoEfectivo * config.porcentajeInversion / 100,
       emergencia: netoEfectivo * config.porcentajeEmergencia / 100,
       disponible: netoEfectivo * config.porcentajeDisponible / 100,
     };
-    
     const distribucionBanco = {
       ahorro: netoBanco * config.porcentajeAhorro / 100,
       inversion: netoBanco * config.porcentajeInversion / 100,
       emergencia: netoBanco * config.porcentajeEmergencia / 100,
       disponible: netoBanco * config.porcentajeDisponible / 100,
     };
-    
-    // Datos para gráfica de evolución (últimos 7 días)
+
+    // Last 7 days evolution
     const last7Days = [];
     for (let i = 6; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
-      
-      const dayTransactions = transacciones.filter(t => {
-        const tDate = new Date(t.fecha).toISOString().split('T')[0];
-        return tDate === dateStr;
-      });
-      
-      const dayIngresos = dayTransactions
-        .filter(t => t.tipo === 'ingreso')
-        .reduce((sum, t) => sum + parseFloat(t.monto), 0);
-      
-      const dayGastos = dayTransactions
-        .filter(t => t.tipo === 'gasto')
-        .reduce((sum, t) => sum + parseFloat(t.monto), 0);
-      
+      const dayTrans = transacciones.filter(t => new Date(t.fecha).toISOString().split('T')[0] === dateStr);
+      const dayIngresos = dayTrans.filter(t => t.tipo === 'ingreso').reduce((s, t) => s + parseFloat(t.monto), 0);
+      const dayGastos = dayTrans.filter(t => t.tipo === 'gasto').reduce((s, t) => s + parseFloat(t.monto), 0);
       last7Days.push({
         fecha: date.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' }),
         ingresos: dayIngresos,
@@ -144,65 +117,69 @@ export default function Dashboard() {
         ganancia: dayIngresos - dayGastos,
       });
     }
-    
-    // Datos para gráfica de distribución de gastos por categoría
+
+    // Gastos por categoría
     const gastosPorCategoria: Record<string, number> = {};
-    gastos.forEach(gasto => {
-      const cat = gasto.categoria || 'Otros';
-      gastosPorCategoria[cat] = (gastosPorCategoria[cat] || 0) + parseFloat(gasto.monto);
+    transHoy.filter(t => t.tipo === 'gasto').forEach(g => {
+      const cat = g.categoria || 'Otros';
+      gastosPorCategoria[cat] = (gastosPorCategoria[cat] || 0) + parseFloat(g.monto);
     });
-    
-    const gastosChartData = Object.entries(gastosPorCategoria).map(([name, value]) => ({
-      name,
-      value,
-    }));
-    
-    // Gráfica mensual — últimos 6 meses
-    const monthlyData: Record<string, { mes: string; ingresos: number; gastos: number; ganancia: number }> = {};
+    const gastosChartData = Object.entries(gastosPorCategoria).map(([name, value]) => ({ name, value }));
+
+    // Monthly chart
+    const monthlyData: Record<string, { mes: string; ganancia: number }> = {};
     for (let i = 5; i >= 0; i--) {
       const d = new Date();
       d.setMonth(d.getMonth() - i);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const label = d.toLocaleDateString('es-MX', { month: 'short', year: '2-digit' });
-      monthlyData[key] = { mes: label, ingresos: 0, gastos: 0, ganancia: 0 };
+      monthlyData[key] = { mes: label, ganancia: 0 };
     }
     transaccionesMensuales.forEach(t => {
       const d = new Date(t.fecha);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       if (!monthlyData[key]) return;
       const monto = parseFloat(t.monto);
-      if (t.tipo === 'ingreso') monthlyData[key].ingresos += monto;
-      else monthlyData[key].gastos += monto;
+      if (t.tipo === 'ingreso') monthlyData[key].ganancia += monto;
+      else monthlyData[key].ganancia -= monto;
     });
-    Object.values(monthlyData).forEach(m => { m.ganancia = m.ingresos - m.gastos; });
-
     const monthlyChartData = Object.values(monthlyData);
 
+    // Reparaciones hoy
+    const repHoy = reparaciones.filter(r => {
+      const fecha = r.fechaIngreso ? new Date(r.fechaIngreso).toISOString().split('T')[0] : '';
+      return fecha === today;
+    });
+
     return {
-      totalEfectivo,
-      totalBanco,
-      totalGastos,
-      taxEfectivo,
-      taxBanco,
-      totalTax,
-      netoEfectivo,
-      netoBanco,
-      gananciaNeta,
-      cajaChica,
-      distribucionEfectivo,
-      distribucionBanco,
+      totalEfectivo: hoy.efectivo,
+      totalBanco: hoy.banco,
+      totalGastos: hoy.gastos,
+      taxEfectivo, taxBanco, totalTax,
+      netoEfectivo, netoBanco, gananciaNeta,
+      cajaChica: config.cajaChicaAdmin,
+      distribucionEfectivo, distribucionBanco,
       evolutionData: last7Days,
       gastosChartData,
       monthlyChartData,
       config,
+      trends: {
+        efectivo: pct(hoy.efectivo, ayer.efectivo),
+        banco: pct(hoy.banco, ayer.banco),
+        gastos: pct(hoy.gastos, ayer.gastos),
+        ganancia: pct(gananciaNeta, calcTotals(transAyer).ganancia),
+      },
+      repHoy: repHoy.length,
+      repPendientes: reparaciones.filter(r => r.estado === 'pendiente').length,
+      repEnProceso: reparaciones.filter(r => r.estado === 'en_proceso').length,
     };
-  }, [user, transacciones, configData]);
+  }, [user, transacciones, transaccionesMensuales, configData, reparaciones]);
 
   if (loadingTransactions) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-96">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
         </div>
       </DashboardLayout>
     );
@@ -210,243 +187,345 @@ export default function Dashboard() {
 
   if (!data) return null;
 
+  const TrendBadge = ({ value }: { value: number | null }) => {
+    if (value === null) return null;
+    const positive = value >= 0;
+    return (
+      <span className={cn(
+        'inline-flex items-center gap-0.5 text-xs font-semibold px-1.5 py-0.5 rounded-full',
+        positive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+      )}>
+        {positive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+        {Math.abs(value).toFixed(1)}%
+      </span>
+    );
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">
-            Resumen financiero del día - {user?.name}
-          </p>
-        </div>
 
-        {/* Tarjetas principales */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Card className="p-6 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-green-600">Ingresos Efectivo</p>
-                <p className="text-2xl font-bold text-green-700">${data.totalEfectivo.toFixed(2)}</p>
-                <p className="text-xs text-green-600 mt-1">Tax: ${data.taxEfectivo.toFixed(2)}</p>
-              </div>
-              <div className="p-3 bg-green-200 rounded-full">
-                <DollarSign className="h-6 w-6 text-green-700" />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-blue-600">Ingresos Banco</p>
-                <p className="text-2xl font-bold text-blue-700">${data.totalBanco.toFixed(2)}</p>
-                <p className="text-xs text-blue-600 mt-1">Tax: ${data.taxBanco.toFixed(2)}</p>
-              </div>
-              <div className="p-3 bg-blue-200 rounded-full">
-                <Landmark className="h-6 w-6 text-blue-700" />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6 bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-red-600">Gastos del Día</p>
-                <p className="text-2xl font-bold text-red-700">${data.totalGastos.toFixed(2)}</p>
-              </div>
-              <div className="p-3 bg-red-200 rounded-full">
-                <TrendingDown className="h-6 w-6 text-red-700" />
-              </div>
-            </div>
-          </Card>
-
-          <Card className={cn(
-            "p-6 border",
-            data.gananciaNeta >= 0 
-              ? "bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200"
-              : "bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200"
-          )}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className={cn(
-                  "text-sm font-medium",
-                  data.gananciaNeta >= 0 ? "text-emerald-600" : "text-orange-600"
-                )}>Ganancia Neta</p>
-                <p className={cn(
-                  "text-2xl font-bold",
-                  data.gananciaNeta >= 0 ? "text-emerald-700" : "text-orange-700"
-                )}>${data.gananciaNeta.toFixed(2)}</p>
-              </div>
-              <div className={cn(
-                "p-3 rounded-full",
-                data.gananciaNeta >= 0 ? "bg-emerald-200" : "bg-orange-200"
-              )}>
-                <TrendingUp className={cn(
-                  "h-6 w-6",
-                  data.gananciaNeta >= 0 ? "text-emerald-700" : "text-orange-700"
-                )} />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-orange-600">Taxes del Día</p>
-                <p className="text-2xl font-bold text-orange-700">${data.totalTax.toFixed(2)}</p>
-                <p className="text-xs text-orange-600 mt-1">Tasa: {data.config.taxRate}%</p>
-              </div>
-              <div className="p-3 bg-orange-200 rounded-full">
-                <Receipt className="h-6 w-6 text-orange-700" />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-purple-600">Caja Chica</p>
-                <p className="text-2xl font-bold text-purple-700">${data.cajaChica.toFixed(2)}</p>
-                <p className="text-xs text-purple-600 mt-1">Principal</p>
-              </div>
-              <div className="p-3 bg-purple-200 rounded-full">
-                <Wallet className="h-6 w-6 text-purple-700" />
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        {/* Distribución de ingresos */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Receipt className="h-5 w-5" />
-              Distribución Efectivo (Neto: ${data.netoEfectivo.toFixed(2)})
-            </h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                <span className="text-green-700">Ahorro ({data.config.porcentajeAhorro}%)</span>
-                <span className="font-bold text-green-800">${data.distribucionEfectivo.ahorro.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                <span className="text-blue-700">Inversión ({data.config.porcentajeInversion}%)</span>
-                <span className="font-bold text-blue-800">${data.distribucionEfectivo.inversion.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg">
-                <span className="text-yellow-700">Emergencia ({data.config.porcentajeEmergencia}%)</span>
-                <span className="font-bold text-yellow-800">${data.distribucionEfectivo.emergencia.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
-                <span className="text-purple-700">Disponible ({data.config.porcentajeDisponible}%)</span>
-                <span className="font-bold text-purple-800">${data.distribucionEfectivo.disponible.toFixed(2)}</span>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Landmark className="h-5 w-5" />
-              Distribución Banco (Neto: ${data.netoBanco.toFixed(2)})
-            </h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                <span className="text-green-700">Ahorro ({data.config.porcentajeAhorro}%)</span>
-                <span className="font-bold text-green-800">${data.distribucionBanco.ahorro.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                <span className="text-blue-700">Inversión ({data.config.porcentajeInversion}%)</span>
-                <span className="font-bold text-blue-800">${data.distribucionBanco.inversion.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg">
-                <span className="text-yellow-700">Emergencia ({data.config.porcentajeEmergencia}%)</span>
-                <span className="font-bold text-yellow-800">${data.distribucionBanco.emergencia.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
-                <span className="text-purple-700">Disponible ({data.config.porcentajeDisponible}%)</span>
-                <span className="font-bold text-purple-800">${data.distribucionBanco.disponible.toFixed(2)}</span>
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        {/* Gráfica Mensual de Ganancias — últimos 6 meses */}
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-1 flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            Ganancia Mensual — Últimos 6 Meses
-          </h3>
-          <p className="text-xs text-muted-foreground mb-4">Ganancia neta mensual de Fixopolis Solutions</p>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data.monthlyChartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="mes" />
-                <YAxis tickFormatter={(v) => `$${v}`} />
-                <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
-                <Legend />
-                <Bar dataKey="ganancia" name="Ganancia" fill="#3B82F6" radius={[4,4,0,0]} />
-              </BarChart>
-            </ResponsiveContainer>
+        {/* Page Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Resumen financiero del día — Fixopolis Solutions
+            </p>
           </div>
-        </Card>
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+            En vivo
+          </div>
+        </div>
 
-        {/* Gráficas */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Activity className="h-5 w-5" />
-              Evolución Semanal
+        {/* Panel de Turno Rápido */}
+        <div>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+            Panel de Turno Rápido
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button
+              onClick={() => setLocation('/reparaciones')}
+              className="group flex items-center gap-4 p-5 rounded-xl text-left transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
+              style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)' }}
+            >
+              <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                <Wrench className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-white font-bold text-base">Nueva Reparación</p>
+                <p className="text-blue-200 text-xs mt-0.5">Crear una orden de reparación</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-white/60 group-hover:text-white transition-colors" />
+            </button>
+
+            <button
+              onClick={() => setLocation('/ingresos')}
+              className="group flex items-center gap-4 p-5 rounded-xl text-left transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
+              style={{ background: 'linear-gradient(135deg, #10B981, #059669)' }}
+            >
+              <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                <Plus className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-white font-bold text-base">Registrar Ingreso</p>
+                <p className="text-green-200 text-xs mt-0.5">Agregar un nuevo ingreso</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-white/60 group-hover:text-white transition-colors" />
+            </button>
+
+            <button
+              onClick={() => setLocation('/gastos')}
+              className="group flex items-center gap-4 p-5 rounded-xl text-left transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
+              style={{ background: 'linear-gradient(135deg, #EF4444, #DC2626)' }}
+            >
+              <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                <Minus className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-white font-bold text-base">Registrar Gasto</p>
+                <p className="text-red-200 text-xs mt-0.5">Agregar un nuevo gasto</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-white/60 group-hover:text-white transition-colors" />
+            </button>
+          </div>
+        </div>
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          {/* Ingresos Efectivo */}
+          <Card className="p-4 border-0 shadow-sm bg-white col-span-1">
+            <div className="flex items-start justify-between mb-3">
+              <div className="w-9 h-9 rounded-lg bg-green-100 flex items-center justify-center">
+                <DollarSign className="w-4 h-4 text-green-600" />
+              </div>
+              <TrendBadge value={data.trends.efectivo} />
+            </div>
+            <p className="text-xs text-gray-500 font-medium">Efectivo</p>
+            <p className="text-xl font-bold text-gray-900">${data.totalEfectivo.toFixed(2)}</p>
+            <p className="text-xs text-gray-400 mt-0.5">Tax: ${data.taxEfectivo.toFixed(2)}</p>
+          </Card>
+
+          {/* Ingresos Banco */}
+          <Card className="p-4 border-0 shadow-sm bg-white col-span-1">
+            <div className="flex items-start justify-between mb-3">
+              <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center">
+                <Landmark className="w-4 h-4 text-blue-600" />
+              </div>
+              <TrendBadge value={data.trends.banco} />
+            </div>
+            <p className="text-xs text-gray-500 font-medium">Banco</p>
+            <p className="text-xl font-bold text-gray-900">${data.totalBanco.toFixed(2)}</p>
+            <p className="text-xs text-gray-400 mt-0.5">Tax: ${data.taxBanco.toFixed(2)}</p>
+          </Card>
+
+          {/* Gastos */}
+          <Card className="p-4 border-0 shadow-sm bg-white col-span-1">
+            <div className="flex items-start justify-between mb-3">
+              <div className="w-9 h-9 rounded-lg bg-red-100 flex items-center justify-center">
+                <TrendingDown className="w-4 h-4 text-red-600" />
+              </div>
+              <TrendBadge value={data.trends.gastos !== null ? -data.trends.gastos : null} />
+            </div>
+            <p className="text-xs text-gray-500 font-medium">Gastos</p>
+            <p className="text-xl font-bold text-gray-900">${data.totalGastos.toFixed(2)}</p>
+            <p className="text-xs text-gray-400 mt-0.5">Hoy</p>
+          </Card>
+
+          {/* Ganancia Neta */}
+          <Card className={cn(
+            "p-4 border-0 shadow-sm col-span-1",
+            data.gananciaNeta >= 0 ? "bg-emerald-50" : "bg-orange-50"
+          )}>
+            <div className="flex items-start justify-between mb-3">
+              <div className={cn(
+                "w-9 h-9 rounded-lg flex items-center justify-center",
+                data.gananciaNeta >= 0 ? "bg-emerald-100" : "bg-orange-100"
+              )}>
+                <TrendingUp className={cn("w-4 h-4", data.gananciaNeta >= 0 ? "text-emerald-600" : "text-orange-600")} />
+              </div>
+              <TrendBadge value={data.trends.ganancia} />
+            </div>
+            <p className="text-xs text-gray-500 font-medium">Ganancia Neta</p>
+            <p className={cn("text-xl font-bold", data.gananciaNeta >= 0 ? "text-emerald-700" : "text-orange-700")}>
+              ${data.gananciaNeta.toFixed(2)}
+            </p>
+            <p className="text-xs text-gray-400 mt-0.5">vs ayer</p>
+          </Card>
+
+          {/* Taxes */}
+          <Card className="p-4 border-0 shadow-sm bg-white col-span-1">
+            <div className="flex items-start justify-between mb-3">
+              <div className="w-9 h-9 rounded-lg bg-orange-100 flex items-center justify-center">
+                <Receipt className="w-4 h-4 text-orange-600" />
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 font-medium">Taxes</p>
+            <p className="text-xl font-bold text-gray-900">${data.totalTax.toFixed(2)}</p>
+            <p className="text-xs text-gray-400 mt-0.5">Tasa: {data.config.taxRate}%</p>
+          </Card>
+
+          {/* Caja Chica */}
+          <Card className="p-4 border-0 shadow-sm bg-white col-span-1">
+            <div className="flex items-start justify-between mb-3">
+              <div className="w-9 h-9 rounded-lg bg-purple-100 flex items-center justify-center">
+                <Wallet className="w-4 h-4 text-purple-600" />
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 font-medium">Caja Chica</p>
+            <p className="text-xl font-bold text-gray-900">${data.cajaChica.toFixed(2)}</p>
+            <p className="text-xs text-gray-400 mt-0.5">Principal</p>
+          </Card>
+        </div>
+
+        {/* Reparaciones resumen + Distribución */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Resumen reparaciones */}
+          <Card className="p-5 border-0 shadow-sm bg-white">
+            <div className="flex items-center gap-2 mb-4">
+              <Wrench className="w-4 h-4 text-gray-600" />
+              <h3 className="text-sm font-semibold text-gray-700">Reparaciones</h3>
+            </div>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Hoy</span>
+                <span className="font-bold text-gray-900">{data.repHoy}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Pendientes</span>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                  {data.repPendientes}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">En Proceso</span>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                  {data.repEnProceso}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => setLocation('/reparaciones')}
+              className="mt-4 w-full text-xs text-orange-600 hover:text-orange-700 font-medium flex items-center justify-center gap-1"
+            >
+              Ver todas <ChevronRight className="w-3 h-3" />
+            </button>
+          </Card>
+
+          {/* Distribución Efectivo */}
+          <Card className="p-5 border-0 shadow-sm bg-white">
+            <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+              <DollarSign className="w-4 h-4" />
+              Distribución Efectivo
             </h3>
-            <div className="h-[300px]">
+            <div className="space-y-2">
+              {[
+                { label: `Ahorro (${data.config.porcentajeAhorro}%)`, value: data.distribucionEfectivo.ahorro, color: 'bg-green-500' },
+                { label: `Inversión (${data.config.porcentajeInversion}%)`, value: data.distribucionEfectivo.inversion, color: 'bg-blue-500' },
+                { label: `Emergencia (${data.config.porcentajeEmergencia}%)`, value: data.distribucionEfectivo.emergencia, color: 'bg-yellow-500' },
+                { label: `Disponible (${data.config.porcentajeDisponible}%)`, value: data.distribucionEfectivo.disponible, color: 'bg-purple-500' },
+              ].map(item => (
+                <div key={item.label} className="flex justify-between items-center py-1.5 border-b border-gray-50 last:border-0">
+                  <div className="flex items-center gap-2">
+                    <span className={cn('w-2 h-2 rounded-full', item.color)}></span>
+                    <span className="text-xs text-gray-600">{item.label}</span>
+                  </div>
+                  <span className="text-xs font-semibold text-gray-800">${item.value.toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Distribución Banco */}
+          <Card className="p-5 border-0 shadow-sm bg-white">
+            <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+              <Landmark className="w-4 h-4" />
+              Distribución Banco
+            </h3>
+            <div className="space-y-2">
+              {[
+                { label: `Ahorro (${data.config.porcentajeAhorro}%)`, value: data.distribucionBanco.ahorro, color: 'bg-green-500' },
+                { label: `Inversión (${data.config.porcentajeInversion}%)`, value: data.distribucionBanco.inversion, color: 'bg-blue-500' },
+                { label: `Emergencia (${data.config.porcentajeEmergencia}%)`, value: data.distribucionBanco.emergencia, color: 'bg-yellow-500' },
+                { label: `Disponible (${data.config.porcentajeDisponible}%)`, value: data.distribucionBanco.disponible, color: 'bg-purple-500' },
+              ].map(item => (
+                <div key={item.label} className="flex justify-between items-center py-1.5 border-b border-gray-50 last:border-0">
+                  <div className="flex items-center gap-2">
+                    <span className={cn('w-2 h-2 rounded-full', item.color)}></span>
+                    <span className="text-xs text-gray-600">{item.label}</span>
+                  </div>
+                  <span className="text-xs font-semibold text-gray-800">${item.value.toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Monthly Chart */}
+          <Card className="p-5 border-0 shadow-sm bg-white">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700">Ganancia Mensual</h3>
+                <p className="text-xs text-gray-400">Últimos 6 meses</p>
+              </div>
+              <Activity className="w-4 h-4 text-gray-400" />
+            </div>
+            <div className="h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data.evolutionData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="fecha" />
-                  <YAxis />
-                  <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
-                  <Legend />
-                  <Line type="monotone" dataKey="ingresos" stroke="#10B981" name="Ingresos" />
-                  <Line type="monotone" dataKey="gastos" stroke="#EF4444" name="Gastos" />
-                  <Line type="monotone" dataKey="ganancia" stroke="#3B82F6" name="Ganancia" />
-                </LineChart>
+                <BarChart data={data.monthlyChartData} barSize={28}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+                  <XAxis dataKey="mes" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+                  <YAxis tickFormatter={(v) => `$${v}`} tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    formatter={(value: number) => [`$${value.toFixed(2)}`, 'Ganancia']}
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
+                  />
+                  <Bar dataKey="ganancia" fill="#F97316" radius={[4, 4, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
             </div>
           </Card>
 
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Distribución de Gastos</h3>
-            <div className="h-[300px]">
-              {data.gastosChartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={data.gastosChartData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {data.gastosChartData.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  No hay gastos registrados hoy
-                </div>
-              )}
+          {/* Weekly Evolution */}
+          <Card className="p-5 border-0 shadow-sm bg-white">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700">Evolución Semanal</h3>
+                <p className="text-xs text-gray-400">Últimos 7 días</p>
+              </div>
+              <Activity className="w-4 h-4 text-gray-400" />
+            </div>
+            <div className="h-[220px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={data.evolutionData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+                  <XAxis dataKey="fecha" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    formatter={(value: number) => `$${value.toFixed(2)}`}
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '11px' }} />
+                  <Line type="monotone" dataKey="ingresos" stroke="#10B981" name="Ingresos" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="gastos" stroke="#EF4444" name="Gastos" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="ganancia" stroke="#F97316" name="Ganancia" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </Card>
         </div>
+
+        {/* Gastos por categoría */}
+        {data.gastosChartData.length > 0 && (
+          <Card className="p-5 border-0 shadow-sm bg-white">
+            <h3 className="text-sm font-semibold text-gray-700 mb-4">Distribución de Gastos Hoy</h3>
+            <div className="h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={data.gastosChartData}
+                    cx="50%" cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={90}
+                    dataKey="value"
+                  >
+                    {data.gastosChartData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+                  <Legend wrapperStyle={{ fontSize: '11px' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        )}
+
       </div>
     </DashboardLayout>
   );
 }
-// Monthly chart section added below main component - see DashboardMonthlyChart component

@@ -22,7 +22,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { trpc } from '@/lib/trpc';
-import { Wrench, Plus, DollarSign, Clock, CheckCircle, Package, Trash2, FileText, Search, X, User, Phone, Smartphone, CalendarRange, CheckSquare } from 'lucide-react';
+import { Wrench, Plus, DollarSign, Clock, CheckCircle, Package, Trash2, FileText, Search, X, User, Phone, Smartphone, CalendarRange, CheckSquare, Eye, MoreVertical } from 'lucide-react';
 import { FacturaReparacion } from '@/components/FacturaReparacion';
 import { toast } from 'sonner';
 
@@ -291,13 +291,13 @@ export default function Reparaciones() {
   };
 
   const getEstadoBadge = (estado: string) => {
-    const badges: Record<string, string> = {
-      pendiente: 'bg-yellow-100 text-yellow-700',
-      en_proceso: 'bg-blue-100 text-blue-700',
-      completada: 'bg-green-100 text-green-700',
-      entregada: 'bg-gray-100 text-gray-700',
+    const badges: Record<string, { bg: string; dot: string; text: string }> = {
+      pendiente:   { bg: 'bg-gray-100',   dot: 'bg-gray-400',   text: 'text-gray-700' },
+      en_proceso:  { bg: 'bg-yellow-100', dot: 'bg-yellow-500', text: 'text-yellow-800' },
+      completada:  { bg: 'bg-green-100',  dot: 'bg-green-500',  text: 'text-green-800' },
+      entregada:   { bg: 'bg-blue-100',   dot: 'bg-blue-500',   text: 'text-blue-800' },
     };
-    return badges[estado] || 'bg-gray-100 text-gray-700';
+    return badges[estado] || { bg: 'bg-gray-100', dot: 'bg-gray-400', text: 'text-gray-700' };
   };
 
   const getEstadoTexto = (estado: string) => {
@@ -325,11 +325,8 @@ export default function Reparaciones() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Wrench className="h-8 w-8 text-blue-600" />
-              🔧 Reparaciones
-            </h1>
-            <p className="text-muted-foreground">Control de reparaciones y servicios</p>
+            <h1 className="text-2xl font-bold text-gray-900">Reparaciones</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Gestiona las órdenes de reparación</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={(open) => {
             setDialogOpen(open);
@@ -639,187 +636,206 @@ export default function Reparaciones() {
         </Dialog>
 
         {/* Resumen de estadísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="p-4 bg-yellow-50 border-yellow-200">
-            <div className="flex items-center gap-2 mb-2">
-              <Clock className="h-5 w-5 text-yellow-600" />
-              <span className="text-sm font-medium text-yellow-700">Pendientes</span>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Card className="p-4 border-0 shadow-sm bg-white">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center">
+                <Clock className="h-4 w-4 text-gray-600" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Pendientes</p>
+                <p className="text-2xl font-bold text-gray-900">{totales.pendientes}</p>
+              </div>
             </div>
-            <p className="text-2xl font-bold text-yellow-900">{totales.pendientes}</p>
           </Card>
-          <Card className="p-4 bg-blue-50 border-blue-200">
-            <div className="flex items-center gap-2 mb-2">
-              <Wrench className="h-5 w-5 text-blue-600" />
-              <span className="text-sm font-medium text-blue-700">En Proceso</span>
+          <Card className="p-4 border-0 shadow-sm bg-white">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-yellow-100 flex items-center justify-center">
+                <Wrench className="h-4 w-4 text-yellow-600" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">En Proceso</p>
+                <p className="text-2xl font-bold text-yellow-700">{totales.enProceso}</p>
+              </div>
             </div>
-            <p className="text-2xl font-bold text-blue-900">{totales.enProceso}</p>
           </Card>
-          <Card className="p-4 bg-green-50 border-green-200">
-            <div className="flex items-center gap-2 mb-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <span className="text-sm font-medium text-green-700">Completadas</span>
+          <Card className="p-4 border-0 shadow-sm bg-white">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-green-100 flex items-center justify-center">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Completadas</p>
+                <p className="text-2xl font-bold text-green-700">{totales.completadas}</p>
+              </div>
             </div>
-            <p className="text-2xl font-bold text-green-900">{totales.completadas}</p>
           </Card>
-          <Card className="p-4 bg-purple-50 border-purple-200">
-            <div className="flex items-center gap-2 mb-2">
-              <DollarSign className="h-5 w-5 text-purple-600" />
-              <span className="text-sm font-medium text-purple-700">Ganancia Total</span>
+          <Card className="p-4 border-0 shadow-sm bg-white">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-orange-100 flex items-center justify-center">
+                <DollarSign className="h-4 w-4 text-orange-600" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Ganancia Total</p>
+                <p className="text-2xl font-bold text-orange-700">${totales.gananciaTotal.toFixed(2)}</p>
+              </div>
             </div>
-            <p className="text-2xl font-bold text-purple-900">${totales.gananciaTotal.toFixed(2)}</p>
           </Card>
         </div>
 
-        {/* Filtros y Búsqueda — Tarea 2 */}
-        <Card className="p-4">
-          <div className="space-y-3">
-            <div className="flex flex-col md:flex-row gap-3">
-              {/* Búsqueda */}
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Buscar por cliente, teléfono, código o dispositivo..."
-                  value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              {/* Filtro Estado */}
-              <Select value={filtroEstado} onValueChange={(value: any) => setFiltroEstado(value)}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos los estados</SelectItem>
-                  <SelectItem value="pendiente">Pendiente</SelectItem>
-                  <SelectItem value="en_proceso">En Proceso</SelectItem>
-                  <SelectItem value="completada">Completada</SelectItem>
-                  <SelectItem value="entregada">Entregada</SelectItem>
-                </SelectContent>
-              </Select>
+        {/* Filtros y Búsqueda */}
+        <Card className="p-4 border-0 shadow-sm bg-white">
+          <div className="flex flex-col md:flex-row gap-3 items-start md:items-center">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Buscar por cliente, teléfono, código o dispositivo..."
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                className="pl-9 h-9 bg-gray-50 border-gray-200"
+              />
             </div>
-            {/* Filtro Fechas */}
-            <div className="flex flex-col md:flex-row gap-3 items-center">
-              <div className="flex items-center gap-2">
-                <CalendarRange className="h-4 w-4 text-gray-500" />
-                <span className="text-sm text-gray-600 whitespace-nowrap">Rango de fechas:</span>
-              </div>
-              <div className="flex gap-2 flex-1">
-                <Input
-                  type="date"
-                  value={fechaInicio}
-                  onChange={(e) => setFechaInicio(e.target.value)}
-                  className="flex-1"
-                  placeholder="Desde"
-                />
-                <span className="text-gray-400 self-center">—</span>
-                <Input
-                  type="date"
-                  value={fechaFin}
-                  onChange={(e) => setFechaFin(e.target.value)}
-                  className="flex-1"
-                  placeholder="Hasta"
-                />
-              </div>
-              {hayFiltrosActivos && (
-                <Button variant="ghost" size="sm" onClick={limpiarFiltros} className="text-gray-500">
-                  <X className="h-4 w-4 mr-1" />
-                  Limpiar filtros
-                </Button>
-              )}
+            <Select value={filtroEstado} onValueChange={(value: any) => setFiltroEstado(value)}>
+              <SelectTrigger className="w-[180px] h-9 bg-gray-50 border-gray-200">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los estados</SelectItem>
+                <SelectItem value="pendiente">Pendiente</SelectItem>
+                <SelectItem value="en_proceso">En Proceso</SelectItem>
+                <SelectItem value="completada">Completada</SelectItem>
+                <SelectItem value="entregada">Entregada</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-2">
+              <Input
+                type="date"
+                value={fechaInicio}
+                onChange={(e) => setFechaInicio(e.target.value)}
+                className="h-9 bg-gray-50 border-gray-200 w-36"
+              />
+              <span className="text-gray-400 text-sm">—</span>
+              <Input
+                type="date"
+                value={fechaFin}
+                onChange={(e) => setFechaFin(e.target.value)}
+                className="h-9 bg-gray-50 border-gray-200 w-36"
+              />
             </div>
             {hayFiltrosActivos && (
-              <p className="text-xs text-gray-500">
-                Mostrando {repairsFiltradas.length} de {repairs.length} reparaciones
-              </p>
+              <button
+                onClick={limpiarFiltros}
+                className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 whitespace-nowrap"
+              >
+                <X className="h-3.5 w-3.5" />
+                Limpiar
+              </button>
             )}
           </div>
         </Card>
 
-        {/* Lista de Reparaciones */}
-        <div className="space-y-4">
+        {/* Tabla de Reparaciones */}
+        <Card className="border-0 shadow-sm bg-white overflow-hidden">
           {repairsFiltradas.length === 0 ? (
-            <Card className="p-8 text-center">
-              <p className="text-gray-500">No hay reparaciones que mostrar</p>
-            </Card>
+            <div className="p-12 text-center">
+              <Wrench className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500 font-medium">No hay reparaciones que mostrar</p>
+              <p className="text-gray-400 text-sm mt-1">Ajusta los filtros o crea una nueva reparación</p>
+            </div>
           ) : (
-            repairsFiltradas.map((repair) => (
-              <Card key={repair.id} className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-bold text-lg">{repair.codigo}</span>
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${getEstadoBadge(repair.estado)}`}>
-                        {getEstadoTexto(repair.estado)}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <p className="text-gray-600 flex items-center gap-1"><User className="h-3 w-3" /> Cliente:</p>
-                        <p className="font-medium">{repair.cliente || 'Sin nombre'}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-600 flex items-center gap-1"><Phone className="h-3 w-3" /> Teléfono:</p>
-                        <p className="font-medium">{repair.telefono || 'Sin teléfono'}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-600 flex items-center gap-1"><Smartphone className="h-3 w-3" /> Dispositivo:</p>
-                        <p className="font-medium">{repair.dispositivo || '—'}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-600">Fecha de Ingreso:</p>
-                        <p className="font-medium">{new Date(repair.fechaIngreso).toLocaleDateString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-600">Precio Total:</p>
-                        <p className="font-medium text-green-600">${Number(repair.precioTotal).toFixed(2)}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-600">Ganancia:</p>
-                        <p className="font-medium text-blue-600">${Number(repair.ganancia).toFixed(2)}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Select
-                      value={repair.estado}
-                      onValueChange={(value) => handleUpdateEstado(repair.id, value)}
-                    >
-                      <SelectTrigger className="w-[150px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pendiente">Pendiente</SelectItem>
-                        <SelectItem value="en_proceso">En Proceso</SelectItem>
-                        <SelectItem value="completada">Completada</SelectItem>
-                        <SelectItem value="entregada">Entregada</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setReparacionSeleccionada(repair);
-                        setFacturaDialogOpen(true);
-                      }}
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      Recibo
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDelete(repair.id)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Eliminar
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50">
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Código</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cliente</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Dispositivo</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden lg:table-cell">Problema</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Estado</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Fecha</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Total</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {repairsFiltradas.map((repair) => {
+                    const badge = getEstadoBadge(repair.estado);
+                    return (
+                      <tr key={repair.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-3">
+                          <span className="font-bold text-orange-600 text-sm">{repair.codigo}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{repair.cliente || 'Sin nombre'}</p>
+                            <p className="text-xs text-gray-400">{repair.telefono || '—'}</p>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          <span className="text-sm text-gray-700">{repair.dispositivo || '—'}</span>
+                        </td>
+                        <td className="px-4 py-3 hidden lg:table-cell">
+                          <span className="text-sm text-gray-500 truncate max-w-[180px] block">{repair.problema || '—'}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Select
+                            value={repair.estado}
+                            onValueChange={(value) => handleUpdateEstado(repair.id, value)}
+                          >
+                            <SelectTrigger className="w-auto h-7 border-0 p-0 bg-transparent focus:ring-0">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${badge.bg} ${badge.text}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${badge.dot}`}></span>
+                                {getEstadoTexto(repair.estado)}
+                              </span>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pendiente">Pendiente</SelectItem>
+                              <SelectItem value="en_proceso">En Proceso</SelectItem>
+                              <SelectItem value="completada">Completada</SelectItem>
+                              <SelectItem value="entregada">Entregada</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          <span className="text-sm text-gray-500">{new Date(repair.fechaIngreso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' })}</span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div>
+                            <p className="text-sm font-bold text-gray-900">${Number(repair.precioTotal).toFixed(2)}</p>
+                            <p className="text-xs text-green-600">+${Number(repair.ganancia).toFixed(2)}</p>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => { setReparacionSeleccionada(repair); setFacturaDialogOpen(true); }}
+                              className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-blue-100 hover:text-blue-600 flex items-center justify-center transition-colors"
+                              title="Ver recibo"
+                            >
+                              <FileText className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(repair.id)}
+                              className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition-colors"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              <div className="px-4 py-3 border-t border-gray-100 bg-gray-50">
+                <p className="text-xs text-gray-500">
+                  Mostrando {repairsFiltradas.length} de {repairs.length} reparaciones
+                </p>
+              </div>
+            </div>
           )}
-        </div>
+        </Card>
 
         {/* Dialog de Factura */}
         <Dialog open={facturaDialogOpen} onOpenChange={setFacturaDialogOpen}>

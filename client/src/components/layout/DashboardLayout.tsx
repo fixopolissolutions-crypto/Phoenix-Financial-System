@@ -1,6 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   LayoutDashboard,
   TrendingUp,
@@ -18,110 +19,226 @@ import {
   Store,
   Server,
   AlertTriangle,
+  Search,
+  Bell,
+  ChevronRight,
+  Flame,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
+const navGroups = [
+  {
+    label: 'OPERACIONES',
+    items: [
+      { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+      { name: 'Reparaciones', href: '/reparaciones', icon: Wrench },
+      { name: 'Servidor', href: '/servidor', icon: Server },
+    ],
+  },
+  {
+    label: 'FINANZAS',
+    items: [
+      { name: 'Ingresos', href: '/ingresos', icon: TrendingUp },
+      { name: 'Gastos', href: '/gastos', icon: TrendingDown },
+      { name: 'Taxes', href: '/taxes', icon: Receipt },
+      { name: 'Historial', href: '/historial', icon: History },
+      { name: 'Inversión de Capital', href: '/inversion-capital', icon: TrendingUp },
+      { name: 'Reportes', href: '/reportes', icon: FileText },
+    ],
+  },
+  {
+    label: 'INVENTARIO',
+    items: [
+      { name: 'Partes', href: '/inventario/partes', icon: Package, lowStockKey: 'parts' },
+      { name: 'Accesorios', href: '/inventario/accesorios', icon: Package, lowStockKey: 'accessories' },
+      { name: 'Proveedores', href: '/proveedores', icon: Users },
+    ],
+  },
+  {
+    label: 'ADMINISTRACIÓN',
+    items: [
+      { name: 'Nómina', href: '/nomina', icon: Wallet },
+      { name: 'Config. Tienda', href: '/configuracion-tienda', icon: Store },
+      { name: 'Configuración', href: '/configuracion', icon: Settings },
+    ],
+  },
+];
+
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Real-time clock
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Fetch inventory data for low-stock badge
   const { data: parts = [] } = trpc.inventoryParts.list.useQuery({ activo: 1 });
   const { data: accessories = [] } = trpc.inventoryAccessories.list.useQuery({ activo: 1 });
 
-  const lowStockParts = useMemo(() => parts.filter(p => Number(p.cantidadActual) <= Number(p.stockMinimo)).length, [parts]);
-  const lowStockAccessories = useMemo(() => accessories.filter(a => Number(a.cantidadActual) <= Number(a.stockMinimo)).length, [accessories]);
+  const lowStockCounts = useMemo(() => ({
+    parts: parts.filter(p => Number(p.cantidadActual) <= Number(p.stockMinimo)).length,
+    accessories: accessories.filter(a => Number(a.cantidadActual) <= Number(a.stockMinimo)).length,
+  }), [parts, accessories]);
+
+  const totalLowStock = lowStockCounts.parts + lowStockCounts.accessories;
 
   if (!user) {
     setLocation('/');
     return null;
   }
 
-  const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Reportes', href: '/reportes', icon: FileText },
-    { name: 'Taxes', href: '/taxes', icon: Receipt },
-    { name: 'Ingresos', href: '/ingresos', icon: TrendingUp },
-    { name: 'Gastos', href: '/gastos', icon: TrendingDown },
-    { name: 'Historial', href: '/historial', icon: History },
-    { name: 'Inversión de Capital', href: '/inversion-capital', icon: Package },
-    { name: 'Reparaciones', href: '/reparaciones', icon: Wrench },
-    { name: 'Inventario Partes', href: '/inventario/partes', icon: Package, lowStock: lowStockParts },
-    { name: 'Inventario Accesorios', href: '/inventario/accesorios', icon: Package, lowStock: lowStockAccessories },
-    { name: 'Servidor', href: '/servidor', icon: Server },
-    { name: 'Proveedores', href: '/proveedores', icon: Users },
-    { name: 'Configuración Tienda', href: '/configuracion-tienda', icon: Store },
-    { name: 'Nómina', href: '/nomina', icon: Wallet },
-    { name: 'Configuración', href: '/configuracion', icon: Settings },
-  ];
+  const formattedDate = currentTime.toLocaleDateString('es-MX', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  const formattedTime = currentTime.toLocaleTimeString('es-MX', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-sidebar border-r border-sidebar-border p-4 flex flex-col overflow-y-auto">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-              <Building2 className="w-6 h-6 text-primary-foreground" />
+      <aside className="fixed left-0 top-0 h-full w-60 flex flex-col overflow-y-auto z-30"
+        style={{ background: 'linear-gradient(180deg, #0F172A 0%, #1E293B 100%)' }}>
+
+        {/* Logo */}
+        <div className="px-4 py-5 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, #F97316, #EA580C)' }}>
+              <Flame className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="font-bold text-lg">{user.name}</h2>
-              <p className="text-xs text-muted-foreground">Fixopolis Solutions</p>
+              <h2 className="font-bold text-white text-sm leading-tight">Fixopolis</h2>
+              <p className="text-orange-400 text-xs font-medium">Solutions</p>
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 space-y-1">
-          {navigation.map((item) => {
-            const isActive = location === item.href;
-            const badge = (item as any).lowStock;
-            return (
-              <button
-                key={item.href}
-                onClick={() => setLocation(item.href)}
-                className={cn(
-                  'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                    : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
-                )}
-              >
-                <item.icon className="w-5 h-5 flex-shrink-0" />
-                <span className="flex-1 text-left">{item.name}</span>
-                {badge > 0 && (
-                  <span className="flex items-center gap-0.5 bg-yellow-400 text-yellow-900 text-xs font-bold px-1.5 py-0.5 rounded-full">
-                    <AlertTriangle className="w-3 h-3" />
-                    {badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        {/* Navigation Groups */}
+        <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
+          {navGroups.map((group) => (
+            <div key={group.label}>
+              <p className="text-xs font-semibold text-slate-500 px-2 mb-2 tracking-wider">
+                {group.label}
+              </p>
+              <div className="space-y-0.5">
+                {group.items.map((item) => {
+                  const isActive = location === item.href;
+                  const lowStock = (item as any).lowStockKey ? lowStockCounts[(item as any).lowStockKey as keyof typeof lowStockCounts] : 0;
+                  return (
+                    <button
+                      key={item.href}
+                      onClick={() => setLocation(item.href)}
+                      className={cn(
+                        'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150',
+                        isActive
+                          ? 'text-white shadow-sm'
+                          : 'text-slate-400 hover:text-white hover:bg-white/10'
+                      )}
+                      style={isActive ? { background: 'linear-gradient(135deg, #F97316, #EA580C)' } : {}}
+                    >
+                      <item.icon className="w-4 h-4 flex-shrink-0" />
+                      <span className="flex-1 text-left text-xs">{item.name}</span>
+                      {lowStock > 0 && (
+                        <span className="flex items-center gap-0.5 bg-yellow-400 text-yellow-900 text-xs font-bold px-1.5 py-0.5 rounded-full">
+                          <AlertTriangle className="w-2.5 h-2.5" />
+                          {lowStock}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
-        <Button
-          variant="ghost"
-          className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 mt-2"
-          onClick={() => {
-            logout();
-            setLocation('/');
-          }}
-        >
-          <LogOut className="w-5 h-5 mr-3" />
-          Cerrar Sesión
-        </Button>
+        {/* User & Logout */}
+        <div className="px-3 py-4 border-t border-white/10">
+          <div className="flex items-center gap-2.5 px-2 mb-3">
+            <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-xs font-bold">
+                {user.name?.charAt(0)?.toUpperCase() || 'A'}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white text-xs font-semibold truncate">{user.name}</p>
+              <p className="text-slate-400 text-xs truncate">Administrador</p>
+            </div>
+          </div>
+          <button
+            onClick={() => { logout(); setLocation('/'); }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="text-xs font-medium">Cerrar Sesión</span>
+          </button>
+        </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="ml-64 p-8">
-        {children}
-      </main>
+      {/* Main Area */}
+      <div className="flex-1 ml-60 flex flex-col min-h-screen">
+
+        {/* Top Header */}
+        <header className="sticky top-0 z-20 bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-4">
+          {/* Date */}
+          <div className="flex items-center gap-2 text-gray-500 text-sm min-w-0">
+            <span className="capitalize hidden lg:block truncate">{formattedDate}</span>
+          </div>
+
+          {/* Search Bar */}
+          <div className="flex-1 max-w-md mx-auto">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar reparación, cliente, parte..."
+                className="pl-9 h-9 bg-gray-50 border-gray-200 text-sm focus:bg-white"
+              />
+            </div>
+          </div>
+
+          {/* Right side: clock + notifications */}
+          <div className="flex items-center gap-3 ml-auto">
+            <span className="text-sm font-mono font-semibold text-gray-700 hidden md:block">
+              {formattedTime}
+            </span>
+            <div className="relative">
+              <button className="w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
+                <Bell className="w-4 h-4 text-gray-600" />
+              </button>
+              {totalLowStock > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                  {totalLowStock}
+                </span>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* Page Content */}
+        <main className="flex-1 p-6">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
