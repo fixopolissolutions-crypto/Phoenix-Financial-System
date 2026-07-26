@@ -284,12 +284,38 @@ async function startServer() {
       await connection.execute(
         "INSERT INTO config (\`key\`, value) VALUES ('reportEmail', 'andersonteran2@gmail.com, chavadelarosa549@gmail.com') ON DUPLICATE KEY UPDATE value = 'andersonteran2@gmail.com, chavadelarosa549@gmail.com'"
       );
+
+      // Also create pos_transactions table if it doesn't exist
+      await connection.execute(`
+        CREATE TABLE IF NOT EXISTS pos_transactions (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          codigo VARCHAR(50) NOT NULL UNIQUE,
+          items JSON NOT NULL,
+          subtotal DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+          taxRate DECIMAL(5,2) NOT NULL DEFAULT 8.25,
+          taxAmount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+          total DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+          metodoPago ENUM('efectivo','tarjeta','mixto') NOT NULL DEFAULT 'efectivo',
+          montoEfectivo DECIMAL(10,2) NULL,
+          montoTarjeta DECIMAL(10,2) NULL,
+          cambio DECIMAL(10,2) NULL DEFAULT 0.00,
+          clienteNombre VARCHAR(200) NULL,
+          clienteEmail VARCHAR(320) NULL,
+          clienteTelefono VARCHAR(50) NULL,
+          notas TEXT NULL,
+          estado ENUM('completada','cancelada','pendiente') NOT NULL DEFAULT 'completada',
+          tienda ENUM('admin','sucursal') NOT NULL DEFAULT 'admin',
+          cajero VARCHAR(100) NULL,
+          createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
       
       await connection.end();
       
       res.json({
         success: true,
-        message: 'Email configuration updated successfully',
+        message: 'Email configuration updated + pos_transactions table ensured',
         email: 'andersonteran2@gmail.com, chavadelarosa549@gmail.com'
       });
     } catch (error: any) {
