@@ -219,6 +219,62 @@ async function startServer() {
     }
   });
   
+  // Create POS transactions table endpoint
+  app.get("/api/create-pos-table", async (req, res) => {
+    try {
+      const mysql = await import("mysql2/promise");
+      const connection = await mysql.default.createConnection(process.env.DATABASE_URL || "");
+      
+      await connection.execute(`
+        CREATE TABLE IF NOT EXISTS pos_transactions (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          codigo VARCHAR(50) NOT NULL UNIQUE COMMENT 'Código único (POS-001)',
+          items JSON NOT NULL COMMENT 'Array de items vendidos',
+          subtotal DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+          taxRate DECIMAL(5,2) NOT NULL DEFAULT 8.25,
+          taxAmount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+          total DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+          metodoPago ENUM('efectivo','tarjeta','mixto') NOT NULL DEFAULT 'efectivo',
+          montoEfectivo DECIMAL(10,2) NULL,
+          montoTarjeta DECIMAL(10,2) NULL,
+          cambio DECIMAL(10,2) NULL DEFAULT 0.00,
+          clienteNombre VARCHAR(200) NULL,
+          clienteEmail VARCHAR(320) NULL,
+          clienteTelefono VARCHAR(50) NULL,
+          notas TEXT NULL,
+          estado ENUM('completada','cancelada','pendiente') NOT NULL DEFAULT 'completada',
+          tienda ENUM('admin','sucursal') NOT NULL DEFAULT 'admin',
+          cajero VARCHAR(100) NULL,
+          createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      
+      // Also add barcode columns to inventory tables if they don't exist
+      try {
+        await connection.execute(`ALTER TABLE inventory_parts ADD COLUMN IF NOT EXISTS barcode VARCHAR(100) NULL UNIQUE`);
+      } catch (e: any) { console.log('inventory_parts barcode column:', e.message); }
+      try {
+        await connection.execute(`ALTER TABLE inventory_accessories ADD COLUMN IF NOT EXISTS barcode VARCHAR(100) NULL UNIQUE`);
+      } catch (e: any) { console.log('inventory_accessories barcode column:', e.message); }
+      
+      const [tables] = await connection.execute('SHOW TABLES');
+      await connection.end();
+      
+      res.json({
+        success: true,
+        message: 'POS table created successfully',
+        totalTables: (tables as any[]).length
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        stack: error.stack
+      });
+    }
+  });
+
   // Fix email config endpoint
   app.get("/api/fix-email-config", async (req, res) => {
     try {

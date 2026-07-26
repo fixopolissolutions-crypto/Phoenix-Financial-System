@@ -46,9 +46,72 @@ export default function POS() {
   const [clienteTelefono, setClienteTelefono] = useState('');
   const [notas, setNotas] = useState('');
   const [taxRate, setTaxRate] = useState(0.085);
+  const [barcodeNotif, setBarcodeNotif] = useState<{message: string; success: boolean} | null>(null);
   const bcRef = useRef<BroadcastChannel | null>(null);
+  // Barcode scanner detection
+  const barcodeBufferRef = useRef('');
+  const barcodeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const tienda = (user as any)?.tienda || 'admin';
+
+  // Barcode scanner: detect rapid keystrokes (scanner inputs chars faster than human typing)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input field
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+      
+      if (e.key === 'Enter') {
+        // Process the barcode buffer
+        const barcode = barcodeBufferRef.current.trim();
+        barcodeBufferRef.current = '';
+        if (barcodeTimerRef.current) clearTimeout(barcodeTimerRef.current);
+        
+        if (barcode.length >= 6) {
+          // Find product by barcode in allProducts
+          const product = allProductsRef.current.find(p => p.barcode === barcode);
+          if (product) {
+            addToCartRef.current(product);
+            // Show feedback
+            const event = new CustomEvent('barcode-scanned', { detail: { barcode, found: true, nombre: product.nombre } });
+            window.dispatchEvent(event);
+          } else {
+            const event = new CustomEvent('barcode-scanned', { detail: { barcode, found: false } });
+            window.dispatchEvent(event);
+          }
+        }
+        return;
+      }
+      
+      // Accumulate characters
+      if (e.key.length === 1) {
+        barcodeBufferRef.current += e.key;
+        // Reset buffer after 100ms of inactivity (scanner sends chars very fast)
+        if (barcodeTimerRef.current) clearTimeout(barcodeTimerRef.current);
+        barcodeTimerRef.current = setTimeout(() => {
+          barcodeBufferRef.current = '';
+        }, 100);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Listen for barcode scan events to show notifications
+  useEffect(() => {
+    const handleBarcodeScan = (e: CustomEvent) => {
+      const { found, nombre, barcode } = e.detail;
+      if (found) {
+        setBarcodeNotif({ message: `✓ ${nombre} agregado al carrito`, success: true });
+      } else {
+        setBarcodeNotif({ message: `Código no encontrado: ${barcode}`, success: false });
+      }
+      setTimeout(() => setBarcodeNotif(null), 3000);
+    };
+    window.addEventListener('barcode-scanned', handleBarcodeScan as EventListener);
+    return () => window.removeEventListener('barcode-scanned', handleBarcodeScan as EventListener);
+  }, []);
 
   // Load tax rate from config
   const configQuery = trpc.config.getAll.useQuery();
@@ -108,14 +171,16 @@ export default function POS() {
       precio: parseFloat(a.precioVenta || a.precioCompra || '0'),
       stock: a.cantidad || 0,
       categoria: 'accesorios',
+      barcode: a.barcode || `FIX-ACC-${String(a.id).padStart(5, '0')}`,
     })),
     ...(partsQuery.data || []).map((p: any) => ({
       id: `part-${p.id}`,
       tipo: 'parte' as const,
       nombre: p.nombre,
-      precio: parseFloat(p.precioUnitario || '0'),
-      stock: p.cantidad || 0,
+      precio: parseFloat(p.precioUnitario || p.precioCompraUnitario || '0'),
+      stock: p.cantidadActual || p.cantidad || 0,
       categoria: 'partes',
+      barcode: p.barcode || `FIX-PRT-${String(p.id).padStart(5, '0')}`,
     })),
     // Quick service items
     { id: 'svc-1', tipo: 'servicio' as const, nombre: 'Diagnóstico', precio: 20, stock: 99, categoria: 'servicios' },
@@ -133,6 +198,10 @@ export default function POS() {
     const matchesCategory = activeCategory === 'todos' || p.categoria === activeCategory;
     return matchesSearch && matchesCategory;
   });
+
+  // Refs for barcode scanner access
+  const allProductsRef = useRef(allProducts);
+  allProductsRef.current = allProducts;
 
   const addToCart = (product: typeof allProducts[0]) => {
     setCart(prev => {
@@ -153,6 +222,10 @@ export default function POS() {
       }];
     });
   };
+
+  // Ref for barcode scanner access
+  const addToCartRef = useRef(addToCart);
+  addToCartRef.current = addToCart;
 
   const updateQuantity = (id: string, delta: number) => {
     setCart(prev => prev
@@ -248,6 +321,18 @@ export default function POS() {
 
   return (
     <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
+      {/* Barcode scan notification */}
+      {barcodeNotif && (
+        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl shadow-2xl text-sm font-bold flex items-center gap-2 transition-all ${
+          barcodeNotif.success 
+            ? 'bg-green-500 text-white' 
+            : 'bg-red-500 text-white'
+        }`}>
+          {barcodeNotif.success ? <Check size={16} /> : <X size={16} />}
+          {barcodeNotif.message}
+        </div>
+      )}
+
       {/* LEFT: Product Catalog */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}

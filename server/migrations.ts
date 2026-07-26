@@ -274,6 +274,33 @@ export async function applyMigrations() {
       }
     }
 
+    // Migración 12: Agregar columna barcode a inventory_parts e inventory_accessories
+    try {
+      await connection.execute(`
+        ALTER TABLE inventory_parts ADD COLUMN IF NOT EXISTS barcode VARCHAR(100) NULL UNIQUE
+      `);
+      console.log('[Migrations] ✅ Added barcode column to inventory_parts');
+    } catch (error: any) {
+      if (error.code === 'ER_DUP_FIELDNAME' || error.message?.includes('Duplicate column')) {
+        console.log('[Migrations] ⏭️  barcode column already exists in inventory_parts');
+      } else {
+        console.log('[Migrations] ⚠️  Could not add barcode to inventory_parts:', error.message);
+      }
+    }
+
+    try {
+      await connection.execute(`
+        ALTER TABLE inventory_accessories ADD COLUMN IF NOT EXISTS barcode VARCHAR(100) NULL UNIQUE
+      `);
+      console.log('[Migrations] ✅ Added barcode column to inventory_accessories');
+    } catch (error: any) {
+      if (error.code === 'ER_DUP_FIELDNAME' || error.message?.includes('Duplicate column')) {
+        console.log('[Migrations] ⏭️  barcode column already exists in inventory_accessories');
+      } else {
+        console.log('[Migrations] ⚠️  Could not add barcode to inventory_accessories:', error.message);
+      }
+    }
+
     await connection.end();
     console.log('[Migrations] ✅ All migrations completed successfully');
     

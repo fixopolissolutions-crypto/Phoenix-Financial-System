@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { BarcodeLabel, generateBarcodeString } from '@/components/BarcodeLabel';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/card';
@@ -14,7 +15,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { trpc } from '@/lib/trpc';
-import { Headphones, Plus, DollarSign, Package, Trash2, AlertCircle, ShoppingCart, Pencil } from 'lucide-react';
+import { Headphones, Plus, DollarSign, Package, Trash2, AlertCircle, ShoppingCart, Pencil, Barcode } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function InventarioAccesorios() {
@@ -25,6 +26,7 @@ export default function InventarioAccesorios() {
   const [addStockDialogOpen, setAddStockDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedAccessory, setSelectedAccessory] = useState<any>(null);
+  const [barcodeAccessory, setBarcodeAccessory] = useState<any>(null);
 
   // Queries
   const { data: accessories = [], refetch } = trpc.inventoryAccessories.list.useQuery({ activo: 1 });
@@ -330,6 +332,9 @@ export default function InventarioAccesorios() {
                     <ShoppingCart className="h-4 w-4 mr-1" />
                     Vender
                   </Button>
+                  <Button size="sm" variant="outline" title="Código de barras" onClick={() => setBarcodeAccessory(accessory)}>
+                    <Barcode className="h-4 w-4" />
+                  </Button>
                   <Button size="sm" variant="outline" onClick={() => { setSelectedAccessory(accessory); setEditDialogOpen(true); }}>
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -459,6 +464,17 @@ export default function InventarioAccesorios() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Barcode Label Modal */}
+      {barcodeAccessory && (
+        <BarcodeLabel
+          barcode={barcodeAccessory.barcode || generateBarcodeString('accesorio', barcodeAccessory.id)}
+          nombre={barcodeAccessory.nombre}
+          precio={Number(barcodeAccessory.precioVenta || barcodeAccessory.precioCompra || 0)}
+          tipo="accesorio"
+          onClose={() => setBarcodeAccessory(null)}
+        />
+      )}
     </DashboardLayout>
   );
 }

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { BarcodeLabel, generateBarcodeString } from '@/components/BarcodeLabel';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/card';
@@ -15,7 +16,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { trpc } from '@/lib/trpc';
-import { Wrench, Plus, DollarSign, Package, Trash2, AlertCircle, Pencil } from 'lucide-react';
+import { Wrench, Plus, DollarSign, Package, Trash2, AlertCircle, Pencil, Barcode } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function InventarioPartes() {
@@ -25,6 +26,7 @@ export default function InventarioPartes() {
   const [addStockDialogOpen, setAddStockDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedPart, setSelectedPart] = useState<any>(null);
+  const [barcodePart, setBarcodePart] = useState<any>(null);
 
   // Queries
   const { data: parts = [], refetch } = trpc.inventoryParts.list.useQuery({ activo: 1 });
@@ -304,6 +306,14 @@ export default function InventarioPartes() {
                   <Button
                     size="sm"
                     variant="outline"
+                    title="Código de barras"
+                    onClick={() => setBarcodePart(part)}
+                  >
+                    <Barcode className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
                     onClick={() => { setSelectedPart(part); setEditDialogOpen(true); }}
                   >
                     <Pencil className="h-4 w-4" />
@@ -408,6 +418,17 @@ export default function InventarioPartes() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Barcode Label Modal */}
+      {barcodePart && (
+        <BarcodeLabel
+          barcode={barcodePart.barcode || generateBarcodeString('parte', barcodePart.id)}
+          nombre={barcodePart.nombre}
+          precio={Number(barcodePart.precioCompraUnitario)}
+          tipo="parte"
+          onClose={() => setBarcodePart(null)}
+        />
+      )}
     </DashboardLayout>
   );
 }
