@@ -915,6 +915,29 @@ export const appRouter = router({
         return await db.getPosTransactionById(input.id);
       }),
 
+    search: publicProcedure
+      .input(z.object({
+        search: z.string().optional(),
+        metodoPago: z.string().optional(),
+        dateFrom: z.string().optional(),
+        dateTo: z.string().optional(),
+        limit: z.number().optional(),
+        offset: z.number().optional(),
+        tienda: z.string().optional(),
+      }).optional())
+      .query(async ({ input, ctx }) => {
+        const tienda = input?.tienda || (ctx.user as any)?.tienda || 'admin';
+        return await db.searchPosTransactions({
+          tienda,
+          search: input?.search,
+          metodoPago: input?.metodoPago,
+          dateFrom: input?.dateFrom,
+          dateTo: input?.dateTo,
+          limit: input?.limit ?? 100,
+          offset: input?.offset ?? 0,
+        });
+      }),
+
     create: publicProcedure
       .input(z.object({
         items: z.array(z.object({

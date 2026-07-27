@@ -41,6 +41,7 @@ const navGroups = [
       { name: 'Reparaciones', href: '/reparaciones', icon: Wrench },
       { name: 'Servidor', href: '/servidor', icon: Server },
       { name: 'Punto de Venta', href: '/pos', icon: ShoppingCart },
+      { name: 'Historial POS', href: '/pos/historial', icon: Receipt },
     ],
   },
   {

@@ -1598,3 +1598,68 @@ export async function createPosTransaction(data: {
     await connection.end();
   }
 }
+
+export async function searchPosTransactions(params: {
+  tienda: string;
+  search?: string;
+  metodoPago?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const connection = await mysql.createConnection(process.env.DATABASE_URL!);
+  try {
+    const conditions: string[] = ['tienda = ?'];
+    const values: any[] = [params.tienda];
+
+    if (params.search) {
+      conditions.push('(clienteNombre LIKE ? OR clienteEmail LIKE ? OR clienteTelefono LIKE ? OR codigo LIKE ?)');
+      const s = `%${params.search}%`;
+      values.push(s, s, s, s);
+    }
+    if (params.metodoPago && params.metodoPago !== 'todos') {
+      conditions.push('metodoPago = ?');
+      values.push(params.metodoPago);
+    }
+    if (params.dateFrom) {
+      conditions.push('DATE(createdAt) >= ?');
+      values.push(params.dateFrom);
+    }
+    if (params.dateTo) {
+      conditions.push('DATE(createdAt) <= ?');
+      values.push(params.dateTo);
+    }
+
+    const where = conditions.join(' AND ');
+    const limit = parseInt(String(params.limit ?? 100), 10);
+    const offset = parseInt(String(params.offset ?? 0), 10);
+
+    const [rows] = await connection.execute(
+      `SELECT * FROM pos_transactions WHERE ${where} ORDER BY createdAt DESC LIMIT ${limit} OFFSET ${offset}`,
+      values
+    ) as any[];
+
+    const [countRows] = await connection.execute(
+      `SELECT COUNT(*) as total FROM pos_transactions WHERE ${where}`,
+      values
+    ) as any[];
+
+    return {
+      transactions: rows.map((r: any) => ({
+        ...r,
+        items: typeof r.items === 'string' ? JSON.parse(r.items) : r.items,
+        subtotal: parseFloat(r.subtotal),
+        taxRate: parseFloat(r.taxRate),
+        taxAmount: parseFloat(r.taxAmount),
+        total: parseFloat(r.total),
+        montoEfectivo: r.montoEfectivo ? parseFloat(r.montoEfectivo) : undefined,
+        montoTarjeta: r.montoTarjeta ? parseFloat(r.montoTarjeta) : undefined,
+        cambio: r.cambio ? parseFloat(r.cambio) : 0,
+      })),
+      total: countRows[0].total as number,
+    };
+  } finally {
+    await connection.end();
+  }
+}
