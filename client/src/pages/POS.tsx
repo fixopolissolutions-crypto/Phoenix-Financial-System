@@ -286,10 +286,6 @@ export default function POS() {
       setShowPayment(false);
       setShowSuccess(true);
       clearCart();
-      setTimeout(() => {
-        setShowSuccess(false);
-        sendDisplayUpdate(tienda, { type: 'IDLE', storeName: 'Fixopolis Solutions' });
-      }, 30000); // 30s so client can read receipt and share email
     } catch (err) {
       console.error('Error creating POS transaction:', err);
       alert('Error al procesar la venta. Intenta de nuevo.');
@@ -661,7 +657,10 @@ export default function POS() {
                 Imprimir
               </button>
               <button
-                onClick={() => setShowSuccess(false)}
+                onClick={() => {
+                  setShowSuccess(false);
+                  sendDisplayUpdate(tienda, { type: 'IDLE', storeName: 'Fixopolis Solutions' });
+                }}
                 className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg text-sm font-bold transition-colors"
               >
                 Nueva Venta
