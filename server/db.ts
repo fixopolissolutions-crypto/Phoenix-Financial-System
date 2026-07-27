@@ -1475,8 +1475,8 @@ export async function getPosTransactions(tienda: string, limit = 50) {
   const connection = await mysql.createConnection(process.env.DATABASE_URL!);
   try {
     const [rows] = await connection.execute(
-      `SELECT * FROM pos_transactions WHERE tienda = ? ORDER BY createdAt DESC LIMIT ?`,
-      [tienda, limit]
+      `SELECT * FROM pos_transactions WHERE tienda = ? ORDER BY createdAt DESC LIMIT ${parseInt(String(limit), 10)}`,
+      [tienda]
     ) as any[];
     return rows.map((r: any) => ({
       ...r,
