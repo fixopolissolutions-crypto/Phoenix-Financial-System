@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Check, ShoppingCart, Flame } from 'lucide-react';
+import { Check, ShoppingCart, Flame, Wifi, WifiOff } from 'lucide-react';
 
 interface CartItem {
   id: string;
@@ -24,13 +24,18 @@ interface CompletedState {
   storeName: string;
 }
 
-const BC_CHANNEL = 'fixopolis-pos';
+// Read tienda from URL query param, default to 'admin'
+function getTienda() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('tienda') || 'admin';
+}
 
 export default function POSDisplay() {
   const [state, setState] = useState<'idle' | 'cart' | 'complete'>('idle');
   const [displayData, setDisplayData] = useState<DisplayState | null>(null);
   const [completedData, setCompletedData] = useState<CompletedState | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [connected, setConnected] = useState(false);
 
   // Update clock
   useEffect(() => {
@@ -38,34 +43,54 @@ export default function POSDisplay() {
     return () => clearInterval(interval);
   }, []);
 
-  // Listen to BroadcastChannel from cashier
+  // Listen to server-sent events from backend (works across any network/device)
   useEffect(() => {
-    let bc: BroadcastChannel;
-    try {
-      bc = new BroadcastChannel(BC_CHANNEL);
-      bc.onmessage = (event) => {
-        const { type, ...data } = event.data;
-        if (type === 'CART_UPDATE') {
-          if (data.cart && data.cart.length > 0) {
-            setState('cart');
-            setDisplayData(data as DisplayState);
-          } else {
+    const tienda = getTienda();
+    let es: EventSource;
+    let reconnectTimer: ReturnType<typeof setTimeout>;
+
+    const connect = () => {
+      es = new EventSource(`/api/pos-display/stream?tienda=${tienda}`);
+
+      es.onopen = () => setConnected(true);
+
+      es.onerror = () => {
+        setConnected(false);
+        es.close();
+        // Auto-reconnect after 3 seconds
+        reconnectTimer = setTimeout(connect, 3000);
+      };
+
+      es.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          const { type, ...data } = payload;
+          if (type === 'CART_UPDATE') {
+            if (data.cart && data.cart.length > 0) {
+              setState('cart');
+              setDisplayData(data as DisplayState);
+            } else {
+              setState('idle');
+              setDisplayData(null);
+            }
+          } else if (type === 'PAYMENT_COMPLETE') {
+            setState('complete');
+            setCompletedData(data as CompletedState);
+          } else if (type === 'IDLE') {
             setState('idle');
             setDisplayData(null);
+            setCompletedData(null);
           }
-        } else if (type === 'PAYMENT_COMPLETE') {
-          setState('complete');
-          setCompletedData(data as CompletedState);
-        } else if (type === 'READY') {
-          setState('idle');
-          setDisplayData(null);
-          setCompletedData(null);
-        }
+        } catch (_) {}
       };
-    } catch (e) {
-      console.warn('BroadcastChannel not supported');
-    }
-    return () => bc?.close();
+    };
+
+    connect();
+
+    return () => {
+      clearTimeout(reconnectTimer);
+      es?.close();
+    };
   }, []);
 
   const formatTime = (date: Date) => {
@@ -84,6 +109,14 @@ export default function POSDisplay() {
         <div className="absolute inset-0 opacity-5" style={{
           backgroundImage: 'radial-gradient(circle at 25% 25%, #f97316 0%, transparent 50%), radial-gradient(circle at 75% 75%, #f97316 0%, transparent 50%)'
         }} />
+
+        {/* Connection indicator */}
+        <div className="absolute top-4 right-4 flex items-center gap-2">
+          {connected
+            ? <><Wifi size={14} className="text-green-500" /><span className="text-xs text-green-500">En línea</span></>
+            : <><WifiOff size={14} className="text-red-500" /><span className="text-xs text-red-500">Reconectando...</span></>
+          }
+        </div>
         
         <div className="relative z-10 text-center px-8">
           {/* Logo */}
@@ -124,7 +157,7 @@ export default function POSDisplay() {
         }} />
         
         <div className="relative z-10 text-center px-8 max-w-lg w-full">
-          {/* Success animation */}
+          {/* Success icon */}
           <div className="w-24 h-24 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-green-500/50">
             <Check size={48} className="text-green-400" />
           </div>

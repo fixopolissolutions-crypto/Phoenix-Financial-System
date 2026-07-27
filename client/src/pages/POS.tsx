@@ -24,8 +24,18 @@ interface PaymentState {
   cambio: number;
 }
 
-// Broadcast channel for customer display
-const BC_CHANNEL = 'fixopolis-pos';
+// Server-based customer display sync
+const sendDisplayUpdate = async (tienda: string, payload: object) => {
+  try {
+    await fetch('/api/pos-display/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tienda, ...payload }),
+    });
+  } catch (e) {
+    console.warn('Display sync error:', e);
+  }
+};
 
 export default function POS() {
   const { user } = useAuth();
@@ -47,7 +57,6 @@ export default function POS() {
   const [notas, setNotas] = useState('');
   const [taxRate, setTaxRate] = useState(0.085);
   const [barcodeNotif, setBarcodeNotif] = useState<{message: string; success: boolean} | null>(null);
-  const bcRef = useRef<BroadcastChannel | null>(null);
   // Barcode scanner detection
   const barcodeBufferRef = useRef('');
   const barcodeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -125,35 +134,21 @@ export default function POS() {
   const accessoriesQuery = trpc.inventoryAccessories.list.useQuery({ activo: 1 });
   const partsQuery = trpc.inventoryParts.list.useQuery({ activo: 1 });
 
-  // Broadcast channel for customer display
+  // Sync cart to server for customer display
   useEffect(() => {
-    try {
-      bcRef.current = new BroadcastChannel(BC_CHANNEL);
-    } catch (e) {
-      console.warn('BroadcastChannel not supported');
-    }
-    return () => bcRef.current?.close();
-  }, []);
-
-  const broadcastCart = useCallback((cartItems: CartItem[]) => {
-    const subtotal = cartItems.reduce((s, i) => s + i.subtotal, 0);
+    const subtotal = cart.reduce((s, i) => s + i.subtotal, 0);
     const taxAmount = subtotal * taxRate;
     const total = subtotal + taxAmount;
-    bcRef.current?.postMessage({
-      type: 'CART_UPDATE',
-      cart: cartItems,
+    sendDisplayUpdate(tienda, {
+      type: cart.length > 0 ? 'CART_UPDATE' : 'IDLE',
+      cart,
       subtotal,
       taxRate,
       taxAmount,
       total,
       storeName: 'Fixopolis Solutions',
     });
-  }, [taxRate]);
-
-  // Broadcast on cart change
-  useEffect(() => {
-    broadcastCart(cart);
-  }, [cart, broadcastCart]);
+  }, [cart, taxRate, tienda]);
 
   const createPosMutation = trpc.pos.create.useMutation();
 
@@ -282,8 +277,8 @@ export default function POS() {
         cajero: (user as any)?.username || 'Admin',
       });
       setLastTransaction(result);
-      // Broadcast payment complete to customer display
-      bcRef.current?.postMessage({
+      // Push payment complete to customer display via server
+      sendDisplayUpdate(tienda, {
         type: 'PAYMENT_COMPLETE',
         transaction: result,
         storeName: 'Fixopolis Solutions',
@@ -293,7 +288,7 @@ export default function POS() {
       clearCart();
       setTimeout(() => {
         setShowSuccess(false);
-        bcRef.current?.postMessage({ type: 'READY', storeName: 'Fixopolis Solutions' });
+        sendDisplayUpdate(tienda, { type: 'IDLE', storeName: 'Fixopolis Solutions' });
       }, 5000);
     } catch (err) {
       console.error('Error creating POS transaction:', err);

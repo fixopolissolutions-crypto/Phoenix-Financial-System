@@ -483,6 +483,54 @@ async function startServer() {
     }
   });
   
+  // ==================== POS CUSTOMER DISPLAY SYNC ====================
+  // In-memory store for display state (per tienda)
+  const posDisplayState: Record<string, any> = {};
+  const posDisplayClients: Record<string, Set<any>> = {};
+
+  // POST: POS cashier pushes current cart/payment state
+  app.post("/api/pos-display/update", (req, res) => {
+    const { tienda = 'admin', ...payload } = req.body;
+    posDisplayState[tienda] = payload;
+    // Notify all SSE clients for this tienda
+    const clients = posDisplayClients[tienda];
+    if (clients && clients.size > 0) {
+      const data = JSON.stringify(payload);
+      clients.forEach(client => {
+        try { client.write(`data: ${data}\n\n`); } catch (_) {}
+      });
+    }
+    res.json({ ok: true });
+  });
+
+  // GET: Customer display subscribes via SSE for real-time updates
+  app.get("/api/pos-display/stream", (req, res) => {
+    const tienda = (req.query.tienda as string) || 'admin';
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.flushHeaders();
+    // Send current state immediately on connect
+    if (posDisplayState[tienda]) {
+      res.write(`data: ${JSON.stringify(posDisplayState[tienda])}\n\n`);
+    } else {
+      res.write(`data: ${JSON.stringify({ type: 'IDLE' })}\n\n`);
+    }
+    // Register client
+    if (!posDisplayClients[tienda]) posDisplayClients[tienda] = new Set();
+    posDisplayClients[tienda].add(res);
+    // Heartbeat every 20s to keep connection alive
+    const heartbeat = setInterval(() => {
+      try { res.write(': ping\n\n'); } catch (_) {}
+    }, 20000);
+    // Cleanup on disconnect
+    req.on('close', () => {
+      clearInterval(heartbeat);
+      posDisplayClients[tienda]?.delete(res);
+    });
+  });
+
   // tRPC API
   app.use(
     "/api/trpc",
