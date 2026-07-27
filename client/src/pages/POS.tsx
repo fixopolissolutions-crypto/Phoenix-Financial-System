@@ -289,7 +289,7 @@ export default function POS() {
       setTimeout(() => {
         setShowSuccess(false);
         sendDisplayUpdate(tienda, { type: 'IDLE', storeName: 'Fixopolis Solutions' });
-      }, 5000);
+      }, 30000); // 30s so client can read receipt and share email
     } catch (err) {
       console.error('Error creating POS transaction:', err);
       alert('Error al procesar la venta. Intenta de nuevo.');

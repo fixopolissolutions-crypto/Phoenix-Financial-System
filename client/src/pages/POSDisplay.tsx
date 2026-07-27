@@ -62,6 +62,8 @@ export default function POSDisplay() {
       };
 
       es.onmessage = (event) => {
+        // Ignore SSE heartbeat comments (': ping')
+        if (!event.data || event.data.trim() === '') return;
         try {
           const payload = JSON.parse(event.data);
           const { type, ...data } = payload;
@@ -74,6 +76,7 @@ export default function POSDisplay() {
               setDisplayData(null);
             }
           } else if (type === 'PAYMENT_COMPLETE') {
+            // Always show receipt — do not skip even on reconnect
             setState('complete');
             setCompletedData(data as CompletedState);
           } else if (type === 'IDLE') {
