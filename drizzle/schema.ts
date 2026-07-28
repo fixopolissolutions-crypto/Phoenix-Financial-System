@@ -208,6 +208,7 @@ export const inventoryAccessories = mysqlTable("inventory_accessories", {
   stockMinimo: int("stockMinimo").default(5).notNull(), // Alerta de stock bajo
   tienda: mysqlEnum("tienda", ["admin", "sucursal"]).default("admin").notNull(),
   activo: int("activo").default(1).notNull(), // 1 = activo, 0 = descontinuado
+  imagen: varchar("imagen", { length: 500 }), // URL o path de la imagen del producto
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -231,6 +232,7 @@ export const inventoryParts = mysqlTable("inventory_parts", {
   stockMinimo: int("stockMinimo").default(2).notNull(),
   tienda: mysqlEnum("tienda", ["admin", "sucursal"]).default("admin").notNull(),
   activo: int("activo").default(1).notNull(),
+  imagen: varchar("imagen", { length: 500 }), // URL o path de la imagen del producto
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({

@@ -531,6 +531,25 @@ async function startServer() {
     });
   });
 
+  // POST: Upload product image (base64) and store in S3
+  app.post('/api/product-image/upload', async (req, res) => {
+    try {
+      const { base64, mimeType, fileName } = req.body;
+      if (!base64 || !mimeType) {
+        return res.status(400).json({ error: 'base64 and mimeType required' });
+      }
+      const { storagePut } = await import('../storage');
+      const buffer = Buffer.from(base64, 'base64');
+      const ext = mimeType.split('/')[1]?.split('+')[0] || 'jpg';
+      const key = `product-images/${Date.now()}-${(fileName || 'product').replace(/[^a-zA-Z0-9._-]/g, '_')}.${ext}`;
+      const { url } = await storagePut(key, buffer, mimeType);
+      return res.json({ url });
+    } catch (err: any) {
+      console.error('[Upload] Error uploading product image:', err);
+      return res.status(500).json({ error: err.message || 'Upload failed' });
+    }
+  });
+
   // tRPC API
   app.use(
     "/api/trpc",

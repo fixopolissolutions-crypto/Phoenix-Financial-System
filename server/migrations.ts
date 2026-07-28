@@ -301,6 +301,32 @@ export async function applyMigrations() {
       }
     }
 
+    // Migración 13: Agregar columna imagen a inventory_accessories e inventory_parts
+    try {
+      await connection.execute(`
+        ALTER TABLE inventory_accessories ADD COLUMN IF NOT EXISTS imagen VARCHAR(500) NULL
+      `);
+      console.log('[Migrations] ✅ Added imagen column to inventory_accessories');
+    } catch (error: any) {
+      if (error.code === 'ER_DUP_FIELDNAME' || error.message?.includes('Duplicate column')) {
+        console.log('[Migrations] ⏭️  imagen column already exists in inventory_accessories');
+      } else {
+        console.log('[Migrations] ⚠️  Could not add imagen to inventory_accessories:', error.message);
+      }
+    }
+    try {
+      await connection.execute(`
+        ALTER TABLE inventory_parts ADD COLUMN IF NOT EXISTS imagen VARCHAR(500) NULL
+      `);
+      console.log('[Migrations] ✅ Added imagen column to inventory_parts');
+    } catch (error: any) {
+      if (error.code === 'ER_DUP_FIELDNAME' || error.message?.includes('Duplicate column')) {
+        console.log('[Migrations] ⏭️  imagen column already exists in inventory_parts');
+      } else {
+        console.log('[Migrations] ⚠️  Could not add imagen to inventory_parts:', error.message);
+      }
+    }
+
     await connection.end();
     console.log('[Migrations] ✅ All migrations completed successfully');
     

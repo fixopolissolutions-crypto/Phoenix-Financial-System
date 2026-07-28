@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import ImagePickerModal from '@/components/ImagePickerModal';
 import { BarcodeLabel, generateBarcodeString } from '@/components/BarcodeLabel';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -15,7 +16,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { trpc } from '@/lib/trpc';
-import { Headphones, Plus, DollarSign, Package, Trash2, AlertCircle, ShoppingCart, Pencil, Barcode } from 'lucide-react';
+import { Headphones, Plus, DollarSign, Package, Trash2, AlertCircle, ShoppingCart, Pencil, Barcode, ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function InventarioAccesorios() {
@@ -27,9 +28,16 @@ export default function InventarioAccesorios() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedAccessory, setSelectedAccessory] = useState<any>(null);
   const [barcodeAccessory, setBarcodeAccessory] = useState<any>(null);
+  const [imagePickerAccessory, setImagePickerAccessory] = useState<any>(null);
 
   // Queries
   const { data: accessories = [], refetch } = trpc.inventoryAccessories.list.useQuery({ activo: 1 });
+
+  // Image mutation
+  const updateImagenMutation = trpc.inventoryAccessories.updateImagen.useMutation({
+    onSuccess: () => { toast.success('Imagen actualizada'); refetch(); setImagePickerAccessory(null); },
+    onError: (e) => toast.error('Error al guardar imagen: ' + e.message),
+  });
 
   // Mutations
   const createMutation = trpc.inventoryAccessories.create.useMutation({
@@ -284,6 +292,21 @@ export default function InventarioAccesorios() {
             const gananciaTotal = gananciaUnitaria * Number(accessory.cantidadVendida);
             return (
               <Card key={accessory.id} className={`p-4 ${stockBajo ? 'border-yellow-300 bg-yellow-50' : ''}`}>
+                {/* Product image */}
+                <div
+                  className="w-full h-32 mb-3 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center cursor-pointer border-2 border-dashed border-gray-200 hover:border-purple-400 transition-colors group"
+                  onClick={() => setImagePickerAccessory(accessory)}
+                  title="Cambiar imagen"
+                >
+                  {accessory.imagen ? (
+                    <img src={accessory.imagen} alt={accessory.nombre} className="w-full h-full object-contain" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-1 text-gray-400 group-hover:text-purple-500 transition-colors">
+                      <ImageIcon size={24} />
+                      <span className="text-xs">Agregar imagen</span>
+                    </div>
+                  )}
+                </div>
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <Headphones className="h-5 w-5 text-purple-600" />
@@ -464,6 +487,15 @@ export default function InventarioAccesorios() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Image Picker Modal */}
+      {imagePickerAccessory && (
+        <ImagePickerModal
+          currentImage={imagePickerAccessory.imagen}
+          onSelect={(url) => updateImagenMutation.mutate({ id: imagePickerAccessory.id, imagen: url || null })}
+          onClose={() => setImagePickerAccessory(null)}
+        />
+      )}
 
       {/* Barcode Label Modal */}
       {barcodeAccessory && (

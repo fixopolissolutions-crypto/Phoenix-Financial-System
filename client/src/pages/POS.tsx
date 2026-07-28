@@ -15,6 +15,7 @@ interface CartItem {
   precio: number;
   cantidad: number;
   subtotal: number;
+  imagen?: string;
 }
 
 interface PaymentState {
@@ -163,10 +164,11 @@ export default function POS() {
       id: `acc-${a.id}`,
       tipo: 'accesorio' as const,
       nombre: a.nombre,
-      precio: parseFloat(a.precioVenta || a.precioCompra || '0'),
-      stock: a.cantidad || 0,
+      precio: parseFloat(a.precioVentaUnitario || a.precioVenta || a.precioCompra || '0'),
+      stock: a.cantidadActual || a.cantidad || 0,
       categoria: 'accesorios',
       barcode: a.barcode || `FIX-ACC-${String(a.id).padStart(5, '0')}`,
+      imagen: a.imagen || undefined,
     })),
     ...(partsQuery.data || []).map((p: any) => ({
       id: `part-${p.id}`,
@@ -176,6 +178,7 @@ export default function POS() {
       stock: p.cantidadActual || p.cantidad || 0,
       categoria: 'partes',
       barcode: p.barcode || `FIX-PRT-${String(p.id).padStart(5, '0')}`,
+      imagen: p.imagen || undefined,
     })),
     // Quick service items
     { id: 'svc-1', tipo: 'servicio' as const, nombre: 'Diagnóstico', precio: 20, stock: 99, categoria: 'servicios' },
@@ -384,9 +387,16 @@ export default function POS() {
                 onClick={() => addToCart(product)}
                 className="bg-gray-900 hover:bg-gray-800 border border-gray-800 hover:border-orange-500/50 rounded-xl p-3 text-left transition-all group"
               >
-                <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs mb-2 ${tipoColors[product.tipo]}`}>
-                  {product.tipo}
-                </div>
+                {/* Product image */}
+                {(product as any).imagen ? (
+                  <div className="w-full h-20 mb-2 rounded-lg overflow-hidden bg-white">
+                    <img src={(product as any).imagen} alt={product.nombre} className="w-full h-full object-contain" />
+                  </div>
+                ) : (
+                  <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs mb-2 ${tipoColors[product.tipo]}`}>
+                    {product.tipo}
+                  </div>
+                )}
                 <p className="text-sm font-medium text-white leading-tight mb-1 line-clamp-2">{product.nombre}</p>
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-orange-400 font-bold text-sm">${product.precio.toFixed(2)}</span>
@@ -467,6 +477,11 @@ export default function POS() {
             cart.map(item => (
               <div key={item.id} className="bg-gray-800 rounded-lg p-3">
                 <div className="flex items-start justify-between gap-2">
+                  {item.imagen && (
+                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-white flex-shrink-0">
+                      <img src={item.imagen} alt={item.nombre} className="w-full h-full object-contain" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-white leading-tight truncate">{item.nombre}</p>
                     <p className="text-xs text-orange-400 mt-0.5">${item.precio.toFixed(2)} c/u</p>

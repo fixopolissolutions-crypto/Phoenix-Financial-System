@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import ImagePickerModal from '@/components/ImagePickerModal';
 import { BarcodeLabel, generateBarcodeString } from '@/components/BarcodeLabel';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -16,7 +17,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { trpc } from '@/lib/trpc';
-import { Wrench, Plus, DollarSign, Package, Trash2, AlertCircle, Pencil, Barcode } from 'lucide-react';
+import { Wrench, Plus, DollarSign, Package, Trash2, AlertCircle, Pencil, Barcode, ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function InventarioPartes() {
@@ -27,9 +28,16 @@ export default function InventarioPartes() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedPart, setSelectedPart] = useState<any>(null);
   const [barcodePart, setBarcodePart] = useState<any>(null);
+  const [imagePickerPart, setImagePickerPart] = useState<any>(null);
 
   // Queries
   const { data: parts = [], refetch } = trpc.inventoryParts.list.useQuery({ activo: 1 });
+
+  // Image mutation
+  const updateImagenMutation = trpc.inventoryParts.updateImagen.useMutation({
+    onSuccess: () => { toast.success('Imagen actualizada'); refetch(); setImagePickerPart(null); },
+    onError: (e) => toast.error('Error al guardar imagen: ' + e.message),
+  });
 
   // Mutations
   const createMutation = trpc.inventoryParts.create.useMutation({
@@ -255,6 +263,21 @@ export default function InventarioPartes() {
             const stockBajo = Number(part.cantidadActual) <= Number(part.stockMinimo);
             return (
               <Card key={part.id} className={`p-4 ${stockBajo ? 'border-yellow-300 bg-yellow-50' : ''}`}>
+                {/* Product image */}
+                <div
+                  className="w-full h-32 mb-3 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center cursor-pointer border-2 border-dashed border-gray-200 hover:border-blue-400 transition-colors group"
+                  onClick={() => setImagePickerPart(part)}
+                  title="Cambiar imagen"
+                >
+                  {part.imagen ? (
+                    <img src={part.imagen} alt={part.nombre} className="w-full h-full object-contain" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-1 text-gray-400 group-hover:text-blue-500 transition-colors">
+                      <ImageIcon size={24} />
+                      <span className="text-xs">Agregar imagen</span>
+                    </div>
+                  )}
+                </div>
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <Wrench className="h-5 w-5 text-gray-600" />
@@ -418,6 +441,15 @@ export default function InventarioPartes() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Image Picker Modal */}
+      {imagePickerPart && (
+        <ImagePickerModal
+          currentImage={imagePickerPart.imagen}
+          onSelect={(url) => updateImagenMutation.mutate({ id: imagePickerPart.id, imagen: url || null })}
+          onClose={() => setImagePickerPart(null)}
+        />
+      )}
 
       {/* Barcode Label Modal */}
       {barcodePart && (

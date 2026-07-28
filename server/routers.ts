@@ -520,6 +520,12 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         return await db.deleteInventoryAccessory(input.id);
       }),
+
+    updateImagen: publicProcedure
+      .input(z.object({ id: z.number(), imagen: z.string().nullable() }))
+      .mutation(async ({ input }) => {
+        return await db.updateInventoryAccessory(input.id, { imagen: input.imagen ?? undefined });
+      }),
   }),
 
   // ==================== INVENTORY PARTS ====================
@@ -597,6 +603,12 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         return await db.deleteInventoryPart(input.id);
+      }),
+
+    updateImagen: publicProcedure
+      .input(z.object({ id: z.number(), imagen: z.string().nullable() }))
+      .mutation(async ({ input }) => {
+        return await db.updateInventoryPart(input.id, { imagen: input.imagen ?? undefined });
       }),
   }),
 
