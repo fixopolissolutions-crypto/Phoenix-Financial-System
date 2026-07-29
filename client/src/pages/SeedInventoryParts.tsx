@@ -3,7 +3,7 @@
  * Solo visible para admin. Acceder a /seed-parts para ejecutar.
  */
 import { useState } from "react";
-import { trpc } from "../utils/trpc";
+import { trpc } from '@/lib/trpc';
 
 const RPX_PARTS = [
   // ==================== iPHONE - LCD (Aftermarket Plus FHD) ====================
