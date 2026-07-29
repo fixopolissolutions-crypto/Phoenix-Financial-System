@@ -421,8 +421,8 @@ export default function POS() {
               >
                 {/* Product image */}
                 {(product as any).imagen ? (
-                  <div className="w-full h-20 mb-2 rounded-lg overflow-hidden bg-white">
-                    <img src={(product as any).imagen} alt={product.nombre} className="w-full h-full object-contain" />
+                  <div className="w-full h-28 mb-2 rounded-lg overflow-hidden bg-white">
+                    <img src={(product as any).imagen} alt={product.nombre} className="w-full h-full object-contain p-1" />
                   </div>
                 ) : (
                   <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs mb-2 ${tipoColors[product.tipo]}`}>
@@ -510,8 +510,8 @@ export default function POS() {
               <div key={item.id} className="bg-gray-800 rounded-lg p-3">
                 <div className="flex items-start justify-between gap-2">
                   {item.imagen && (
-                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-white flex-shrink-0">
-                      <img src={item.imagen} alt={item.nombre} className="w-full h-full object-contain" />
+                    <div className="w-14 h-14 rounded-lg overflow-hidden bg-white flex-shrink-0">
+                      <img src={item.imagen} alt={item.nombre} className="w-full h-full object-contain p-1" />
                     </div>
                   )}
                   <div className="flex-1 min-w-0">

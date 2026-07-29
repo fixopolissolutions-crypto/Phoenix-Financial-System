@@ -265,12 +265,12 @@ export default function InventarioPartes() {
               <Card key={part.id} className={`p-4 ${stockBajo ? 'border-yellow-300 bg-yellow-50' : ''}`}>
                 {/* Product image */}
                 <div
-                  className="w-full h-32 mb-3 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center cursor-pointer border-2 border-dashed border-gray-200 hover:border-blue-400 transition-colors group"
+                  className="w-full h-44 mb-3 rounded-lg overflow-hidden bg-white flex items-center justify-center cursor-pointer border border-gray-200 hover:border-blue-400 transition-colors group"
                   onClick={() => setImagePickerPart(part)}
                   title="Cambiar imagen"
                 >
                   {part.imagen ? (
-                    <img src={part.imagen} alt={part.nombre} className="w-full h-full object-contain" />
+                    <img src={part.imagen} alt={part.nombre} className="w-full h-full object-contain p-2" />
                   ) : (
                     <div className="flex flex-col items-center gap-1 text-gray-400 group-hover:text-blue-500 transition-colors">
                       <ImageIcon size={24} />

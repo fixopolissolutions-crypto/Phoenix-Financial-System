@@ -262,9 +262,9 @@ export default function POSDisplay() {
               {displayData.cart.map((item, idx) => (
                 <div key={idx} className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center gap-4">
                   {/* Product image thumbnail */}
-                  <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-gray-800 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-white flex items-center justify-center">
                     {item.imagen ? (
-                      <img src={item.imagen} alt={item.nombre} className="w-full h-full object-contain" />
+                      <img src={item.imagen} alt={item.nombre} className="w-full h-full object-contain p-1" />
                     ) : (
                       <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center">
                         <span className="text-orange-400 text-xs font-bold">{item.nombre.charAt(0)}</span>
