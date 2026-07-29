@@ -263,29 +263,30 @@ export default function InventarioPartes() {
             const stockBajo = Number(part.cantidadActual) <= Number(part.stockMinimo);
             return (
               <Card key={part.id} className={`p-4 ${stockBajo ? 'border-yellow-300 bg-yellow-50' : ''}`}>
-                {/* Product image */}
-                <div
-                  className="w-full h-44 mb-3 rounded-lg overflow-hidden bg-white flex items-center justify-center cursor-pointer border border-gray-200 hover:border-blue-400 transition-colors group"
-                  onClick={() => setImagePickerPart(part)}
-                  title="Cambiar imagen"
-                >
-                  {part.imagen ? (
-                    <img src={part.imagen} alt={part.nombre} className="w-full h-full object-contain p-2" />
-                  ) : (
-                    <div className="flex flex-col items-center gap-1 text-gray-400 group-hover:text-blue-500 transition-colors">
-                      <ImageIcon size={24} />
-                      <span className="text-xs">Agregar imagen</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Wrench className="h-5 w-5 text-gray-600" />
-                    <span className="text-sm font-mono text-gray-600">{part.codigo}</span>
+                {/* Header: thumbnail + name + code */}
+                <div className="flex items-start gap-3 mb-3">
+                  <div
+                    className="w-16 h-16 rounded-lg overflow-hidden bg-white flex-shrink-0 flex items-center justify-center cursor-pointer border border-gray-200 hover:border-blue-400 transition-colors group"
+                    onClick={() => setImagePickerPart(part)}
+                    title="Cambiar imagen"
+                  >
+                    {part.imagen ? (
+                      <img src={part.imagen} alt={part.nombre} className="w-full h-full object-contain p-1" />
+                    ) : (
+                      <div className="flex flex-col items-center gap-0.5 text-gray-400 group-hover:text-blue-500 transition-colors">
+                        <ImageIcon size={16} />
+                        <span className="text-[10px]">Foto</span>
+                      </div>
+                    )}
                   </div>
-                  {stockBajo && <AlertCircle className="h-5 w-5 text-yellow-600" />}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1 mb-1">
+                      <span className="text-xs font-mono text-gray-500">{part.codigo}</span>
+                      {stockBajo && <AlertCircle className="h-4 w-4 text-yellow-600 flex-shrink-0" />}
+                    </div>
+                    <h3 className="font-semibold text-sm leading-tight line-clamp-3">{part.nombre}</h3>
+                  </div>
                 </div>
-                <h3 className="font-semibold text-lg mb-1">{part.nombre}</h3>
                 {part.categoria && <p className="text-sm text-gray-600 mb-2">{part.categoria}</p>}
                 {part.compatibilidad && (
                   <p className="text-xs text-gray-500 mb-3 bg-gray-100 p-2 rounded">
