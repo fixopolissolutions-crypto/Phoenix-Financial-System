@@ -1,38 +1,98 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 
-// S3 image mapping: product code -> permanent S3 URL (from RPX supplier catalog)
+// Complete image mapping for all 89 inventory parts
+// Same model = same image regardless of quality (LCD/OLED/INCELL)
 const IMAGE_MAPPING: Record<string, string> = {
+  "PART-IP11-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/YnjEfztfVdOYTMgb.jpg",
+  "PART-IP11P-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/YnjEfztfVdOYTMgb.jpg",
   "PART-IP11PM-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/YnjEfztfVdOYTMgb.jpg",
   "PART-IP12-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/VCXYzVzrtMOjnxQm.jpg",
+  "PART-IP12MINI-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/VCXYzVzrtMOjnxQm.jpg",
+  "PART-IP12PM-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/VCXYzVzrtMOjnxQm.jpg",
   "PART-IP13-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/MDOJfARDumGvOBUM.jpg",
   "PART-IP13-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/AMgKbzcTROTPeaQh.jpg",
+  "PART-IP13MINI-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/MDOJfARDumGvOBUM.jpg",
+  "PART-IP13P-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/CjwuKwPNCuhTageb.jpg",
   "PART-IP13P-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/CjwuKwPNCuhTageb.jpg",
+  "PART-IP13PM-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/TYUmjjjdFTifgwDs.jpg",
   "PART-IP13PM-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/TYUmjjjdFTifgwDs.jpg",
   "PART-IP14-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/RTxEVEUfeExPmzaN.jpg",
   "PART-IP14-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/YRNwbOnHzFfYWWEV.jpg",
   "PART-IP14P-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/fDfdukAIsLCCvhsR.jpg",
   "PART-IP14P-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/mINBniBPBIrjkJOR.jpg",
+  "PART-IP14PLUS-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/SUtPBYKBKNhKdFBT.jpg",
   "PART-IP14PLUS-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/SUtPBYKBKNhKdFBT.jpg",
+  "PART-IP14PM-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/nPOIbtWVwZiWlQTV.jpg",
   "PART-IP14PM-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/nPOIbtWVwZiWlQTV.jpg",
+  "PART-IP15-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/ZtjQdtkxgIWyxdQk.jpg",
+  "PART-IP15-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/ZtjQdtkxgIWyxdQk.jpg",
+  "PART-IP15P-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/ZtjQdtkxgIWyxdQk.jpg",
   "PART-IP15P-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/ZtjQdtkxgIWyxdQk.jpg",
+  "PART-IP15PLUS-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/BhRdGQouVuoVhsMJ.jpg",
   "PART-IP15PLUS-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/BhRdGQouVuoVhsMJ.jpg",
+  "PART-IP15PM-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/oaXEnfJheUKNvYTP.jpg",
   "PART-IP15PM-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/oaXEnfJheUKNvYTP.jpg",
   "PART-IP16-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/yFjgmLgRoHrkrpHZ.jpg",
   "PART-IP16-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/rpNtTigrxgjHcIGw.jpg",
+  "PART-IP16E-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/rpNtTigrxgjHcIGw.jpg",
   "PART-IP16P-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/OBULyZveMNdgbKLN.jpg",
   "PART-IP16P-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/BOYRISlAkhEgabQJ.jpg",
   "PART-IP16PLUS-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/ztRPBoJzZyzyhUtz.jpg",
   "PART-IP16PLUS-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/BBaRVWUGwlxxbqRd.jpg",
   "PART-IP16PM-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/AbmyrgmFUwIwzxnd.jpg",
   "PART-IP16PM-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/kIqmYdsorWYnmqCy.jpg",
+  "PART-IP17-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/ChpvehljMWJajyNR.jpg",
+  "PART-IP17-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/ChpvehljMWJajyNR.jpg",
+  "PART-IP17P-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/XMDoDYOIbBdyXLca.jpg",
   "PART-IP17P-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/XMDoDYOIbBdyXLca.jpg",
+  "PART-IP17PM-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/ChpvehljMWJajyNR.jpg",
   "PART-IP17PM-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/ChpvehljMWJajyNR.jpg",
+  "PART-IP8P-LCD-B": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/OCgTAnVzqrbpKGBp.jpg",
   "PART-IP8P-LCD-W": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/OCgTAnVzqrbpKGBp.jpg",
+  "PART-IP8SE-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/OCgTAnVzqrbpKGBp.jpg",
+  "PART-IPX-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/lVvfwBajHeIDIrzT.jpg",
+  "PART-IPXR-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/lVvfwBajHeIDIrzT.jpg",
   "PART-IPXS-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/lVvfwBajHeIDIrzT.jpg",
+  "PART-IPXSMAX-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/lVvfwBajHeIDIrzT.jpg",
+  "PART-SMA02S-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/crCwghpWGuAAHCwd.jpg",
+  "PART-SMA03-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/crCwghpWGuAAHCwd.jpg",
+  "PART-SMA03S-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/crCwghpWGuAAHCwd.jpg",
+  "PART-SMA03SU-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/crCwghpWGuAAHCwd.jpg",
+  "PART-SMA04-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/crCwghpWGuAAHCwd.jpg",
+  "PART-SMA04S-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/crCwghpWGuAAHCwd.jpg",
+  "PART-SMA12-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/crCwghpWGuAAHCwd.jpg",
+  "PART-SMA13-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/crCwghpWGuAAHCwd.jpg",
+  "PART-SMA135G-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/kXvmOJWJlzomYgri.jpg",
+  "PART-SMA13NF-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/crCwghpWGuAAHCwd.jpg",
   "PART-SMA144G-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/crCwghpWGuAAHCwd.jpg",
   "PART-SMA145G-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/kXvmOJWJlzomYgri.jpg",
+  "PART-SMA145GU-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/kXvmOJWJlzomYgri.jpg",
+  "PART-SMA15-INCELL": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/IydYAaanzmIKQMbq.jpg",
+  "PART-SMA15-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/IydYAaanzmIKQMbq.jpg",
+  "PART-SMA16-INCELL": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/IydYAaanzmIKQMbq.jpg",
+  "PART-SMA16-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/IydYAaanzmIKQMbq.jpg",
+  "PART-SMA22-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/kXvmOJWJlzomYgri.jpg",
+  "PART-SMA23-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/kXvmOJWJlzomYgri.jpg",
+  "PART-SMA30A50-INCELL": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/IydYAaanzmIKQMbq.jpg",
+  "PART-SMA32-LCD": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/crCwghpWGuAAHCwd.jpg",
+  "PART-SMA33-INCELL": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/IydYAaanzmIKQMbq.jpg",
+  "PART-SMA34-INCELL": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/IydYAaanzmIKQMbq.jpg",
+  "PART-SMA35-INCELL": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/IydYAaanzmIKQMbq.jpg",
+  "PART-SMA36-INCELL": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/IydYAaanzmIKQMbq.jpg",
+  "PART-SMA52-INCELL": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/IydYAaanzmIKQMbq.jpg",
+  "PART-SMA53-INCELL": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/IydYAaanzmIKQMbq.jpg",
+  "PART-SMA54-INCELL": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/IydYAaanzmIKQMbq.jpg",
   "PART-SMA54-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/IydYAaanzmIKQMbq.jpg",
+  "PART-SMA55-INCELL": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/IydYAaanzmIKQMbq.jpg",
+  "PART-SMA56-INCELL": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/IydYAaanzmIKQMbq.jpg",
+  "PART-SMA70-INCELL": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/IydYAaanzmIKQMbq.jpg",
+  "PART-SMA72-INCELL": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/IydYAaanzmIKQMbq.jpg",
+  "PART-SMS21U-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/IydYAaanzmIKQMbq.jpg",
+  "PART-SMS22U-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/IydYAaanzmIKQMbq.jpg",
+  "PART-SMS24U-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/IydYAaanzmIKQMbq.jpg",
+  "PART-SMS25-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/IydYAaanzmIKQMbq.jpg",
+  "PART-SMS25U-OLED": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663852905221/IydYAaanzmIKQMbq.jpg",
 };
 
 export default function SeedImages() {
@@ -61,15 +121,14 @@ export default function SeedImages() {
         const [code, imageUrl] = entries[i];
         const part = parts.find((p: any) => p.codigo === code);
         if (!part) {
-          setLog(prev => [...prev, `⬜ ${code} — no encontrado`]);
           skipped++;
         } else {
           try {
             await updateImagen.mutateAsync({ id: part.id, imagen: imageUrl });
-            setLog(prev => [...prev, `✅ ${code} — imagen asignada`]);
+            setLog(prev => [...prev, `✅ ${code}`]);
             updated++;
           } catch (e: any) {
-            setLog(prev => [...prev, `❌ ${code} — error: ${e.message}`]);
+            setLog(prev => [...prev, `❌ ${code} — ${e.message}`]);
           }
         }
         setProgress(Math.round(((i + 1) / entries.length) * 100));
@@ -86,10 +145,11 @@ export default function SeedImages() {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold mb-2">🖼️ Asignar Imágenes RPX</h1>
+        <h1 className="text-2xl font-bold mb-2">🖼️ Asignar Imágenes RPX — Completo</h1>
         <p className="text-gray-400 mb-6">
-          Asigna automáticamente las imágenes del catálogo del proveedor RPX a los{" "}
-          <strong>{Object.keys(IMAGE_MAPPING).length} productos</strong> correspondientes en el inventario.
+          Asigna las imágenes del catálogo RPX a los{" "}
+          <strong>{Object.keys(IMAGE_MAPPING).length} productos</strong> del inventario.
+          Los modelos con dos calidades (LCD/OLED) comparten la misma imagen del proveedor.
         </p>
 
         {status === "idle" && (
@@ -97,7 +157,7 @@ export default function SeedImages() {
             onClick={handleSeed}
             className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg text-lg transition-colors"
           >
-            Asignar Imágenes Ahora
+            Asignar Imágenes a Todos los Productos
           </button>
         )}
 
