@@ -408,6 +408,42 @@ export async function applyMigrations() {
       console.log('[Migrations] ⚠️  Could not check/recreate inventory_accessories:', error.message);
     }
 
+    // Migración 15: Crear tabla pos_services para gestión de servicios desde el dashboard
+    try {
+      const [svcRows] = await connection.execute(`SHOW TABLES LIKE 'pos_services'`) as any;
+      if (svcRows.length === 0) {
+        await connection.execute(`
+          CREATE TABLE pos_services (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            nombre VARCHAR(200) NOT NULL,
+            descripcion TEXT NULL,
+            precio DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+            activo TINYINT(1) NOT NULL DEFAULT 1,
+            imagen VARCHAR(500) NULL,
+            createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        // Insert default services
+        await connection.execute(`
+          INSERT INTO pos_services (nombre, precio) VALUES
+          ('Diagnóstico', 20.00),
+          ('Limpieza de dispositivo', 15.00),
+          ('Cambio de batería', 45.00),
+          ('Cambio de pantalla', 80.00),
+          ('Desbloqueo de red', 30.00),
+          ('Reparación de carga', 35.00),
+          ('Recuperación de datos', 60.00),
+          ('Actualización de software', 25.00)
+        `);
+        console.log('[Migrations] ✅ Created pos_services table with 8 default services');
+      } else {
+        console.log('[Migrations] ⏭️  pos_services table already exists');
+      }
+    } catch (error: any) {
+      console.log('[Migrations] ⚠️  Could not create pos_services:', error.message);
+    }
+
     await connection.end();
     console.log('[Migrations] ✅ All migrations completed successfully');
     

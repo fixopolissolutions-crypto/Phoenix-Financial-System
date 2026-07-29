@@ -24,6 +24,7 @@ import {
   ChevronRight,
   Flame,
   ShoppingCart,
+  Scissors,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
@@ -60,6 +61,7 @@ const navGroups = [
     items: [
       { name: 'Partes', href: '/inventario/partes', icon: Package, lowStockKey: 'parts' },
       { name: 'Accesorios', href: '/inventario/accesorios', icon: Package, lowStockKey: 'accessories' },
+      { name: 'Servicios', href: '/servicios', icon: Scissors },
       { name: 'Proveedores', href: '/proveedores', icon: Users },
     ],
   },

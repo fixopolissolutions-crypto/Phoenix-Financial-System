@@ -134,6 +134,7 @@ export default function POS() {
   // Inventory queries
   const accessoriesQuery = trpc.inventoryAccessories.list.useQuery({ activo: 1 });
   const partsQuery = trpc.inventoryParts.list.useQuery({ activo: 1 });
+  const servicesQuery = trpc.posServices.list.useQuery();
 
   // Sync cart to server for customer display
   useEffect(() => {
@@ -180,15 +181,16 @@ export default function POS() {
       barcode: p.barcode || `FIX-PRT-${String(p.id).padStart(5, '0')}`,
       imagen: p.imagen || undefined,
     })),
-    // Quick service items
-    { id: 'svc-1', tipo: 'servicio' as const, nombre: 'Diagnóstico', precio: 20, stock: 99, categoria: 'servicios' },
-    { id: 'svc-2', tipo: 'servicio' as const, nombre: 'Limpieza de dispositivo', precio: 15, stock: 99, categoria: 'servicios' },
-    { id: 'svc-3', tipo: 'servicio' as const, nombre: 'Cambio de batería', precio: 45, stock: 99, categoria: 'servicios' },
-    { id: 'svc-4', tipo: 'servicio' as const, nombre: 'Cambio de pantalla', precio: 80, stock: 99, categoria: 'servicios' },
-    { id: 'svc-5', tipo: 'servicio' as const, nombre: 'Desbloqueo de red', precio: 30, stock: 99, categoria: 'servicios' },
-    { id: 'svc-6', tipo: 'servicio' as const, nombre: 'Reparación de carga', precio: 35, stock: 99, categoria: 'servicios' },
-    { id: 'svc-7', tipo: 'servicio' as const, nombre: 'Recuperación de datos', precio: 60, stock: 99, categoria: 'servicios' },
-    { id: 'svc-8', tipo: 'servicio' as const, nombre: 'Actualización de software', precio: 25, stock: 99, categoria: 'servicios' },
+    // Services from database
+    ...(servicesQuery.data || []).filter((s: any) => s.activo).map((s: any) => ({
+      id: `svc-${s.id}`,
+      tipo: 'servicio' as const,
+      nombre: s.nombre,
+      precio: parseFloat(String(s.precio)),
+      stock: 99,
+      categoria: 'servicios',
+      imagen: s.imagen || undefined,
+    })),
   ];
 
   const filteredProducts = allProducts.filter(p => {

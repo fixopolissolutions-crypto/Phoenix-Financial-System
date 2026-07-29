@@ -27,6 +27,7 @@ import POSDisplay from './pages/POSDisplay';
 import POSHistorial from './pages/POSHistorial';
 import SeedInventoryParts from './pages/SeedInventoryParts';
 import SeedImages from './pages/SeedImages';
+import Servicios from './pages/Servicios';
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -114,6 +115,9 @@ function Router() {
       </Route>
       <Route path="/seed-images">
         {() => <ProtectedRoute component={SeedImages} />}
+      </Route>
+      <Route path="/servicios">
+        {() => <ProtectedRoute component={Servicios} />}
       </Route>
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />

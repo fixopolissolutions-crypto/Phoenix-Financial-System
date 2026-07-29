@@ -1032,6 +1032,72 @@ export const appRouter = router({
         return transaction;
       }),
   }),
+
+  posServices: router({
+    list: publicProcedure.query(async () => {
+      const mysql = await import('mysql2/promise');
+      const conn = await mysql.createConnection(process.env.DATABASE_URL!);
+      const [rows] = await conn.execute('SELECT * FROM pos_services ORDER BY id ASC');
+      conn.end();
+      return rows as any[];
+    }),
+
+    create: publicProcedure
+      .input(z.object({
+        nombre: z.string().min(1),
+        descripcion: z.string().optional(),
+        precio: z.number().min(0),
+        activo: z.boolean().optional().default(true),
+        imagen: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const mysql = await import('mysql2/promise');
+        const conn = await mysql.createConnection(process.env.DATABASE_URL!);
+        const [result] = await conn.execute(
+          'INSERT INTO pos_services (nombre, descripcion, precio, activo, imagen) VALUES (?, ?, ?, ?, ?)',
+          [input.nombre, input.descripcion || null, input.precio, input.activo ? 1 : 0, input.imagen || null]
+        ) as any;
+        conn.end();
+        return { id: result.insertId, ...input };
+      }),
+
+    update: publicProcedure
+      .input(z.object({
+        id: z.number(),
+        nombre: z.string().min(1).optional(),
+        descripcion: z.string().optional(),
+        precio: z.number().min(0).optional(),
+        activo: z.boolean().optional(),
+        imagen: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const mysql = await import('mysql2/promise');
+        const { id, ...fields } = input;
+        const sets: string[] = [];
+        const vals: any[] = [];
+        if (fields.nombre !== undefined) { sets.push('nombre = ?'); vals.push(fields.nombre); }
+        if (fields.descripcion !== undefined) { sets.push('descripcion = ?'); vals.push(fields.descripcion); }
+        if (fields.precio !== undefined) { sets.push('precio = ?'); vals.push(fields.precio); }
+        if (fields.activo !== undefined) { sets.push('activo = ?'); vals.push(fields.activo ? 1 : 0); }
+        if (fields.imagen !== undefined) { sets.push('imagen = ?'); vals.push(fields.imagen); }
+        if (sets.length === 0) return { success: true };
+        vals.push(id);
+        const conn = await mysql.createConnection(process.env.DATABASE_URL!);
+        await conn.execute(`UPDATE pos_services SET ${sets.join(', ')} WHERE id = ?`, vals);
+        conn.end();
+        return { success: true };
+      }),
+
+    delete: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const mysql = await import('mysql2/promise');
+        const conn = await mysql.createConnection(process.env.DATABASE_URL!);
+        await conn.execute('DELETE FROM pos_services WHERE id = ?', [input.id]);
+        conn.end();
+        return { success: true };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
