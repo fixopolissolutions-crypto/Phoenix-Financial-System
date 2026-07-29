@@ -33,6 +33,8 @@ export const appRouter = router({
           username: credential.username,
           tienda: credential.tienda,
           role: credential.tienda === 'admin' ? 'admin' : 'user',
+          rol: (credential as any).rol || 'admin',
+          nombre: (credential as any).nombre || credential.username,
           loginMethod: 'local'
         };
         

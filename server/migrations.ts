@@ -444,6 +444,22 @@ export async function applyMigrations() {
       console.log('[Migrations] ⚠️  Could not create pos_services:', error.message);
     }
 
+    // ─── Migración 16: Add rol and nombre columns to credentials ───────────────
+    try {
+      const [colCheck] = await connection.execute(
+        `SELECT COUNT(*) as cnt FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'credentials' AND column_name = 'rol'`
+      ) as any;
+      if (colCheck[0].cnt === 0) {
+        await connection.execute(`ALTER TABLE credentials ADD COLUMN rol ENUM('admin','cajero') NOT NULL DEFAULT 'admin' AFTER tienda`);
+        await connection.execute(`ALTER TABLE credentials ADD COLUMN nombre VARCHAR(100) NULL AFTER rol`);
+        console.log('[Migrations] ✅ Added rol and nombre columns to credentials');
+      } else {
+        console.log('[Migrations] ⏭️  credentials.rol already exists');
+      }
+    } catch (error: any) {
+      console.log('[Migrations] ⚠️  Could not add rol/nombre to credentials:', error.message);
+    }
+
     await connection.end();
     console.log('[Migrations] ✅ All migrations completed successfully');
     

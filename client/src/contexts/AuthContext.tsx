@@ -2,9 +2,11 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from '
 import { trpc } from '@/lib/trpc';
 
 interface UserData {
-  role: 'admin';
+  role: 'admin' | 'user';
+  rol: 'admin' | 'cajero';
   name: string;
   username: string;
+  tienda?: string;
 }
 
 interface AuthContextType {
@@ -13,6 +15,7 @@ interface AuthContextType {
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -43,10 +46,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await loginMutation.mutateAsync({ username, password });
       
       if (result.success && result.user) {
+        const r = result.user as any;
         const userData: UserData = {
-          role: 'admin' as const,
-          name: 'Fixopolis Solutions',
-          username: result.user.username,
+          role: (r.role as 'admin' | 'user') || 'user',
+          rol: (r.rol as 'admin' | 'cajero') || 'admin',
+          name: r.nombre || r.username || 'Usuario',
+          username: r.username,
+          tienda: r.tienda,
         };
         setUser(userData);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
@@ -64,8 +70,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(STORAGE_KEY);
   };
 
+  const isAdmin = user?.rol === 'admin' || !user?.rol; // default to admin for backwards compat
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, isLoading, isAdmin }}>
       {children}
     </AuthContext.Provider>
   );

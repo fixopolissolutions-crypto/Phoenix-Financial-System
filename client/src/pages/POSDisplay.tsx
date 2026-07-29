@@ -8,6 +8,7 @@ interface CartItem {
   precio: number;
   cantidad: number;
   subtotal: number;
+  imagen?: string;
 }
 
 interface DisplayState {
@@ -259,12 +260,22 @@ export default function POSDisplay() {
             </h2>
             <div className="space-y-3">
               {displayData.cart.map((item, idx) => (
-                <div key={idx} className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="font-semibold text-white">{item.nombre}</p>
+                <div key={idx} className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center gap-4">
+                  {/* Product image thumbnail */}
+                  <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-gray-800 flex items-center justify-center">
+                    {item.imagen ? (
+                      <img src={item.imagen} alt={item.nombre} className="w-full h-full object-contain" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center">
+                        <span className="text-orange-400 text-xs font-bold">{item.nombre.charAt(0)}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-white truncate">{item.nombre}</p>
                     <p className="text-sm text-gray-400">${item.precio.toFixed(2)} × {item.cantidad}</p>
                   </div>
-                  <span className="text-lg font-bold text-orange-400">${item.subtotal.toFixed(2)}</span>
+                  <span className="text-lg font-bold text-orange-400 flex-shrink-0">${item.subtotal.toFixed(2)}</span>
                 </div>
               ))}
             </div>

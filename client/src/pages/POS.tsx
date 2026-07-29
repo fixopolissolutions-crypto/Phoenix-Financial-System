@@ -59,6 +59,7 @@ export default function POS() {
   const [taxRate, setTaxRate] = useState(0.085);
   const [barcodeNotif, setBarcodeNotif] = useState<{message: string; success: boolean} | null>(null);
   // Barcode scanner detection
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const barcodeBufferRef = useRef('');
   const barcodeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -107,6 +108,34 @@ export default function POS() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // POS keyboard shortcuts
+  useEffect(() => {
+    const handleShortcuts = (e: KeyboardEvent) => {
+      // F1 → focus search bar
+      if (e.key === 'F1') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+        return;
+      }
+      // F10 → open payment (only if cart has items and payment modal is not open)
+      if (e.key === 'F10') {
+        e.preventDefault();
+        if (cart.length > 0 && !showPayment && !showSuccess) {
+          setShowPayment(true);
+        }
+        return;
+      }
+      // Escape → close payment modal or success modal
+      if (e.key === 'Escape') {
+        if (showPayment) setShowPayment(false);
+        return;
+      }
+    };
+    window.addEventListener('keydown', handleShortcuts);
+    return () => window.removeEventListener('keydown', handleShortcuts);
+  }, [cart, showPayment, showSuccess]);
 
   // Listen for barcode scan events to show notifications
   useEffect(() => {
@@ -345,8 +374,9 @@ export default function POS() {
           <div className="flex-1 relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
+              ref={searchInputRef}
               type="text"
-              placeholder="Buscar producto o servicio..."
+              placeholder="Buscar producto o servicio... (F1)"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-orange-500"
@@ -540,6 +570,7 @@ export default function POS() {
           >
             <CreditCard size={16} />
             Cobrar ${total.toFixed(2)}
+            <span className="ml-auto text-xs opacity-60 font-normal">F10</span>
           </button>
         </div>
       </div>

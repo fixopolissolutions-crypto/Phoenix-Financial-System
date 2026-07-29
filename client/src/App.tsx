@@ -25,8 +25,6 @@ import Servidor from './pages/Servidor';
 import POS from './pages/POS';
 import POSDisplay from './pages/POSDisplay';
 import POSHistorial from './pages/POSHistorial';
-import SeedInventoryParts from './pages/SeedInventoryParts';
-import SeedImages from './pages/SeedImages';
 import Servicios from './pages/Servicios';
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -110,12 +108,6 @@ function Router() {
         {() => <ProtectedRoute component={POSHistorial} />}
       </Route>
       <Route path="/pos/display" component={POSDisplay} />
-      <Route path="/seed-parts">
-        {() => <ProtectedRoute component={SeedInventoryParts} />}
-      </Route>
-      <Route path="/seed-images">
-        {() => <ProtectedRoute component={SeedImages} />}
-      </Route>
       <Route path="/servicios">
         {() => <ProtectedRoute component={Servicios} />}
       </Route>

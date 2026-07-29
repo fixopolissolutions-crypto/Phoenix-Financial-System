@@ -38,15 +38,16 @@ const navGroups = [
   {
     label: 'OPERACIONES',
     items: [
-      { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-      { name: 'Reparaciones', href: '/reparaciones', icon: Wrench },
-      { name: 'Servidor', href: '/servidor', icon: Server },
+      { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, adminOnly: true },
+      { name: 'Reparaciones', href: '/reparaciones', icon: Wrench, adminOnly: true },
+      { name: 'Servidor', href: '/servidor', icon: Server, adminOnly: true },
       { name: 'Punto de Venta', href: '/pos', icon: ShoppingCart },
       { name: 'Historial POS', href: '/pos/historial', icon: Receipt },
     ],
   },
   {
     label: 'FINANZAS',
+    adminOnly: true,
     items: [
       { name: 'Ingresos', href: '/ingresos', icon: TrendingUp },
       { name: 'Gastos', href: '/gastos', icon: TrendingDown },
@@ -58,6 +59,7 @@ const navGroups = [
   },
   {
     label: 'INVENTARIO',
+    adminOnly: true,
     items: [
       { name: 'Partes', href: '/inventario/partes', icon: Package, lowStockKey: 'parts' },
       { name: 'Accesorios', href: '/inventario/accesorios', icon: Package, lowStockKey: 'accessories' },
@@ -67,6 +69,7 @@ const navGroups = [
   },
   {
     label: 'ADMINISTRACIÓN',
+    adminOnly: true,
     items: [
       { name: 'Nómina', href: '/nomina', icon: Wallet },
       { name: 'Config. Tienda', href: '/configuracion-tienda', icon: Store },
@@ -76,7 +79,7 @@ const navGroups = [
 ];
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const [location, setLocation] = useLocation();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState('');
@@ -138,13 +141,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
         {/* Navigation Groups */}
         <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
-          {navGroups.map((group) => (
+          {navGroups.filter(g => isAdmin || !(g as any).adminOnly).map((group) => {
+            const visibleItems = group.items.filter(item => isAdmin || !(item as any).adminOnly);
+            if (visibleItems.length === 0) return null;
+            return (
             <div key={group.label}>
               <p className="text-xs font-semibold text-slate-500 px-2 mb-2 tracking-wider">
                 {group.label}
               </p>
               <div className="space-y-0.5">
-                {group.items.map((item) => {
+                {visibleItems.map((item) => {
                   const isActive = location === item.href;
                   const lowStock = (item as any).lowStockKey ? lowStockCounts[(item as any).lowStockKey as keyof typeof lowStockCounts] : 0;
                   return (
@@ -172,7 +178,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 })}
               </div>
             </div>
-          ))}
+            );
+          })}
         </nav>
 
         {/* User & Logout */}
@@ -185,7 +192,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-white text-xs font-semibold truncate">{user.name}</p>
-              <p className="text-slate-400 text-xs truncate">Administrador</p>
+              <p className="text-slate-400 text-xs truncate">{isAdmin ? 'Administrador' : 'Cajero'}</p>
             </div>
           </div>
           <button
@@ -244,6 +251,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           {children}
         </main>
       </div>
+
+      {/* Floating POS quick-access button (hidden when already on /pos) */}
+      {location !== '/pos' && (
+        <button
+          onClick={() => setLocation('/pos')}
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-orange-500 hover:bg-orange-600 active:scale-95 text-white font-bold px-4 py-3 rounded-2xl shadow-lg shadow-orange-500/30 transition-all"
+          title="Ir al Punto de Venta"
+        >
+          <ShoppingCart size={20} />
+          <span className="text-sm">POS</span>
+        </button>
+      )}
     </div>
   );
 }

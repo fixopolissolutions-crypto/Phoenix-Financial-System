@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Plus, Pencil, Trash2, Wrench, DollarSign, ToggleLeft, ToggleRight, Image as ImageIcon } from "lucide-react";
+import ImagePickerModal from "@/components/ImagePickerModal";
 
 interface Service {
   id: number;
@@ -37,6 +38,7 @@ export default function Servicios() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<ServiceFormData>(EMPTY_FORM);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [showImagePicker, setShowImagePicker] = useState(false);
 
   const openCreate = () => {
     setEditingId(null);
@@ -269,17 +271,30 @@ export default function Servicios() {
               <div>
                 <label className="block text-sm text-gray-400 mb-1">
                   <ImageIcon size={14} className="inline mr-1" />
-                  URL de imagen (opcional)
+                  Imagen del servicio
                 </label>
-                <input
-                  type="text"
-                  value={form.imagen}
-                  onChange={e => setForm(f => ({ ...f, imagen: e.target.value }))}
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
-                  placeholder="https://..."
-                />
+                <button
+                  type="button"
+                  onClick={() => setShowImagePicker(true)}
+                  className="w-full h-24 bg-gray-700 border-2 border-dashed border-gray-600 hover:border-orange-500 rounded-lg flex flex-col items-center justify-center gap-1 transition-colors overflow-hidden"
+                >
+                  {form.imagen ? (
+                    <img src={form.imagen} alt="preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <>
+                      <ImageIcon size={20} className="text-gray-400" />
+                      <span className="text-xs text-gray-400">Seleccionar imagen</span>
+                    </>
+                  )}
+                </button>
                 {form.imagen && (
-                  <img src={form.imagen} alt="preview" className="mt-2 h-16 w-full object-cover rounded-lg" />
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, imagen: '' }))}
+                    className="mt-1 text-xs text-red-400 hover:text-red-300"
+                  >
+                    Quitar imagen
+                  </button>
                 )}
               </div>
 
@@ -338,6 +353,18 @@ export default function Servicios() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Image Picker Modal */}
+      {showImagePicker && (
+        <ImagePickerModal
+          currentImage={form.imagen || null}
+          onSelect={(url) => {
+            setForm(f => ({ ...f, imagen: url }));
+            setShowImagePicker(false);
+          }}
+          onClose={() => setShowImagePicker(false)}
+        />
       )}
     </div>
   );

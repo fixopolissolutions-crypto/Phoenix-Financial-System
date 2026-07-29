@@ -158,6 +158,8 @@ export const credentials = mysqlTable("credentials", {
   username: varchar("username", { length: 50 }).notNull().unique(),
   password: varchar("password", { length: 255 }).notNull(),
   tienda: mysqlEnum("tienda", ["admin", "sucursal"]).default("admin").notNull(),
+  rol: mysqlEnum("rol", ["admin", "cajero"]).default("admin").notNull(),
+  nombre: varchar("nombre", { length: 100 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

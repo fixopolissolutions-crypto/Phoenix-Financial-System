@@ -226,6 +226,7 @@ export default function POSHistorial() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [customerProfile, setCustomerProfile] = useState<string | null>(null); // nombre del cliente para ver perfil
 
   const query = trpc.pos.search.useQuery({
     search: search || undefined,
@@ -393,16 +394,20 @@ export default function POSHistorial() {
                   {/* Client */}
                   <div className="flex-1 min-w-0">
                     {tx.clienteNombre ? (
-                      <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setCustomerProfile(tx.clienteNombre!); }}
+                        className="flex items-center gap-2 hover:opacity-80 transition-opacity text-left w-full"
+                        title="Ver perfil del cliente"
+                      >
                         <div className="w-7 h-7 bg-orange-500/20 rounded-full flex items-center justify-center flex-shrink-0">
                           <User size={12} className="text-orange-400" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-white text-sm font-medium truncate">{tx.clienteNombre}</p>
+                          <p className="text-white text-sm font-medium truncate underline decoration-dotted underline-offset-2">{tx.clienteNombre}</p>
                           {tx.clienteEmail && <p className="text-gray-500 text-xs truncate">{tx.clienteEmail}</p>}
                           {tx.clienteTelefono && !tx.clienteEmail && <p className="text-gray-500 text-xs">{tx.clienteTelefono}</p>}
                         </div>
-                      </div>
+                      </button>
                     ) : (
                       <span className="text-gray-600 text-sm italic">Sin nombre</span>
                     )}
@@ -481,6 +486,82 @@ export default function POSHistorial() {
 
       {/* Detail modal */}
       {selectedTx && <DetailModal tx={selectedTx} onClose={() => setSelectedTx(null)} />}
+
+      {/* Customer Profile Modal */}
+      {customerProfile && (() => {
+        const clientTxs = transactions.filter(t => t.clienteNombre === customerProfile);
+        const clientTotal = clientTxs.reduce((s, t) => s + t.total, 0);
+        const firstTx = clientTxs[clientTxs.length - 1];
+        const lastTx = clientTxs[0];
+        return (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-lg max-h-[85vh] flex flex-col">
+              {/* Header */}
+              <div className="p-6 border-b border-gray-800 flex items-start justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-orange-500/20 rounded-full flex items-center justify-center border-2 border-orange-500/40">
+                    <User size={24} className="text-orange-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-white">{customerProfile}</h2>
+                    {firstTx?.clienteEmail && <p className="text-gray-400 text-sm">{firstTx.clienteEmail}</p>}
+                    {firstTx?.clienteTelefono && <p className="text-gray-400 text-sm">{firstTx.clienteTelefono}</p>}
+                  </div>
+                </div>
+                <button onClick={() => setCustomerProfile(null)} className="text-gray-500 hover:text-white p-1">
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-3 p-4 border-b border-gray-800">
+                <div className="bg-gray-800 rounded-xl p-3 text-center">
+                  <p className="text-2xl font-bold text-white">{clientTxs.length}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Visitas</p>
+                </div>
+                <div className="bg-gray-800 rounded-xl p-3 text-center">
+                  <p className="text-2xl font-bold text-orange-400">${clientTotal.toFixed(2)}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Total gastado</p>
+                </div>
+                <div className="bg-gray-800 rounded-xl p-3 text-center">
+                  <p className="text-2xl font-bold text-white">${(clientTotal / clientTxs.length).toFixed(2)}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Ticket prom.</p>
+                </div>
+              </div>
+
+              {/* Dates */}
+              {firstTx && lastTx && (
+                <div className="px-4 py-2 border-b border-gray-800 flex justify-between text-xs text-gray-500">
+                  <span>Primera visita: <span className="text-gray-300">{formatDateShort(firstTx.createdAt)}</span></span>
+                  <span>Última visita: <span className="text-gray-300">{formatDateShort(lastTx.createdAt)}</span></span>
+                </div>
+              )}
+
+              {/* Transaction list */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Historial de compras</p>
+                {clientTxs.map(t => (
+                  <div
+                    key={t.id}
+                    onClick={() => { setCustomerProfile(null); setSelectedTx(t); }}
+                    className="bg-gray-800 hover:bg-gray-750 border border-gray-700 rounded-xl p-3 cursor-pointer flex items-center justify-between gap-3"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="font-mono text-orange-400 text-xs">{t.codigo}</span>
+                        <MetodoBadge metodo={t.metodoPago} />
+                      </div>
+                      <p className="text-gray-400 text-xs truncate">{t.items.map(i => i.nombre).join(', ')}</p>
+                      <p className="text-gray-600 text-xs">{formatDate(t.createdAt)}</p>
+                    </div>
+                    <span className="text-white font-bold flex-shrink-0">${t.total.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </DashboardLayout>
   );
 }
