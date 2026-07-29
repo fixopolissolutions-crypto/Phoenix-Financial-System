@@ -327,6 +327,80 @@ export async function applyMigrations() {
       }
     }
 
+    // Migración 14: Recrear inventory_parts e inventory_accessories con el esquema correcto
+    // (si existen con el esquema antiguo que no tiene codigo, precioCompraUnitario, etc.)
+    try {
+      const [partsColumns] = await connection.execute(`SHOW COLUMNS FROM inventory_parts`) as any;
+      const partsColNames = partsColumns.map((c: any) => c.Field);
+      const hasNewSchema = partsColNames.includes('codigo') && partsColNames.includes('precioCompraUnitario');
+      if (!hasNewSchema) {
+        console.log('[Migrations] 🔄 inventory_parts has old schema, recreating with new schema...');
+        // Renombrar tabla vieja como backup
+        await connection.execute(`RENAME TABLE inventory_parts TO inventory_parts_old_backup`).catch(() => {});
+        // Crear tabla nueva con esquema correcto
+        await connection.execute(`
+          CREATE TABLE IF NOT EXISTS inventory_parts (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            codigo VARCHAR(50) NOT NULL,
+            nombre VARCHAR(200) NOT NULL,
+            categoria VARCHAR(100) NULL,
+            compatibilidad TEXT NULL,
+            precioCompraUnitario DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+            cantidadInicial INT NOT NULL DEFAULT 0,
+            cantidadActual INT NOT NULL DEFAULT 0,
+            cantidadUsada INT NOT NULL DEFAULT 0,
+            stockMinimo INT NOT NULL DEFAULT 2,
+            tienda ENUM('admin','sucursal') NOT NULL DEFAULT 'admin',
+            activo INT NOT NULL DEFAULT 1,
+            imagen VARCHAR(500) NULL,
+            barcode VARCHAR(100) NULL,
+            createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY codigo_tienda_idx (codigo, tienda)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        console.log('[Migrations] ✅ Recreated inventory_parts with new schema');
+      } else {
+        console.log('[Migrations] ⏭️  inventory_parts already has new schema');
+      }
+    } catch (error: any) {
+      console.log('[Migrations] ⚠️  Could not check/recreate inventory_parts:', error.message);
+    }
+    try {
+      const [accColumns] = await connection.execute(`SHOW COLUMNS FROM inventory_accessories`) as any;
+      const accColNames = accColumns.map((c: any) => c.Field);
+      const hasNewSchema = accColNames.includes('codigo') && accColNames.includes('precioCompraUnitario');
+      if (!hasNewSchema) {
+        console.log('[Migrations] 🔄 inventory_accessories has old schema, recreating with new schema...');
+        await connection.execute(`RENAME TABLE inventory_accessories TO inventory_accessories_old_backup`).catch(() => {});
+        await connection.execute(`
+          CREATE TABLE IF NOT EXISTS inventory_accessories (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            codigo VARCHAR(50) NOT NULL UNIQUE,
+            nombre VARCHAR(200) NOT NULL,
+            categoria VARCHAR(100) NULL,
+            precioCompraUnitario DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+            precioVentaUnitario DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+            cantidadInicial INT NOT NULL DEFAULT 0,
+            cantidadActual INT NOT NULL DEFAULT 0,
+            cantidadVendida INT NOT NULL DEFAULT 0,
+            stockMinimo INT NOT NULL DEFAULT 5,
+            tienda ENUM('admin','sucursal') NOT NULL DEFAULT 'admin',
+            activo INT NOT NULL DEFAULT 1,
+            imagen VARCHAR(500) NULL,
+            barcode VARCHAR(100) NULL,
+            createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        console.log('[Migrations] ✅ Recreated inventory_accessories with new schema');
+      } else {
+        console.log('[Migrations] ⏭️  inventory_accessories already has new schema');
+      }
+    } catch (error: any) {
+      console.log('[Migrations] ⚠️  Could not check/recreate inventory_accessories:', error.message);
+    }
+
     await connection.end();
     console.log('[Migrations] ✅ All migrations completed successfully');
     

@@ -610,6 +610,46 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         return await db.updateInventoryPart(input.id, { imagen: input.imagen ?? undefined });
       }),
+    bulkImport: publicProcedure
+      .input(z.array(z.object({
+        codigo: z.string(),
+        nombre: z.string(),
+        categoria: z.string().optional(),
+        compatibilidad: z.string().optional(),
+        precioCompraUnitario: z.string(),
+        cantidadInicial: z.number().default(0),
+        stockMinimo: z.number().default(2),
+        imagen: z.string().optional(),
+      })))
+      .mutation(async ({ input, ctx }) => {
+        const tienda = (ctx.user?.tienda || 'admin') as 'admin' | 'sucursal';
+        const results = { created: 0, skipped: 0, errors: [] as string[] };
+        for (const item of input) {
+          try {
+            await db.createInventoryPart({
+              codigo: item.codigo,
+              nombre: item.nombre,
+              categoria: item.categoria || '',
+              compatibilidad: item.compatibilidad,
+              precioCompraUnitario: item.precioCompraUnitario,
+              cantidadInicial: item.cantidadInicial,
+              cantidadActual: item.cantidadInicial,
+              cantidadUsada: 0,
+              stockMinimo: item.stockMinimo,
+              tienda,
+              activo: 1,
+            });
+            results.created++;
+          } catch (error: any) {
+            if (error.code === 'ER_DUP_ENTRY' || error.message?.includes('Duplicate entry')) {
+              results.skipped++;
+            } else {
+              results.errors.push(`${item.codigo}: ${error.message}`);
+            }
+          }
+        }
+        return results;
+      }),
   }),
 
   // ==================== REPAIRS ====================

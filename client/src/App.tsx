@@ -25,6 +25,7 @@ import Servidor from './pages/Servidor';
 import POS from './pages/POS';
 import POSDisplay from './pages/POSDisplay';
 import POSHistorial from './pages/POSHistorial';
+import SeedInventoryParts from './pages/SeedInventoryParts';
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated } = useAuth();
@@ -95,6 +96,9 @@ function Router() {
         {() => <ProtectedRoute component={POSHistorial} />}
       </Route>
       <Route path="/pos/display" component={POSDisplay} />
+      <Route path="/seed-parts">
+        {() => <ProtectedRoute component={SeedInventoryParts} />}
+      </Route>
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
