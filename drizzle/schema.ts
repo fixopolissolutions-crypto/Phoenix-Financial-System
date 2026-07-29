@@ -267,6 +267,9 @@ export const repairs = mysqlTable("repairs", {
   tienda: mysqlEnum("tienda", ["admin", "sucursal"]).default("admin").notNull(),
   pagado: int("pagado").default(0).notNull(), // 0 = no pagado, 1 = pagado
   notas: text("notas"),
+  tecnico: varchar("tecnico", { length: 200 }),
+  garantiaDias: int("garantiaDias").default(30).notNull(),
+  garantiaVence: timestamp("garantiaVence"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

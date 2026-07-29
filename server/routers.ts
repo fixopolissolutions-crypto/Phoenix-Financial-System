@@ -731,11 +731,16 @@ export const appRouter = router({
         fechaCompletado: z.string().optional(),
         fechaEntrega: z.string().optional(),
         notas: z.string().optional(),
+        tecnico: z.string().optional(),
+        garantiaDias: z.number().optional(),
+        garantiaVence: z.string().optional(),
+        pagado: z.number().optional(),
       }))
       .mutation(async ({ input }) => {
         const updateData: any = { ...input };
         if (input.fechaCompletado) updateData.fechaCompletado = new Date(input.fechaCompletado);
         if (input.fechaEntrega) updateData.fechaEntrega = new Date(input.fechaEntrega);
+        if (input.garantiaVence) updateData.garantiaVence = new Date(input.garantiaVence);
         return await db.updateRepair(input.id, updateData);
       }),
 

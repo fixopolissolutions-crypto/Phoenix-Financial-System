@@ -1109,6 +1109,22 @@ export async function updateRepair(id: number, data: Partial<InsertRepair>) {
       updates.push('notas = ?');
       values.push(data.notas);
     }
+    if ((data as any).tecnico !== undefined) {
+      updates.push('tecnico = ?');
+      values.push((data as any).tecnico);
+    }
+    if ((data as any).garantiaDias !== undefined) {
+      updates.push('garantiaDias = ?');
+      values.push((data as any).garantiaDias);
+    }
+    if ((data as any).garantiaVence !== undefined) {
+      updates.push('garantiaVence = ?');
+      values.push((data as any).garantiaVence);
+    }
+    if ((data as any).pagado !== undefined) {
+      updates.push('pagado = ?');
+      values.push((data as any).pagado);
+    }
     
     if (updates.length > 0) {
       values.push(id);

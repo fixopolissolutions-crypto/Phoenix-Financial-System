@@ -460,6 +460,16 @@ export async function applyMigrations() {
       console.log('[Migrations] ⚠️  Could not add rol/nombre to credentials:', error.message);
     }
 
+    // ─── Migración 17: Add tecnico, garantiaDias, garantiaVence to repairs ─────
+    try {
+      await connection.execute(`ALTER TABLE repairs ADD COLUMN tecnico VARCHAR(200) NULL`);
+      await connection.execute(`ALTER TABLE repairs ADD COLUMN garantiaDias INT NOT NULL DEFAULT 30`);
+      await connection.execute(`ALTER TABLE repairs ADD COLUMN garantiaVence TIMESTAMP NULL`);
+      console.log('[Migrations] ✅ Added tecnico, garantiaDias, garantiaVence to repairs');
+    } catch (error: any) {
+      console.log('[Migrations] ⏭️  repairs tecnico/garantia columns already exist:', error.message);
+    }
+
     await connection.end();
     console.log('[Migrations] ✅ All migrations completed successfully');
     
