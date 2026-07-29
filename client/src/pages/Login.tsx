@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
@@ -10,13 +10,32 @@ import { toast } from 'sonner';
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { login, isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
+
+  // Si ya está autenticado (sesión guardada en localStorage), redirigir al dashboard
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      setLocation('/dashboard');
+    }
+  }, [isAuthenticated, isLoading]);
+
+  // Mientras se verifica la sesión guardada, mostrar spinner
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-950">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-gray-400 text-sm">Verificando sesión...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsSubmitting(true);
     
     try {
       const success = await login(username, password);
@@ -29,7 +48,7 @@ export default function Login() {
     } catch (error) {
       toast.error('Error al iniciar sesión');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -58,7 +77,7 @@ export default function Login() {
                 className="pl-10"
                 placeholder="Ingresa tu usuario"
                 required
-                disabled={isLoading}
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -74,13 +93,13 @@ export default function Login() {
                 className="pl-10"
                 placeholder="••••••••"
                 required
-                disabled={isLoading}
+                disabled={isSubmitting}
               />
             </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? (
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Iniciando...

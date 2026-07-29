@@ -28,8 +28,20 @@ import POSHistorial from './pages/POSHistorial';
 import SeedInventoryParts from './pages/SeedInventoryParts';
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   
+  // Esperar a que se lea el localStorage antes de redirigir
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-950">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-gray-400 text-sm">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return <Redirect to="/" />;
   }
