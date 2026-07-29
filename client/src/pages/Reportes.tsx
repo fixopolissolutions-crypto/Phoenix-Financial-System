@@ -374,6 +374,90 @@ export default function Reportes() {
     }
   };
 
+  const handleDownloadExcel = (tipo: 'admin' | 'sucursal' | 'general') => {
+    const fecha = new Date().toISOString().split('T')[0];
+    let titulo: string;
+    let reportData: any;
+    if (tipo === 'admin') {
+      titulo = 'Fixopolis Solutions';
+      reportData = data.admin;
+    } else if (tipo === 'sucursal') {
+      titulo = 'Fixopolis Downtown';
+      reportData = data.sucursal;
+    } else {
+      titulo = 'Reporte General';
+      reportData = data.general;
+    }
+
+    // Build summary sheet rows
+    const rows: any[][] = [
+      ['Reporte Semanal - ' + titulo],
+      ['Generado:', fecha],
+      [],
+      ['Concepto', 'Monto'],
+      ['Total Ingresos', reportData.totalIngresos],
+      ['Total Gastos', reportData.totalGastos],
+      [`Impuestos (${data.config.taxRate}%)`, reportData.totalTax],
+      ['Ingreso Neto', reportData.totalNeto],
+      ['Transacciones', reportData.transacciones],
+    ];
+
+    if (tipo !== 'general') {
+      rows.push(
+        [],
+        ['Detalle por Método', 'Efectivo', 'Banco'],
+        ['Ingresos', reportData.ingresoEfectivo, reportData.ingresoBanco],
+        ['Gastos', reportData.gastoEfectivo, reportData.gastoBanco],
+        ['Impuestos', reportData.taxEfectivo, reportData.taxBanco],
+        ['Neto', reportData.netoEfectivo, reportData.netoBanco],
+        [],
+        ['Distribución de Fondos', 'Efectivo', 'Banco'],
+        [`Ahorro (${data.config.porcentajeAhorro}%)`, reportData.distribucionEfectivo?.ahorro, reportData.distribucionBanco?.ahorro],
+        [`Inversión (${data.config.porcentajeInversion}%)`, reportData.distribucionEfectivo?.inversion, reportData.distribucionBanco?.inversion],
+        [`Emergencia (${data.config.porcentajeEmergencia}%)`, reportData.distribucionEfectivo?.emergencia, reportData.distribucionBanco?.emergencia],
+        [`Disponible (${data.config.porcentajeDisponible}%)`, reportData.distribucionEfectivo?.disponible, reportData.distribucionBanco?.disponible],
+      );
+
+      if (reportData.payrollRecords?.length > 0) {
+        rows.push([], ['Nómina Pagada', 'Empleado', 'Método', 'Monto']);
+        for (const pago of reportData.payrollRecords) {
+          const empleado = empleados.find((e: any) => e.id === pago.employeeId);
+          rows.push(['', empleado?.nombre || 'Desconocido', pago.metodo, parseFloat(pago.monto)]);
+        }
+        rows.push(['', 'TOTAL NÓMINA', '', reportData.nominaTotal]);
+      }
+    }
+
+    // Build HTML table for Excel
+    let html = '<html><head><meta charset="UTF-8"></head><body>';
+    html += '<table border="1" style="border-collapse:collapse;font-family:Arial">';
+    for (const row of rows) {
+      if (row.length === 0) { html += '<tr><td>&nbsp;</td></tr>'; continue; }
+      html += '<tr>';
+      for (let i = 0; i < row.length; i++) {
+        const cell = row[i];
+        const isHeader = i === 0 && row.length === 1;
+        const isColHeader = row.length > 1 && i === 0 && typeof cell === 'string' && (cell.includes('Concepto') || cell.includes('Detalle') || cell.includes('Distribución') || cell.includes('Nómina'));
+        const bg = isHeader ? '#1E3A5F' : isColHeader ? '#2563EB' : '#FFFFFF';
+        const color = (isHeader || isColHeader) ? '#FFFFFF' : '#000000';
+        const bold = (isHeader || isColHeader) ? 'bold' : 'normal';
+        const val = typeof cell === 'number' ? cell.toFixed(2) : (cell ?? '');
+        html += `<td style="background:${bg};color:${color};font-weight:${bold};padding:6px 10px">${val}</td>`;
+      }
+      html += '</tr>';
+    }
+    html += '</table></body></html>';
+
+    const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Reporte_${tipo}_${fecha}.xls`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success('Reporte Excel descargado exitosamente');
+  };
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -468,15 +552,25 @@ export default function Reportes() {
                 <Building2 className="h-5 w-5 text-blue-600" />
                 Fixopolis Solutions (Principal)
               </h3>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => handleDownloadPDF('admin')}
-                disabled={generatingReport}
-              >
-                {generatingReport ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-                Descargar
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handleDownloadExcel('admin')}
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  Excel
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handleDownloadPDF('admin')}
+                  disabled={generatingReport}
+                >
+                  {generatingReport ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
+                  PDF
+                </Button>
+              </div>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between p-3 bg-green-50 rounded-lg">
@@ -509,15 +603,25 @@ export default function Reportes() {
                 <Store className="h-5 w-5 text-orange-600" />
                 Fixopolis Solutions Sucursal
               </h3>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => handleDownloadPDF('sucursal')}
-                disabled={generatingReport}
-              >
-                {generatingReport ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-                Descargar
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handleDownloadExcel('sucursal')}
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  Excel
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handleDownloadPDF('sucursal')}
+                  disabled={generatingReport}
+                >
+                  {generatingReport ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
+                  PDF
+                </Button>
+              </div>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between p-3 bg-green-50 rounded-lg">
@@ -557,13 +661,22 @@ export default function Reportes() {
                   Incluye datos de ambas tiendas
                 </p>
               </div>
-              <Button 
-                onClick={() => handleDownloadPDF('general')}
-                disabled={generatingReport}
-              >
-                {generatingReport ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
-                Generar Reporte General
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline"
+                  onClick={() => handleDownloadExcel('general')}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Excel General
+                </Button>
+                <Button 
+                  onClick={() => handleDownloadPDF('general')}
+                  disabled={generatingReport}
+                >
+                  {generatingReport ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+                  PDF General
+                </Button>
+              </div>
             </div>
           </Card>
         )}

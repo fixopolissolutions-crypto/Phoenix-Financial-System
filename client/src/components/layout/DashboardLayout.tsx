@@ -25,10 +25,13 @@ import {
   Flame,
   ShoppingCart,
   Scissors,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { useMemo, useState, useEffect } from 'react';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -83,6 +86,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [location, setLocation] = useLocation();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState('');
+  const { theme, toggleTheme } = useTheme();
+  const darkMode = theme === 'dark';
 
   // Real-time clock
   useEffect(() => {
@@ -228,11 +233,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
           </div>
 
-          {/* Right side: clock + notifications */}
+          {/* Right side: clock + dark mode + notifications */}
           <div className="flex items-center gap-3 ml-auto">
             <span className="text-sm font-mono font-semibold text-gray-700 hidden md:block">
               {formattedTime}
             </span>
+            {/* Dark Mode Toggle */}
+            <button
+              onClick={toggleTheme}
+              className="w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 flex items-center justify-center transition-colors"
+              title={darkMode ? 'Modo claro' : 'Modo oscuro'}
+            >
+              {darkMode ? <Sun className="w-4 h-4 text-yellow-500" /> : <Moon className="w-4 h-4 text-gray-600" />}
+            </button>
             <div className="relative">
               <button className="w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
                 <Bell className="w-4 h-4 text-gray-600" />
