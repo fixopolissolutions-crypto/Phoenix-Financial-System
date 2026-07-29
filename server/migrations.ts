@@ -335,8 +335,12 @@ export async function applyMigrations() {
       const hasNewSchema = partsColNames.includes('codigo') && partsColNames.includes('precioCompraUnitario');
       if (!hasNewSchema) {
         console.log('[Migrations] 🔄 inventory_parts has old schema, recreating with new schema...');
-        // Renombrar tabla vieja como backup
-        await connection.execute(`RENAME TABLE inventory_parts TO inventory_parts_old_backup`).catch(() => {});
+        // Eliminar backup anterior si existe, luego renombrar tabla vieja
+        await connection.execute(`DROP TABLE IF EXISTS inventory_parts_old_backup`).catch(() => {});
+        await connection.execute(`RENAME TABLE inventory_parts TO inventory_parts_old_backup`).catch(async () => {
+          // Si falla el rename, forzar drop directo
+          await connection.execute(`DROP TABLE IF EXISTS inventory_parts`);
+        });
         // Crear tabla nueva con esquema correcto
         await connection.execute(`
           CREATE TABLE IF NOT EXISTS inventory_parts (
@@ -372,7 +376,10 @@ export async function applyMigrations() {
       const hasNewSchema = accColNames.includes('codigo') && accColNames.includes('precioCompraUnitario');
       if (!hasNewSchema) {
         console.log('[Migrations] 🔄 inventory_accessories has old schema, recreating with new schema...');
-        await connection.execute(`RENAME TABLE inventory_accessories TO inventory_accessories_old_backup`).catch(() => {});
+        await connection.execute(`DROP TABLE IF EXISTS inventory_accessories_old_backup`).catch(() => {});
+        await connection.execute(`RENAME TABLE inventory_accessories TO inventory_accessories_old_backup`).catch(async () => {
+          await connection.execute(`DROP TABLE IF EXISTS inventory_accessories`);
+        });
         await connection.execute(`
           CREATE TABLE IF NOT EXISTS inventory_accessories (
             id INT AUTO_INCREMENT PRIMARY KEY,
