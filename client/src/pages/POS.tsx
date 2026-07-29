@@ -419,26 +419,29 @@ export default function POS() {
                 onClick={() => addToCart(product)}
                 className="bg-gray-900 hover:bg-gray-800 border border-gray-800 hover:border-orange-500/50 rounded-xl p-3 text-left transition-all group"
               >
-                {/* Product image */}
-                {(product as any).imagen ? (
-                  <div className="w-full h-28 mb-2 rounded-lg overflow-hidden bg-white">
-                    <img src={(product as any).imagen} alt={product.nombre} className="w-full h-full object-contain p-1" />
+                {/* Card layout: text left, image right */}
+                <div className="flex items-start gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs mb-1.5 ${tipoColors[product.tipo]}`}>
+                      {product.tipo}
+                    </div>
+                    <p className="text-xs font-semibold text-white leading-tight line-clamp-3 mb-2">{product.nombre}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-orange-400 font-bold text-sm">${product.precio.toFixed(2)}</span>
+                      <div className="w-5 h-5 bg-orange-500/20 group-hover:bg-orange-500 rounded-full flex items-center justify-center transition-colors flex-shrink-0">
+                        <Plus size={10} className="text-orange-400 group-hover:text-white" />
+                      </div>
+                    </div>
+                    {product.stock < 5 && product.stock < 99 && (
+                      <p className="text-xs text-yellow-500 mt-1">Stock: {product.stock}</p>
+                    )}
                   </div>
-                ) : (
-                  <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs mb-2 ${tipoColors[product.tipo]}`}>
-                    {product.tipo}
-                  </div>
-                )}
-                <p className="text-sm font-medium text-white leading-tight mb-1 line-clamp-2">{product.nombre}</p>
-                <div className="flex items-center justify-between mt-2">
-                  <span className="text-orange-400 font-bold text-sm">${product.precio.toFixed(2)}</span>
-                  <div className="w-6 h-6 bg-orange-500/20 group-hover:bg-orange-500 rounded-full flex items-center justify-center transition-colors">
-                    <Plus size={12} className="text-orange-400 group-hover:text-white" />
-                  </div>
+                  {(product as any).imagen && (
+                    <div className="w-14 h-14 rounded-lg overflow-hidden bg-white flex-shrink-0">
+                      <img src={(product as any).imagen} alt={product.nombre} className="w-full h-full object-contain p-0.5" />
+                    </div>
+                  )}
                 </div>
-                {product.stock < 5 && product.stock < 99 && (
-                  <p className="text-xs text-yellow-500 mt-1">Stock: {product.stock}</p>
-                )}
               </button>
             ))}
             {filteredProducts.length === 0 && (
