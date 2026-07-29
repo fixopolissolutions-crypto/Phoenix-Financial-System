@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import {
   DollarSign, TrendingUp, TrendingDown, Activity, Receipt, Landmark,
   Loader2, Wallet, Wrench, Plus, Minus, ArrowUpRight, ArrowDownRight,
-  ChevronRight,
+  ChevronRight, AlertTriangle, Package, UserCog, ShoppingCart,
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { useMemo, useEffect, useState } from 'react';
@@ -39,6 +39,9 @@ export default function Dashboard() {
 
   const { data: reparaciones = [] } = trpc.repairs.list.useQuery();
   const { data: configData = {} } = trpc.config.getAll.useQuery();
+  const { data: topProducts = [] } = trpc.dashboardStats.topProducts.useQuery({ limit: 8 });
+  const { data: topTechnicians = [] } = trpc.dashboardStats.topTechnicians.useQuery();
+  const { data: stockBajo = [] } = trpc.dashboardStats.stockBajo.useQuery();
 
   useEffect(() => {
     const checkMidnight = setInterval(() => {
@@ -521,6 +524,84 @@ export default function Dashboard() {
                   <Legend wrapperStyle={{ fontSize: '11px' }} />
                 </PieChart>
               </ResponsiveContainer>
+            </div>
+          </Card>
+        )}
+
+        {/* Top Productos + Top Técnicos */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Top Productos más vendidos */}
+          <Card className="p-5 border-0 shadow-sm bg-white">
+            <div className="flex items-center gap-2 mb-4">
+              <ShoppingCart className="w-4 h-4 text-gray-600" />
+              <h3 className="text-sm font-semibold text-gray-700">Top Productos Vendidos</h3>
+            </div>
+            {topProducts.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-6">Sin datos de ventas POS</p>
+            ) : (
+              <div className="h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={topProducts} layout="vertical" barSize={14}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" horizontal={false} />
+                    <XAxis type="number" tick={{ fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+                    <YAxis type="category" dataKey="nombre" tick={{ fontSize: 10, fill: '#6B7280' }} axisLine={false} tickLine={false} width={100} />
+                    <Tooltip
+                      formatter={(value: number, name: string) => [value, name === 'cantidad' ? 'Unidades' : 'Total $']}
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', fontSize: '11px' }}
+                    />
+                    <Bar dataKey="cantidad" name="cantidad" fill="#F97316" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </Card>
+
+          {/* Top Técnicos */}
+          <Card className="p-5 border-0 shadow-sm bg-white">
+            <div className="flex items-center gap-2 mb-4">
+              <UserCog className="w-4 h-4 text-gray-600" />
+              <h3 className="text-sm font-semibold text-gray-700">Rendimiento de Técnicos</h3>
+            </div>
+            {topTechnicians.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-6">Sin técnicos asignados aún</p>
+            ) : (
+              <div className="h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={topTechnicians} layout="vertical" barSize={14}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" horizontal={false} />
+                    <XAxis type="number" tick={{ fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+                    <YAxis type="category" dataKey="tecnico" tick={{ fontSize: 10, fill: '#6B7280' }} axisLine={false} tickLine={false} width={100} />
+                    <Tooltip
+                      formatter={(value: number, name: string) => [name === 'total' ? `${value} reparaciones` : `$${Number(value).toFixed(2)}`, name === 'total' ? 'Reparaciones' : 'Ganancia']}
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', fontSize: '11px' }}
+                    />
+                    <Bar dataKey="total" name="total" fill="#3B82F6" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </Card>
+        </div>
+
+        {/* Alertas de Stock Bajo */}
+        {stockBajo.length > 0 && (
+          <Card className="p-5 border-0 shadow-sm bg-amber-50 border border-amber-200">
+            <div className="flex items-center gap-2 mb-3">
+              <AlertTriangle className="w-4 h-4 text-amber-600" />
+              <h3 className="text-sm font-semibold text-amber-800">Alertas de Stock Bajo ({stockBajo.length})</h3>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+              {stockBajo.map((item: any, i: number) => (
+                <div key={i} className="flex items-center gap-2 bg-white rounded-lg p-2.5 border border-amber-100">
+                  <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                    <Package className="w-3.5 h-3.5 text-amber-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-gray-800 truncate">{item.nombre}</p>
+                    <p className="text-xs text-amber-600">{item.cantidadActual} / {item.stockMinimo} mín.</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </Card>
         )}

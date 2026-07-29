@@ -1040,6 +1040,96 @@ export const appRouter = router({
       }),
   }),
 
+  // ==================== DASHBOARD STATS ====================
+  dashboardStats: router({
+    topProducts: publicProcedure
+      .input(z.object({
+        tienda: z.string().optional(),
+        dateFrom: z.string().optional(),
+        dateTo: z.string().optional(),
+        limit: z.number().optional(),
+      }).optional())
+      .query(async ({ input, ctx }) => {
+        const tienda = input?.tienda || (ctx.user as any)?.tienda || 'admin';
+        const mysql = await import('mysql2/promise');
+        const conn = await mysql.createConnection(process.env.DATABASE_URL!);
+        try {
+          const conditions: string[] = ['tienda = ?'];
+          const values: any[] = [tienda];
+          if (input?.dateFrom) { conditions.push('DATE(createdAt) >= ?'); values.push(input.dateFrom); }
+          if (input?.dateTo) { conditions.push('DATE(createdAt) <= ?'); values.push(input.dateTo); }
+          const [rows] = await conn.execute(
+            `SELECT items FROM pos_transactions WHERE ${conditions.join(' AND ')} ORDER BY createdAt DESC LIMIT 500`,
+            values
+          ) as any[];
+          // Aggregate items
+          const productMap: Record<string, { nombre: string; cantidad: number; total: number }> = {};
+          for (const row of rows) {
+            const items = typeof row.items === 'string' ? JSON.parse(row.items) : row.items;
+            for (const item of (items || [])) {
+              const key = item.nombre || 'Desconocido';
+              if (!productMap[key]) productMap[key] = { nombre: key, cantidad: 0, total: 0 };
+              productMap[key].cantidad += item.cantidad || 1;
+              productMap[key].total += item.subtotal || 0;
+            }
+          }
+          const sorted = Object.values(productMap).sort((a, b) => b.cantidad - a.cantidad);
+          return sorted.slice(0, input?.limit || 10);
+        } finally {
+          conn.end();
+        }
+      }),
+
+    topTechnicians: publicProcedure
+      .input(z.object({ tienda: z.string().optional() }).optional())
+      .query(async ({ input, ctx }) => {
+        const tienda = input?.tienda || (ctx.user as any)?.tienda || 'admin';
+        const mysql = await import('mysql2/promise');
+        const conn = await mysql.createConnection(process.env.DATABASE_URL!);
+        try {
+          const [rows] = await conn.execute(
+            `SELECT tecnico, COUNT(*) as total, SUM(ganancia) as gananciaTotal
+             FROM repairs
+             WHERE tienda = ? AND tecnico IS NOT NULL AND tecnico != ''
+             GROUP BY tecnico
+             ORDER BY total DESC
+             LIMIT 10`,
+            [tienda]
+          ) as any[];
+          return (rows as any[]).map((r: any) => ({
+            tecnico: r.tecnico,
+            total: Number(r.total),
+            gananciaTotal: parseFloat(r.gananciaTotal || '0'),
+          }));
+        } finally {
+          conn.end();
+        }
+      }),
+
+    stockBajo: publicProcedure
+      .input(z.object({ tienda: z.string().optional() }).optional())
+      .query(async ({ input, ctx }) => {
+        const tienda = input?.tienda || (ctx.user as any)?.tienda || 'admin';
+        const mysql = await import('mysql2/promise');
+        const conn = await mysql.createConnection(process.env.DATABASE_URL!);
+        try {
+          const [parts] = await conn.execute(
+            `SELECT 'parte' as tipo, nombre, cantidadActual, stockMinimo FROM inventory_parts
+             WHERE tienda = ? AND activo = 1 AND cantidadActual <= stockMinimo`,
+            [tienda]
+          ) as any[];
+          const [accs] = await conn.execute(
+            `SELECT 'accesorio' as tipo, nombre, cantidadActual, stockMinimo FROM inventory_accessories
+             WHERE tienda = ? AND activo = 1 AND cantidadActual <= stockMinimo`,
+            [tienda]
+          ) as any[];
+          return [...(parts as any[]), ...(accs as any[])];
+        } finally {
+          conn.end();
+        }
+      }),
+  }),
+
   posServices: router({
     list: publicProcedure.query(async () => {
       const mysql = await import('mysql2/promise');
