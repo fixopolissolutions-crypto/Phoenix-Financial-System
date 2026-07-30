@@ -359,3 +359,33 @@ export const customers = mysqlTable("customers", {
 });
 export type Customer = typeof customers.$inferSelect;
 export type InsertCustomer = typeof customers.$inferInsert;
+
+/**
+ * Historial de estados de reparaciones
+ * Log inmutable de cada cambio de estado con quién lo hizo y cuándo
+ */
+export const repairStatusLog = mysqlTable("repair_status_log", {
+  id: int("id").autoincrement().primaryKey(),
+  repairId: int("repairId").notNull(),
+  estadoAnterior: varchar("estadoAnterior", { length: 50 }),
+  estadoNuevo: varchar("estadoNuevo", { length: 50 }).notNull(),
+  nota: text("nota"), // Nota opcional al cambiar estado
+  creadoPor: varchar("creadoPor", { length: 200 }), // Nombre del usuario que hizo el cambio
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type RepairStatusLog = typeof repairStatusLog.$inferSelect;
+export type InsertRepairStatusLog = typeof repairStatusLog.$inferInsert;
+
+/**
+ * Líneas de mano de obra de reparaciones
+ * Desglose de cada tarea realizada con su precio individual
+ */
+export const repairLaborLines = mysqlTable("repair_labor_lines", {
+  id: int("id").autoincrement().primaryKey(),
+  repairId: int("repairId").notNull(),
+  descripcion: varchar("descripcion", { length: 300 }).notNull(),
+  precio: decimal("precio", { precision: 10, scale: 2 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type RepairLaborLine = typeof repairLaborLines.$inferSelect;
+export type InsertRepairLaborLine = typeof repairLaborLines.$inferInsert;

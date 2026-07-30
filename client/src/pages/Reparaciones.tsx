@@ -16,21 +16,22 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { trpc } from '@/lib/trpc';
 import {
   Wrench, Plus, DollarSign, Clock, CheckCircle, Package, Trash2,
-  FileText, Search, X, User, Phone, Smartphone, CalendarRange,
-  CheckSquare, Eye, MoreVertical, Shield, ShieldOff, Printer, UserCog,
-  Lock, Camera, ImageIcon, AlertTriangle, ChevronDown, ChevronUp
+  FileText, Search, X, User, Phone, Smartphone, Shield, ShieldOff,
+  Printer, UserCog, Lock, Camera, ImageIcon, AlertTriangle,
+  ChevronRight, ChevronLeft, CheckSquare, ArrowRight
 } from 'lucide-react';
 import { FacturaReparacion } from '@/components/FacturaReparacion';
 import { toast } from 'sonner';
 
+// ─── Tipos ─────────────────────────────────────────────────────────────────
 interface ParteSeleccionada {
   id: string;
   partId?: number;
@@ -41,34 +42,8 @@ interface ParteSeleccionada {
   cantidadDisponible?: number;
 }
 
-// ─── Checklist de Diagnóstico ───────────────────────────────────────────────
-const CHECKLIST_ITEMS = [
-  { id: 'pantalla', label: 'Pantalla', icon: '📱' },
-  { id: 'tactil', label: 'Táctil', icon: '👆' },
-  { id: 'boton_home', label: 'Botón Home', icon: '⭕' },
-  { id: 'boton_power', label: 'Botón Power', icon: '🔴' },
-  { id: 'botones_volumen', label: 'Botones Volumen', icon: '🔊' },
-  { id: 'camara_trasera', label: 'Cámara Trasera', icon: '📷' },
-  { id: 'camara_frontal', label: 'Cámara Frontal', icon: '🤳' },
-  { id: 'altavoz', label: 'Altavoz', icon: '🔈' },
-  { id: 'microfono', label: 'Micrófono', icon: '🎤' },
-  { id: 'auricular', label: 'Auricular', icon: '👂' },
-  { id: 'carga', label: 'Puerto de Carga', icon: '🔌' },
-  { id: 'bateria', label: 'Batería', icon: '🔋' },
-  { id: 'wifi', label: 'Wi-Fi', icon: '📶' },
-  { id: 'bluetooth', label: 'Bluetooth', icon: '🔵' },
-  { id: 'sim', label: 'Lector SIM', icon: '💳' },
-  { id: 'huella', label: 'Lector de Huella', icon: '🖐️' },
-  { id: 'face_id', label: 'Face ID', icon: '😊' },
-  { id: 'carcasa', label: 'Carcasa/Chasis', icon: '🛡️' },
-];
-
 type ChecklistEstado = 'ok' | 'falla' | 'no_aplica';
-
-interface ChecklistItem {
-  id: string;
-  estado: ChecklistEstado;
-}
+interface ChecklistItem { id: string; estado: ChecklistEstado; }
 
 interface RepairSummary {
   codigo: string;
@@ -77,6 +52,28 @@ interface RepairSummary {
   precioTotal: number;
   manoDeObra: number;
 }
+
+// ─── Checklist de Diagnóstico ───────────────────────────────────────────────
+const CHECKLIST_ITEMS = [
+  { id: 'pantalla',       label: 'Pantalla',        icon: '📱', color: 'blue' },
+  { id: 'tactil',         label: 'Táctil',           icon: '👆', color: 'blue' },
+  { id: 'boton_home',     label: 'Botón Home',       icon: '⭕', color: 'gray' },
+  { id: 'boton_power',    label: 'Botón Power',      icon: '🔴', color: 'gray' },
+  { id: 'botones_volumen',label: 'Volumen',          icon: '🔊', color: 'gray' },
+  { id: 'camara_trasera', label: 'Cámara Trasera',   icon: '📷', color: 'purple' },
+  { id: 'camara_frontal', label: 'Cámara Frontal',   icon: '🤳', color: 'purple' },
+  { id: 'altavoz',        label: 'Altavoz',          icon: '🔈', color: 'orange' },
+  { id: 'microfono',      label: 'Micrófono',        icon: '🎤', color: 'orange' },
+  { id: 'auricular',      label: 'Auricular',        icon: '👂', color: 'orange' },
+  { id: 'carga',          label: 'Puerto Carga',     icon: '🔌', color: 'yellow' },
+  { id: 'bateria',        label: 'Batería',          icon: '🔋', color: 'yellow' },
+  { id: 'wifi',           label: 'Wi-Fi',            icon: '📶', color: 'teal' },
+  { id: 'bluetooth',      label: 'Bluetooth',        icon: '🔵', color: 'teal' },
+  { id: 'sim',            label: 'Lector SIM',       icon: '💳', color: 'teal' },
+  { id: 'huella',         label: 'Huella Digital',   icon: '🖐️', color: 'green' },
+  { id: 'face_id',        label: 'Face ID',          icon: '😊', color: 'green' },
+  { id: 'carcasa',        label: 'Carcasa/Chasis',   icon: '🛡️', color: 'red' },
+];
 
 // ─── Orden de Trabajo (ventana de impresión) ───────────────────────────────
 function imprimirOrdenTrabajo(repair: any) {
@@ -90,13 +87,12 @@ function imprimirOrdenTrabajo(repair: any) {
         })()
       : 'N/A';
 
-  // Parsear checklist e imágenes si existen
   let checklistItems: { id: string; estado: string }[] = [];
   let imagenes: string[] = [];
   try {
     if (repair.checklistComponentes) checklistItems = JSON.parse(repair.checklistComponentes);
     if (repair.imagenesDispositivo) imagenes = JSON.parse(repair.imagenesDispositivo);
-  } catch { /* ignorar errores de parse */ }
+  } catch { /* ignorar */ }
 
   const CHECKLIST_LABELS: Record<string, string> = {
     pantalla: 'Pantalla', tactil: 'Táctil', boton_home: 'Botón Home', boton_power: 'Botón Power',
@@ -159,7 +155,6 @@ function imprimirOrdenTrabajo(repair: any) {
     <h2>Orden de Trabajo — Reparación</h2>
     <div class="badge">${repair.codigo}</div>
   </div>
-
   <div class="grid2">
     <div class="section">
       <div class="section-title">Datos del Cliente</div>
@@ -173,28 +168,14 @@ function imprimirOrdenTrabajo(repair: any) {
       <div class="row"><span class="label">Técnico:</span><span class="value">${repair.tecnico || 'Sin asignar'}</span></div>
     </div>
   </div>
-
   <div class="problem-box">
     <div class="section-title">Problema Reportado</div>
     <p>${repair.problema || '—'}</p>
   </div>
-
-  ${repair.diagnostico ? `
-  <div class="problem-box">
-    <div class="section-title">Diagnóstico Técnico</div>
-    <p>${repair.diagnostico}</p>
-  </div>` : ''}
-
-  ${repair.notas ? `
-  <div class="problem-box">
-    <div class="section-title">Notas Adicionales</div>
-    <p>${repair.notas}</p>
-  </div>` : ''}
-
+  ${repair.diagnostico ? `<div class="problem-box"><div class="section-title">Diagnóstico Técnico</div><p>${repair.diagnostico}</p></div>` : ''}
+  ${repair.notas ? `<div class="problem-box"><div class="section-title">Notas Adicionales</div><p>${repair.notas}</p></div>` : ''}
   ${checklistHtml}
-
   ${imagenesHtml}
-
   <div class="grid2">
     <div class="section">
       <div class="section-title">Costos</div>
@@ -212,27 +193,71 @@ function imprimirOrdenTrabajo(repair: any) {
       <p style="font-size:10px;color:#555;margin-top:6px">La garantía cubre el defecto reparado bajo uso normal. No aplica a daños por agua, golpes o mal uso.</p>
     </div>
   </div>
-
   <div class="firmas">
     <div class="firma-line">Firma del Técnico</div>
     <div class="firma-line">Firma del Cliente</div>
   </div>
-
   <script>window.onload = () => { window.print(); }</script>
 </body>
 </html>`;
 
   const win = window.open('', '_blank', 'width=800,height=900');
-  if (win) {
-    win.document.write(html);
-    win.document.close();
-  }
+  if (win) { win.document.write(html); win.document.close(); }
+}
+
+// ─── Wizard Step Indicator ─────────────────────────────────────────────────
+function WizardSteps({ currentStep }: { currentStep: number }) {
+  const steps = [
+    { num: 1, label: 'Cliente', icon: User },
+    { num: 2, label: 'Dispositivo', icon: Smartphone },
+    { num: 3, label: 'Costos', icon: DollarSign },
+  ];
+  return (
+    <div className="flex items-center justify-center mb-8">
+      {steps.map((step, i) => {
+        const Icon = step.icon;
+        const isActive = currentStep === step.num;
+        const isDone = currentStep > step.num;
+        return (
+          <div key={step.num} className="flex items-center">
+            <div className="flex flex-col items-center">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
+                isDone ? 'bg-green-500 text-white' :
+                isActive ? 'bg-orange-500 text-white shadow-lg shadow-orange-200' :
+                'bg-gray-100 text-gray-400'
+              }`}>
+                {isDone ? <CheckCircle className="h-5 w-5" /> : <Icon className="h-4 w-4" />}
+              </div>
+              <span className={`text-xs mt-1.5 font-medium ${isActive ? 'text-orange-600' : isDone ? 'text-green-600' : 'text-gray-400'}`}>
+                {step.label}
+              </span>
+            </div>
+            {i < steps.length - 1 && (
+              <div className={`w-16 h-0.5 mx-2 mb-5 transition-all ${isDone ? 'bg-green-400' : 'bg-gray-200'}`} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 // ─── Componente Principal ──────────────────────────────────────────────────
 export default function Reparaciones() {
   const { user } = useAuth();
+
+  // Dialog y wizard
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [wizardStep, setWizardStep] = useState(1);
+
+  // Datos del formulario (wizard)
+  const [formData, setFormData] = useState({
+    cliente: '', telefono: '', problema: '', diagnostico: '', notas: '',
+    dispositivo: '', codigoDesbloqueo: '', tecnico: '', garantiaDias: '30',
+    fechaIngreso: new Date().toISOString().split('T')[0],
+  });
+
+  // Otros estados
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'pendiente' | 'en_proceso' | 'completada' | 'entregada'>('todos');
   const [facturaDialogOpen, setFacturaDialogOpen] = useState(false);
   const [reparacionSeleccionada, setReparacionSeleccionada] = useState<any>(null);
@@ -244,12 +269,10 @@ export default function Reparaciones() {
   const [precioTotal, setPrecioTotal] = useState<number>(0);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [repairSummary, setRepairSummary] = useState<RepairSummary | null>(null);
-  // Nuevos estados: checklist, imágenes y desbloqueo
   const [checklist, setChecklist] = useState<ChecklistItem[]>(
     CHECKLIST_ITEMS.map(item => ({ id: item.id, estado: 'no_aplica' as ChecklistEstado }))
   );
   const [imagenesDispositivo, setImagenesDispositivo] = useState<string[]>([]);
-  const [checklistExpandido, setChecklistExpandido] = useState(false);
   const [subiendoImagen, setSubiendoImagen] = useState(false);
 
   // Queries
@@ -258,9 +281,7 @@ export default function Reparaciones() {
   const { data: nextCodeData } = trpc.repairs.getNextCode.useQuery();
 
   useEffect(() => {
-    if (nextCodeData?.codigo) {
-      setSiguienteCodigo(nextCodeData.codigo);
-    }
+    if (nextCodeData?.codigo) setSiguienteCodigo(nextCodeData.codigo);
   }, [nextCodeData]);
 
   // Mutations
@@ -279,52 +300,44 @@ export default function Reparaciones() {
       resetForm();
       toast.success('Reparación registrada exitosamente');
     },
-    onError: (error) => {
-      toast.error('Error al registrar reparación: ' + error.message);
-    },
+    onError: (error) => toast.error('Error al registrar: ' + error.message),
   });
 
   const updateMutation = trpc.repairs.update.useMutation({
-    onSuccess: () => {
-      toast.success('Reparación actualizada');
-      refetch();
-    },
-    onError: (error) => {
-      toast.error('Error al actualizar: ' + error.message);
-    },
+    onSuccess: () => { toast.success('Reparación actualizada'); refetch(); },
+    onError: (error) => toast.error('Error al actualizar: ' + error.message),
   });
 
   const deleteMutation = trpc.repairs.delete.useMutation({
-    onSuccess: () => {
-      toast.success('Reparación eliminada');
-      refetch();
-    },
-    onError: (error) => {
-      toast.error('Error al eliminar: ' + error.message);
-    },
+    onSuccess: () => { toast.success('Reparación eliminada'); refetch(); },
+    onError: (error) => toast.error('Error al eliminar: ' + error.message),
   });
 
   const resetForm = () => {
+    setWizardStep(1);
+    setFormData({
+      cliente: '', telefono: '', problema: '', diagnostico: '', notas: '',
+      dispositivo: '', codigoDesbloqueo: '', tecnico: '', garantiaDias: '30',
+      fechaIngreso: new Date().toISOString().split('T')[0],
+    });
     setPartesSeleccionadas([]);
     setPrecioTotal(0);
     setChecklist(CHECKLIST_ITEMS.map(item => ({ id: item.id, estado: 'no_aplica' as ChecklistEstado })));
     setImagenesDispositivo([]);
-    setChecklistExpandido(false);
   };
 
-  // Manejador para cambiar estado de un componente del checklist
+  const updateField = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
   const handleChecklistChange = (itemId: string, estado: ChecklistEstado) => {
     setChecklist(prev => prev.map(c => c.id === itemId ? { ...c, estado } : c));
   };
 
-  // Subir imagen del dispositivo
   const handleSubirImagen = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (imagenesDispositivo.length >= 6) {
-      toast.error('Máximo 6 imágenes por reparación');
-      return;
-    }
+    if (imagenesDispositivo.length >= 6) { toast.error('Máximo 6 imágenes'); return; }
     setSubiendoImagen(true);
     try {
       const reader = new FileReader();
@@ -336,88 +349,11 @@ export default function Reparaciones() {
           body: JSON.stringify({ base64, mimeType: file.type, fileName: file.name }),
         });
         const data = await res.json();
-        if (data.url) {
-          setImagenesDispositivo(prev => [...prev, data.url]);
-          toast.success('Imagen agregada');
-        }
+        if (data.url) { setImagenesDispositivo(prev => [...prev, data.url]); toast.success('Foto agregada'); }
         setSubiendoImagen(false);
       };
       reader.readAsDataURL(file);
-    } catch {
-      toast.error('Error al subir imagen');
-      setSubiendoImagen(false);
-    }
-  };
-
-  // Filtrar reparaciones
-  const repairsFiltradas = useMemo(() => {
-    let filtered = repairs;
-    if (filtroEstado !== 'todos') filtered = filtered.filter(r => r.estado === filtroEstado);
-    if (busqueda.trim()) {
-      const search = busqueda.toLowerCase();
-      filtered = filtered.filter(r =>
-        r.cliente?.toLowerCase().includes(search) ||
-        r.telefono?.includes(search) ||
-        r.codigo?.toLowerCase().includes(search) ||
-        r.dispositivo?.toLowerCase().includes(search) ||
-        (r as any).tecnico?.toLowerCase().includes(search)
-      );
-    }
-    if (fechaInicio) {
-      const inicio = new Date(fechaInicio);
-      filtered = filtered.filter(r => new Date(r.fechaIngreso) >= inicio);
-    }
-    if (fechaFin) {
-      const fin = new Date(fechaFin);
-      fin.setHours(23, 59, 59, 999);
-      filtered = filtered.filter(r => new Date(r.fechaIngreso) <= fin);
-    }
-    return filtered;
-  }, [repairs, filtroEstado, busqueda, fechaInicio, fechaFin]);
-
-  // Calcular totales
-  const totales = useMemo(() => {
-    const pendientes = repairs.filter(r => r.estado === 'pendiente').length;
-    const enProceso = repairs.filter(r => r.estado === 'en_proceso').length;
-    const completadas = repairs.filter(r => r.estado === 'completada' || r.estado === 'entregada').length;
-    const gananciaTotal = repairs
-      .filter(r => r.estado === 'completada' || r.estado === 'entregada')
-      .reduce((sum, r) => sum + Number(r.ganancia), 0);
-    return { pendientes, enProceso, completadas, total: repairs.length, gananciaTotal };
-  }, [repairs]);
-
-  const handleAgregarParteInventario = (partId: number) => {
-    const parte = parts.find(p => p.id === partId);
-    if (!parte) return;
-    setPartesSeleccionadas([...partesSeleccionadas, {
-      id: `inv-${Date.now()}-${Math.random()}`,
-      partId: parte.id,
-      esExterna: false,
-      nombre: parte.nombre,
-      cantidad: 1,
-      costoUnitario: parte.precioCompraUnitario,
-      cantidadDisponible: parte.cantidadActual,
-    }]);
-  };
-
-  const handleAgregarParteExterna = () => {
-    setPartesSeleccionadas([...partesSeleccionadas, {
-      id: `ext-${Date.now()}-${Math.random()}`,
-      esExterna: true,
-      nombre: '',
-      cantidad: 1,
-      costoUnitario: '0.00',
-    }]);
-  };
-
-  const handleEliminarParte = (id: string) => {
-    setPartesSeleccionadas(partesSeleccionadas.filter(p => p.id !== id));
-  };
-
-  const handleActualizarParte = (id: string, campo: keyof ParteSeleccionada, valor: any) => {
-    setPartesSeleccionadas(partesSeleccionadas.map(p =>
-      p.id === id ? { ...p, [campo]: valor } : p
-    ));
+    } catch { toast.error('Error al subir imagen'); setSubiendoImagen(false); }
   };
 
   const costoTotalPartes = useMemo(() =>
@@ -434,23 +370,30 @@ export default function Reparaciones() {
     if (precioTotal < costoTotalPartes) setPrecioTotal(costoTotalPartes + 50);
   }, [costoTotalPartes]);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const clienteVal = formData.get('cliente') as string;
-    const telefonoVal = formData.get('telefono') as string;
-    const dispositivoVal = formData.get('dispositivo') as string;
+  // Validación por paso
+  const validateStep1 = () => {
+    if (!formData.cliente.trim()) { toast.error('El nombre del cliente es requerido'); return false; }
+    if (!formData.telefono.trim()) { toast.error('El teléfono es requerido'); return false; }
+    if (!formData.problema.trim()) { toast.error('Describe el problema reportado'); return false; }
+    return true;
+  };
 
-    if (!clienteVal?.trim()) { toast.error('El nombre del cliente es requerido'); return; }
-    if (!telefonoVal?.trim()) { toast.error('El teléfono del cliente es requerido'); return; }
-    if (!dispositivoVal?.trim()) { toast.error('El modelo del dispositivo es requerido'); return; }
+  const validateStep2 = () => {
+    if (!formData.dispositivo.trim()) { toast.error('El modelo del dispositivo es requerido'); return false; }
+    return true;
+  };
 
+  const handleNextStep = () => {
+    if (wizardStep === 1 && !validateStep1()) return;
+    if (wizardStep === 2 && !validateStep2()) return;
+    setWizardStep(prev => prev + 1);
+  };
+
+  const handleSubmit = () => {
     for (const parte of partesSeleccionadas) {
-      if (parte.esExterna && !parte.nombre.trim()) {
-        toast.error('Todas las partes externas deben tener un nombre'); return;
-      }
+      if (parte.esExterna && !parte.nombre.trim()) { toast.error('Todas las partes externas deben tener un nombre'); return; }
       if (!parte.esExterna && parte.cantidadDisponible !== undefined && parte.cantidad > parte.cantidadDisponible) {
-        toast.error(`Stock insuficiente para ${parte.nombre}. Disponible: ${parte.cantidadDisponible}`); return;
+        toast.error(`Stock insuficiente para ${parte.nombre}`); return;
       }
     }
 
@@ -461,30 +404,82 @@ export default function Reparaciones() {
       return parte;
     });
 
-    // Serializar checklist (solo los que tienen estado ok o falla)
     const checklistFiltrado = checklist.filter(c => c.estado !== 'no_aplica');
-    const checklistJson = checklistFiltrado.length > 0 ? JSON.stringify(checklistFiltrado) : undefined;
-    const imagenesJson = imagenesDispositivo.length > 0 ? JSON.stringify(imagenesDispositivo) : undefined;
 
     createMutation.mutate({
-      codigo: formData.get('codigo') as string,
-      cliente: clienteVal,
-      telefono: telefonoVal,
-      dispositivo: dispositivoVal,
-      problema: formData.get('problema') as string,
-      diagnostico: formData.get('diagnostico') as string || undefined,
+      codigo: siguienteCodigo,
+      cliente: formData.cliente,
+      telefono: formData.telefono,
+      dispositivo: formData.dispositivo,
+      problema: formData.problema,
+      diagnostico: formData.diagnostico || undefined,
       precioManoObra: manoDeObra.toFixed(2),
       precioTotal: precioTotal.toFixed(2),
-      fechaIngreso: formData.get('fechaIngreso') as string,
-      notas: formData.get('notas') as string || undefined,
-      tecnico: formData.get('tecnico') as string || undefined,
-      garantiaDias: parseInt(formData.get('garantiaDias') as string) || 30,
-      codigoDesbloqueo: formData.get('codigoDesbloqueo') as string || undefined,
-      checklistComponentes: checklistJson,
-      imagenesDispositivo: imagenesJson,
+      fechaIngreso: formData.fechaIngreso,
+      notas: formData.notas || undefined,
+      tecnico: formData.tecnico || undefined,
+      garantiaDias: parseInt(formData.garantiaDias) || 30,
+      codigoDesbloqueo: formData.codigoDesbloqueo || undefined,
+      checklistComponentes: checklistFiltrado.length > 0 ? JSON.stringify(checklistFiltrado) : undefined,
+      imagenesDispositivo: imagenesDispositivo.length > 0 ? JSON.stringify(imagenesDispositivo) : undefined,
       partes: partesParaBackend.length > 0 ? partesParaBackend : undefined,
     });
   };
+
+  const handleAgregarParteInventario = (partId: number) => {
+    const parte = parts.find(p => p.id === partId);
+    if (!parte) return;
+    setPartesSeleccionadas([...partesSeleccionadas, {
+      id: `inv-${Date.now()}-${Math.random()}`,
+      partId: parte.id, esExterna: false,
+      nombre: parte.nombre, cantidad: 1,
+      costoUnitario: parte.precioCompraUnitario,
+      cantidadDisponible: parte.cantidadActual,
+    }]);
+  };
+
+  const handleAgregarParteExterna = () => {
+    setPartesSeleccionadas([...partesSeleccionadas, {
+      id: `ext-${Date.now()}-${Math.random()}`,
+      esExterna: true, nombre: '', cantidad: 1, costoUnitario: '0.00',
+    }]);
+  };
+
+  const handleEliminarParte = (id: string) => setPartesSeleccionadas(partesSeleccionadas.filter(p => p.id !== id));
+
+  const handleActualizarParte = (id: string, campo: keyof ParteSeleccionada, valor: any) => {
+    setPartesSeleccionadas(partesSeleccionadas.map(p => p.id === id ? { ...p, [campo]: valor } : p));
+  };
+
+  // Filtros
+  const repairsFiltradas = useMemo(() => {
+    let filtered = repairs;
+    if (filtroEstado !== 'todos') filtered = filtered.filter(r => r.estado === filtroEstado);
+    if (busqueda.trim()) {
+      const search = busqueda.toLowerCase();
+      filtered = filtered.filter(r =>
+        r.cliente?.toLowerCase().includes(search) ||
+        r.telefono?.includes(search) ||
+        r.codigo?.toLowerCase().includes(search) ||
+        r.dispositivo?.toLowerCase().includes(search) ||
+        (r as any).tecnico?.toLowerCase().includes(search)
+      );
+    }
+    if (fechaInicio) filtered = filtered.filter(r => new Date(r.fechaIngreso) >= new Date(fechaInicio));
+    if (fechaFin) {
+      const fin = new Date(fechaFin); fin.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(r => new Date(r.fechaIngreso) <= fin);
+    }
+    return filtered;
+  }, [repairs, filtroEstado, busqueda, fechaInicio, fechaFin]);
+
+  const totales = useMemo(() => ({
+    pendientes: repairs.filter(r => r.estado === 'pendiente').length,
+    enProceso: repairs.filter(r => r.estado === 'en_proceso').length,
+    completadas: repairs.filter(r => r.estado === 'completada' || r.estado === 'entregada').length,
+    gananciaTotal: repairs.filter(r => r.estado === 'completada' || r.estado === 'entregada').reduce((s, r) => s + Number(r.ganancia), 0),
+    total: repairs.length,
+  }), [repairs]);
 
   const handleUpdateEstado = (id: number, nuevoEstado: string) => {
     const updateData: any = { id, estado: nuevoEstado as any };
@@ -493,59 +488,41 @@ export default function Reparaciones() {
     updateMutation.mutate(updateData);
   };
 
-  const handleUpdateTecnico = (id: number, tecnico: string) => {
-    updateMutation.mutate({ id, tecnico });
-  };
-
   const handleDelete = (id: number) => {
-    if (confirm('¿Estás seguro de eliminar esta reparación?')) {
-      deleteMutation.mutate({ id });
-    }
+    if (confirm('¿Eliminar esta reparación?')) deleteMutation.mutate({ id });
   };
 
   const getEstadoBadge = (estado: string) => {
     const badges: Record<string, { bg: string; dot: string; text: string }> = {
-      pendiente:   { bg: 'bg-gray-100',   dot: 'bg-gray-400',   text: 'text-gray-700' },
-      en_proceso:  { bg: 'bg-yellow-100', dot: 'bg-yellow-500', text: 'text-yellow-800' },
-      completada:  { bg: 'bg-green-100',  dot: 'bg-green-500',  text: 'text-green-800' },
-      entregada:   { bg: 'bg-blue-100',   dot: 'bg-blue-500',   text: 'text-blue-800' },
+      pendiente:  { bg: 'bg-gray-100',   dot: 'bg-gray-400',   text: 'text-gray-700' },
+      en_proceso: { bg: 'bg-yellow-100', dot: 'bg-yellow-500', text: 'text-yellow-800' },
+      completada: { bg: 'bg-green-100',  dot: 'bg-green-500',  text: 'text-green-800' },
+      entregada:  { bg: 'bg-blue-100',   dot: 'bg-blue-500',   text: 'text-blue-800' },
     };
     return badges[estado] || { bg: 'bg-gray-100', dot: 'bg-gray-400', text: 'text-gray-700' };
   };
 
-  const getEstadoTexto = (estado: string) => {
-    const textos: Record<string, string> = {
-      pendiente: 'Pendiente', en_proceso: 'En Proceso', completada: 'Completada', entregada: 'Entregada',
-    };
-    return textos[estado] || estado;
-  };
+  const getEstadoTexto = (estado: string) => ({
+    pendiente: 'Pendiente', en_proceso: 'En Proceso', completada: 'Completada', entregada: 'Entregada',
+  }[estado] || estado);
 
-  // Calcular estado de garantía
   const getGarantiaStatus = (repair: any) => {
     if (!repair.garantiaVence && !repair.garantiaDias) return null;
     if (repair.estado !== 'entregada' && repair.estado !== 'completada') return null;
     let vence: Date;
-    if (repair.garantiaVence) {
-      vence = new Date(repair.garantiaVence);
-    } else {
-      vence = new Date(repair.fechaIngreso);
-      vence.setDate(vence.getDate() + (repair.garantiaDias || 30));
-    }
+    if (repair.garantiaVence) { vence = new Date(repair.garantiaVence); }
+    else { vence = new Date(repair.fechaIngreso); vence.setDate(vence.getDate() + (repair.garantiaDias || 30)); }
     const hoy = new Date();
-    const activa = vence >= hoy;
-    const diasRestantes = Math.ceil((vence.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
-    return { activa, vence, diasRestantes };
-  };
-
-  const limpiarFiltros = () => {
-    setBusqueda(''); setFiltroEstado('todos'); setFechaInicio(''); setFechaFin('');
+    return { activa: vence >= hoy, diasRestantes: Math.ceil((vence.getTime() - hoy.getTime()) / 86400000) };
   };
 
   const hayFiltrosActivos = busqueda || filtroEstado !== 'todos' || fechaInicio || fechaFin;
 
+  // ─── Render ──────────────────────────────────────────────────────────────
   return (
     <DashboardLayout>
       <div className="space-y-6">
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -554,140 +531,202 @@ export default function Reparaciones() {
           </div>
           <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
             <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Nueva Reparación
+              <Button className="bg-orange-500 hover:bg-orange-600 text-white shadow-md shadow-orange-200">
+                <Plus className="h-4 w-4 mr-2" />Nueva Reparación
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Registrar Nueva Reparación</DialogTitle>
-                <DialogDescription>Ingresa los detalles de la reparación y las partes utilizadas</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Código y Fecha */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="codigo">Código *</Label>
-                    <Input id="codigo" name="codigo" defaultValue={siguienteCodigo} readOnly className="bg-gray-50" required />
-                  </div>
-                  <div>
-                    <Label htmlFor="fechaIngreso">Fecha de Ingreso *</Label>
-                    <Input id="fechaIngreso" name="fechaIngreso" type="date" defaultValue={new Date().toISOString().split('T')[0]} required />
-                  </div>
-                </div>
 
-                {/* Cliente y Teléfono */}
-                <div className="grid grid-cols-2 gap-4">
+            {/* ─── WIZARD DIALOG ─── */}
+            <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto p-0">
+              {/* Header del wizard */}
+              <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-8 pt-7 pb-6 rounded-t-lg">
+                <div className="flex items-center justify-between mb-1">
                   <div>
-                    <Label htmlFor="cliente" className="flex items-center gap-1"><User className="h-3.5 w-3.5" />Cliente *</Label>
-                    <Input id="cliente" name="cliente" placeholder="Nombre completo del cliente" required />
+                    <h2 className="text-xl font-bold text-white">Nueva Reparación</h2>
+                    <p className="text-orange-100 text-sm mt-0.5">Código: <span className="font-bold">{siguienteCodigo}</span></p>
                   </div>
-                  <div>
-                    <Label htmlFor="telefono" className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" />Teléfono *</Label>
-                    <Input id="telefono" name="telefono" placeholder="555-1234" required />
-                  </div>
-                </div>
-
-                {/* Dispositivo */}
-                <div>
-                  <Label htmlFor="dispositivo" className="flex items-center gap-1"><Smartphone className="h-3.5 w-3.5" />Modelo del Dispositivo *</Label>
-                  <Input id="dispositivo" name="dispositivo" placeholder="iPhone 13 Pro, Samsung Galaxy S22, etc." required />
-                </div>
-
-                {/* Técnico y Garantía */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="tecnico" className="flex items-center gap-1"><UserCog className="h-3.5 w-3.5" />Técnico Asignado</Label>
-                    <Input id="tecnico" name="tecnico" placeholder="Nombre del técnico" />
-                  </div>
-                  <div>
-                    <Label htmlFor="garantiaDias" className="flex items-center gap-1"><Shield className="h-3.5 w-3.5" />Días de Garantía</Label>
-                    <Input id="garantiaDias" name="garantiaDias" type="number" min="0" defaultValue="30" placeholder="30" />
-                  </div>
-                </div>
-
-                {/* Código de Desbloqueo */}
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                  <Label htmlFor="codigoDesbloqueo" className="flex items-center gap-1.5 text-amber-800 font-semibold mb-2">
-                    <Lock className="h-3.5 w-3.5" />
-                    Código de Desbloqueo
-                    <span className="text-xs font-normal text-amber-600">(PIN, patrón o contraseña)</span>
-                  </Label>
-                  <Input id="codigoDesbloqueo" name="codigoDesbloqueo" placeholder="Ej: 1234, patrón L, sin código..." className="bg-white" />
-                  <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
-                    <AlertTriangle className="h-3 w-3" />
-                    Esta información es confidencial y solo visible para el técnico asignado.
-                  </p>
-                </div>
-
-                {/* Problema y Diagnóstico */}
-                <div>
-                  <Label htmlFor="problema">Problema Reportado *</Label>
-                  <Textarea id="problema" name="problema" placeholder="Descripción del problema" required />
-                </div>
-                <div>
-                  <Label htmlFor="diagnostico">Diagnóstico</Label>
-                  <Textarea id="diagnostico" name="diagnostico" placeholder="Diagnóstico técnico" />
-                </div>
-
-                {/* Checklist de Diagnóstico */}
-                <div className="border rounded-lg overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setChecklistExpandido(!checklistExpandido)}
-                    className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
-                  >
-                    <div className="flex items-center gap-2">
-                      <CheckSquare className="h-4 w-4 text-blue-600" />
-                      <span className="font-semibold text-sm text-gray-800">Checklist de Componentes</span>
-                      <span className="text-xs text-gray-500">
-                        ({checklist.filter(c => c.estado === 'falla').length} fallas, {checklist.filter(c => c.estado === 'ok').length} OK)
-                      </span>
+                  <div className="text-right">
+                    <p className="text-orange-100 text-xs">Paso {wizardStep} de 3</p>
+                    <div className="flex gap-1 mt-1">
+                      {[1,2,3].map(s => (
+                        <div key={s} className={`h-1.5 w-8 rounded-full transition-all ${s <= wizardStep ? 'bg-white' : 'bg-orange-300'}`} />
+                      ))}
                     </div>
-                    {checklistExpandido ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
-                  </button>
-                  {checklistExpandido && (
-                    <div className="p-4">
-                      <p className="text-xs text-gray-500 mb-3">Registra el estado de cada componente al momento de recibir el dispositivo. Esto protege a la tienda de reclamos futuros.</p>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-8 py-6">
+                <WizardSteps currentStep={wizardStep} />
+
+                {/* ─── PASO 1: Información del Cliente ─── */}
+                {wizardStep === 1 && (
+                  <div className="space-y-6">
+                    <div className="text-center mb-6">
+                      <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                        <User className="h-7 w-7 text-blue-600" />
+                      </div>
+                      <h3 className="text-lg font-bold text-gray-900">Información del Cliente</h3>
+                      <p className="text-sm text-gray-500">¿Quién trae el dispositivo a reparar?</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-5">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-semibold text-gray-700">Nombre Completo *</Label>
+                        <Input
+                          value={formData.cliente}
+                          onChange={(e) => updateField('cliente', e.target.value)}
+                          placeholder="Ej: Juan Pérez García"
+                          className="h-11 text-base"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-semibold text-gray-700">Teléfono *</Label>
+                        <Input
+                          value={formData.telefono}
+                          onChange={(e) => updateField('telefono', e.target.value)}
+                          placeholder="Ej: 555-123-4567"
+                          className="h-11 text-base"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-5">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-semibold text-gray-700">Fecha de Ingreso</Label>
+                        <Input
+                          type="date"
+                          value={formData.fechaIngreso}
+                          onChange={(e) => updateField('fechaIngreso', e.target.value)}
+                          className="h-11"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-semibold text-gray-700">Técnico Asignado</Label>
+                        <Input
+                          value={formData.tecnico}
+                          onChange={(e) => updateField('tecnico', e.target.value)}
+                          placeholder="Nombre del técnico"
+                          className="h-11"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold text-gray-700">Problema Reportado *</Label>
+                      <Textarea
+                        value={formData.problema}
+                        onChange={(e) => updateField('problema', e.target.value)}
+                        placeholder="Describe con detalle el problema que reporta el cliente..."
+                        className="min-h-[100px] text-base resize-none"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold text-gray-700">Diagnóstico Técnico <span className="font-normal text-gray-400">(opcional)</span></Label>
+                      <Textarea
+                        value={formData.diagnostico}
+                        onChange={(e) => updateField('diagnostico', e.target.value)}
+                        placeholder="Diagnóstico inicial del técnico..."
+                        className="min-h-[80px] resize-none"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* ─── PASO 2: Dispositivo + Checklist ─── */}
+                {wizardStep === 2 && (
+                  <div className="space-y-6">
+                    <div className="text-center mb-6">
+                      <div className="w-14 h-14 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                        <Smartphone className="h-7 w-7 text-purple-600" />
+                      </div>
+                      <h3 className="text-lg font-bold text-gray-900">Información del Dispositivo</h3>
+                      <p className="text-sm text-gray-500">Registra el equipo y su estado al ingreso</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-5">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-semibold text-gray-700">Modelo del Dispositivo *</Label>
+                        <Input
+                          value={formData.dispositivo}
+                          onChange={(e) => updateField('dispositivo', e.target.value)}
+                          placeholder="Ej: iPhone 14 Pro, Samsung S23..."
+                          className="h-11 text-base"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-semibold text-gray-700">Días de Garantía</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={formData.garantiaDias}
+                          onChange={(e) => updateField('garantiaDias', e.target.value)}
+                          className="h-11"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Código de desbloqueo */}
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Lock className="h-4 w-4 text-amber-600" />
+                        <Label className="text-sm font-bold text-amber-800">Código de Desbloqueo</Label>
+                        <span className="text-xs text-amber-500 font-normal">(PIN, patrón o contraseña)</span>
+                      </div>
+                      <Input
+                        value={formData.codigoDesbloqueo}
+                        onChange={(e) => updateField('codigoDesbloqueo', e.target.value)}
+                        placeholder="Ej: 1234, patrón en L, sin código..."
+                        className="bg-white h-11"
+                      />
+                      <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        Información confidencial — solo visible para el técnico asignado.
+                      </p>
+                    </div>
+
+                    {/* Checklist de componentes */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                          <CheckSquare className="h-4 w-4 text-blue-600" />
+                          Checklist de Componentes
+                        </Label>
+                        <div className="flex gap-2 text-xs">
+                          <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-medium">
+                            ✓ {checklist.filter(c => c.estado === 'ok').length} OK
+                          </span>
+                          <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-medium">
+                            ✗ {checklist.filter(c => c.estado === 'falla').length} Fallas
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500">Marca el estado de cada componente al recibir el dispositivo. Protege al negocio de reclamos futuros.</p>
+                      <div className="grid grid-cols-3 gap-2">
                         {CHECKLIST_ITEMS.map(item => {
                           const estado = checklist.find(c => c.id === item.id)?.estado || 'no_aplica';
                           return (
-                            <div key={item.id} className="border rounded-lg p-2">
-                              <p className="text-xs font-medium text-gray-700 mb-1.5">{item.icon} {item.label}</p>
+                            <div key={item.id} className={`rounded-xl border-2 p-3 transition-all ${
+                              estado === 'ok' ? 'border-green-300 bg-green-50' :
+                              estado === 'falla' ? 'border-red-300 bg-red-50' :
+                              'border-gray-200 bg-gray-50'
+                            }`}>
+                              <div className="flex items-center gap-1.5 mb-2">
+                                <span className="text-base">{item.icon}</span>
+                                <span className="text-xs font-semibold text-gray-700 leading-tight">{item.label}</span>
+                              </div>
                               <div className="flex gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => handleChecklistChange(item.id, 'ok')}
-                                  className={`flex-1 text-xs py-1 rounded font-medium transition-colors ${
-                                    estado === 'ok'
-                                      ? 'bg-green-500 text-white'
-                                      : 'bg-gray-100 text-gray-600 hover:bg-green-100'
-                                  }`}
-                                >
+                                <button type="button" onClick={() => handleChecklistChange(item.id, 'ok')}
+                                  className={`flex-1 text-xs py-1 rounded-lg font-bold transition-all ${estado === 'ok' ? 'bg-green-500 text-white shadow-sm' : 'bg-white text-gray-500 hover:bg-green-100 border border-gray-200'}`}>
                                   OK
                                 </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleChecklistChange(item.id, 'falla')}
-                                  className={`flex-1 text-xs py-1 rounded font-medium transition-colors ${
-                                    estado === 'falla'
-                                      ? 'bg-red-500 text-white'
-                                      : 'bg-gray-100 text-gray-600 hover:bg-red-100'
-                                  }`}
-                                >
+                                <button type="button" onClick={() => handleChecklistChange(item.id, 'falla')}
+                                  className={`flex-1 text-xs py-1 rounded-lg font-bold transition-all ${estado === 'falla' ? 'bg-red-500 text-white shadow-sm' : 'bg-white text-gray-500 hover:bg-red-100 border border-gray-200'}`}>
                                   Falla
                                 </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleChecklistChange(item.id, 'no_aplica')}
-                                  className={`flex-1 text-xs py-1 rounded font-medium transition-colors ${
-                                    estado === 'no_aplica'
-                                      ? 'bg-gray-400 text-white'
-                                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                  }`}
-                                >
+                                <button type="button" onClick={() => handleChecklistChange(item.id, 'no_aplica')}
+                                  className={`flex-1 text-xs py-1 rounded-lg font-bold transition-all ${estado === 'no_aplica' ? 'bg-gray-400 text-white shadow-sm' : 'bg-white text-gray-400 hover:bg-gray-100 border border-gray-200'}`}>
                                   N/A
                                 </button>
                               </div>
@@ -696,143 +735,199 @@ export default function Reparaciones() {
                         })}
                       </div>
                     </div>
-                  )}
-                </div>
 
-                {/* Imágenes del Dispositivo */}
-                <div className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <Label className="flex items-center gap-1.5 font-semibold">
-                      <Camera className="h-4 w-4 text-gray-600" />
-                      Fotos del Dispositivo
-                      <span className="text-xs font-normal text-gray-500">({imagenesDispositivo.length}/6)</span>
-                    </Label>
-                    <label className={`cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                      subiendoImagen || imagenesDispositivo.length >= 6
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                    }`}>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleSubirImagen}
-                        disabled={subiendoImagen || imagenesDispositivo.length >= 6}
-                      />
-                      {subiendoImagen ? 'Subiendo...' : '+ Agregar Foto'}
-                    </label>
-                  </div>
-                  {imagenesDispositivo.length > 0 ? (
-                    <div className="grid grid-cols-3 gap-2">
-                      {imagenesDispositivo.map((url, idx) => (
-                        <div key={idx} className="relative group">
-                          <img src={url} alt={`Foto ${idx + 1}`} className="w-full h-20 object-cover rounded-lg border" />
-                          <button
-                            type="button"
-                            onClick={() => setImagenesDispositivo(prev => prev.filter((_, i) => i !== idx))}
-                            className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-4 text-gray-400">
-                      <ImageIcon className="h-8 w-8 mx-auto mb-1 opacity-40" />
-                      <p className="text-xs">Agrega fotos del estado del dispositivo al recibirlo</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Partes Utilizadas */}
-                <div className="border rounded-lg p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-lg font-semibold">Partes Utilizadas</Label>
-                    <div className="flex gap-2">
-                      <Select onValueChange={(value) => handleAgregarParteInventario(Number(value))}>
-                        <SelectTrigger className="w-[200px]">
-                          <SelectValue placeholder="Del inventario" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {parts.map(part => (
-                            <SelectItem key={part.id} value={part.id.toString()}>
-                              {part.nombre} ({part.cantidadActual} disp.)
-                            </SelectItem>
+                    {/* Fotos del dispositivo */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                          <Camera className="h-4 w-4 text-gray-600" />
+                          Fotos del Dispositivo
+                          <span className="text-xs font-normal text-gray-400">({imagenesDispositivo.length}/6)</span>
+                        </Label>
+                        <label className={`cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                          subiendoImagen || imagenesDispositivo.length >= 6
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-blue-500 text-white hover:bg-blue-600'
+                        }`}>
+                          <input type="file" accept="image/*" className="hidden" onChange={handleSubirImagen} disabled={subiendoImagen || imagenesDispositivo.length >= 6} />
+                          {subiendoImagen ? 'Subiendo...' : '+ Agregar Foto'}
+                        </label>
+                      </div>
+                      {imagenesDispositivo.length > 0 ? (
+                        <div className="grid grid-cols-4 gap-2">
+                          {imagenesDispositivo.map((url, idx) => (
+                            <div key={idx} className="relative group">
+                              <img src={url} alt={`Foto ${idx + 1}`} className="w-full h-20 object-cover rounded-xl border-2 border-gray-200" />
+                              <button type="button" onClick={() => setImagenesDispositivo(prev => prev.filter((_, i) => i !== idx))}
+                                className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
                           ))}
-                        </SelectContent>
-                      </Select>
-                      <Button type="button" variant="outline" onClick={handleAgregarParteExterna}>
-                        <Plus className="h-4 w-4 mr-2" />Fuera de Inv.
-                      </Button>
+                        </div>
+                      ) : (
+                        <div className="border-2 border-dashed border-gray-200 rounded-xl py-6 text-center text-gray-400">
+                          <ImageIcon className="h-8 w-8 mx-auto mb-1 opacity-40" />
+                          <p className="text-xs">Agrega fotos del estado del dispositivo al recibirlo</p>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  {partesSeleccionadas.length > 0 && (
-                    <div className="space-y-2">
-                      {partesSeleccionadas.map(parte => (
-                        <div key={parte.id} className="flex items-center gap-2 p-2 border rounded">
-                          {parte.esExterna ? (
-                            <>
-                              <Input placeholder="Nombre de la parte" value={parte.nombre} onChange={(e) => handleActualizarParte(parte.id, 'nombre', e.target.value)} className="flex-1" />
-                              <Input type="number" step="0.01" placeholder="Costo" value={parte.costoUnitario} onChange={(e) => handleActualizarParte(parte.id, 'costoUnitario', e.target.value)} className="w-24" />
-                            </>
-                          ) : (
-                            <>
-                              <span className="flex-1">{parte.nombre}</span>
-                              <span className="text-sm text-gray-500">${parte.costoUnitario} c/u</span>
-                            </>
-                          )}
-                          <Input type="number" min="1" max={parte.cantidadDisponible} value={parte.cantidad} onChange={(e) => handleActualizarParte(parte.id, 'cantidad', Number(e.target.value))} className="w-20" />
-                          <span className="text-sm font-medium w-20 text-right">${(Number(parte.costoUnitario) * parte.cantidad).toFixed(2)}</span>
-                          <Button type="button" variant="ghost" size="sm" onClick={() => handleEliminarParte(parte.id)}>
-                            <X className="h-4 w-4" />
+                )}
+
+                {/* ─── PASO 3: Partes + Costos ─── */}
+                {wizardStep === 3 && (
+                  <div className="space-y-6">
+                    <div className="text-center mb-6">
+                      <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                        <DollarSign className="h-7 w-7 text-green-600" />
+                      </div>
+                      <h3 className="text-lg font-bold text-gray-900">Partes y Costos</h3>
+                      <p className="text-sm text-gray-500">Define las partes utilizadas y el precio final</p>
+                    </div>
+
+                    {/* Partes utilizadas */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                          <Package className="h-4 w-4 text-gray-600" />
+                          Partes Utilizadas
+                        </Label>
+                        <div className="flex gap-2">
+                          <Select onValueChange={(value) => handleAgregarParteInventario(Number(value))}>
+                            <SelectTrigger className="h-8 text-xs w-44">
+                              <SelectValue placeholder="Del inventario" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {parts.map(part => (
+                                <SelectItem key={part.id} value={part.id.toString()}>
+                                  {part.nombre} ({part.cantidadActual})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button type="button" variant="outline" size="sm" onClick={handleAgregarParteExterna} className="h-8 text-xs">
+                            <Plus className="h-3 w-3 mr-1" />Externa
                           </Button>
                         </div>
-                      ))}
-                      <div className="flex justify-end pt-2 border-t">
-                        <span className="font-semibold">Costo Total Partes: ${costoTotalPartes.toFixed(2)}</span>
+                      </div>
+
+                      {partesSeleccionadas.length > 0 ? (
+                        <div className="space-y-2 bg-gray-50 rounded-xl p-3">
+                          {partesSeleccionadas.map(parte => (
+                            <div key={parte.id} className="flex items-center gap-2 bg-white rounded-lg p-2.5 border border-gray-200">
+                              {parte.esExterna ? (
+                                <>
+                                  <Input placeholder="Nombre de la parte" value={parte.nombre} onChange={(e) => handleActualizarParte(parte.id, 'nombre', e.target.value)} className="flex-1 h-8 text-sm" />
+                                  <Input type="number" step="0.01" placeholder="Costo" value={parte.costoUnitario} onChange={(e) => handleActualizarParte(parte.id, 'costoUnitario', e.target.value)} className="w-24 h-8 text-sm" />
+                                </>
+                              ) : (
+                                <>
+                                  <span className="flex-1 text-sm font-medium text-gray-700">{parte.nombre}</span>
+                                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">${parte.costoUnitario} c/u</span>
+                                </>
+                              )}
+                              <Input type="number" min="1" value={parte.cantidad} onChange={(e) => handleActualizarParte(parte.id, 'cantidad', Number(e.target.value))} className="w-16 h-8 text-sm text-center" />
+                              <span className="text-sm font-bold text-gray-900 w-20 text-right">${(Number(parte.costoUnitario) * parte.cantidad).toFixed(2)}</span>
+                              <button type="button" onClick={() => handleEliminarParte(parte.id)} className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center">
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                          <div className="flex justify-end pt-1">
+                            <span className="text-sm font-bold text-gray-700">Subtotal partes: <span className="text-orange-600">${costoTotalPartes.toFixed(2)}</span></span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="border-2 border-dashed border-gray-200 rounded-xl py-5 text-center text-gray-400">
+                          <Package className="h-7 w-7 mx-auto mb-1 opacity-40" />
+                          <p className="text-xs">Sin partes — agrega del inventario o externas</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Precio total */}
+                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-5 space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-bold text-gray-700">Precio Total al Cliente *</Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-lg">$</span>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={precioTotal.toFixed(2)}
+                            onChange={(e) => setPrecioTotal(parseFloat(e.target.value) || 0)}
+                            className="pl-8 h-14 text-2xl font-bold text-gray-900 bg-white border-2 border-gray-200 focus:border-orange-400"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
+                          <p className="text-xs text-gray-500 mb-1">Costo Partes</p>
+                          <p className="text-lg font-bold text-gray-800">${costoTotalPartes.toFixed(2)}</p>
+                        </div>
+                        <div className="bg-white rounded-lg p-3 text-center border border-green-200 bg-green-50">
+                          <p className="text-xs text-green-600 mb-1">Mano de Obra</p>
+                          <p className="text-lg font-bold text-green-700">${manoDeObra.toFixed(2)}</p>
+                        </div>
+                        <div className="bg-white rounded-lg p-3 text-center border border-orange-200 bg-orange-50">
+                          <p className="text-xs text-orange-600 mb-1">Ganancia</p>
+                          <p className="text-lg font-bold text-orange-700">${manoDeObra.toFixed(2)}</p>
+                        </div>
                       </div>
                     </div>
+
+                    {/* Notas */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold text-gray-700">Notas Adicionales <span className="font-normal text-gray-400">(opcional)</span></Label>
+                      <Textarea
+                        value={formData.notas}
+                        onChange={(e) => updateField('notas', e.target.value)}
+                        placeholder="Observaciones adicionales sobre la reparación..."
+                        className="min-h-[80px] resize-none"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* ─── Botones de navegación ─── */}
+                <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => wizardStep === 1 ? setDialogOpen(false) : setWizardStep(prev => prev - 1)}
+                    className="flex items-center gap-2"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    {wizardStep === 1 ? 'Cancelar' : 'Anterior'}
+                  </Button>
+
+                  {wizardStep < 3 ? (
+                    <Button
+                      type="button"
+                      onClick={handleNextStep}
+                      className="bg-orange-500 hover:bg-orange-600 text-white flex items-center gap-2 px-6"
+                    >
+                      Siguiente
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      onClick={handleSubmit}
+                      disabled={createMutation.isPending}
+                      className="bg-green-500 hover:bg-green-600 text-white flex items-center gap-2 px-6"
+                    >
+                      {createMutation.isPending ? 'Guardando...' : (
+                        <>
+                          <CheckCircle className="h-4 w-4" />
+                          Guardar Reparación
+                        </>
+                      )}
+                    </Button>
                   )}
                 </div>
-
-                {/* Precios */}
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="precioTotal">Precio Total al Cliente *</Label>
-                    <Input id="precioTotal" name="precioTotal" type="number" step="0.01" placeholder="100.00" value={precioTotal.toFixed(2)} onChange={(e) => setPrecioTotal(parseFloat(e.target.value) || 0)} required />
-                  </div>
-                  <div className="bg-blue-50 p-4 rounded-lg space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="font-medium">Costo Total Partes:</span>
-                      <span className="font-bold">${costoTotalPartes.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="font-medium">Mano de Obra (calculada):</span>
-                      <span className="font-bold text-green-600">${manoDeObra.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm border-t pt-2">
-                      <span className="font-semibold">Ganancia Total:</span>
-                      <span className="font-bold text-blue-600">${manoDeObra.toFixed(2)}</span>
-                    </div>
-                  </div>
-                  <input type="hidden" id="precioManoObra" name="precioManoObra" value={manoDeObra.toFixed(2)} />
-                </div>
-
-                {/* Notas */}
-                <div>
-                  <Label htmlFor="notas">Notas</Label>
-                  <Textarea id="notas" name="notas" placeholder="Observaciones adicionales" />
-                </div>
-
-                {/* Botones */}
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-                  <Button type="submit" disabled={createMutation.isPending}>
-                    {createMutation.isPending ? 'Guardando...' : 'Guardar Reparación'}
-                  </Button>
-                </div>
-              </form>
+              </div>
             </DialogContent>
           </Dialog>
         </div>
@@ -842,13 +937,13 @@ export default function Reparaciones() {
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-green-700">
-                <CheckSquare className="h-5 w-5" />
-                Reparación Registrada
+                <CheckCircle className="h-5 w-5" />
+                ¡Reparación Registrada!
               </DialogTitle>
             </DialogHeader>
             {repairSummary && (
               <div className="space-y-4">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
+                <div className="bg-green-50 border border-green-200 rounded-xl p-4 space-y-3">
                   <div className="flex justify-between items-center border-b border-green-200 pb-2">
                     <span className="text-sm text-gray-600">Código:</span>
                     <span className="font-bold text-lg text-green-700">{repairSummary.codigo}</span>
@@ -862,12 +957,8 @@ export default function Reparaciones() {
                     <span className="font-medium">{repairSummary.dispositivo}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 flex items-center gap-1"><DollarSign className="h-3.5 w-3.5" /> Precio Total:</span>
+                    <span className="text-sm text-gray-600 flex items-center gap-1"><DollarSign className="h-3.5 w-3.5" /> Total:</span>
                     <span className="font-bold text-green-700">${repairSummary.precioTotal.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 flex items-center gap-1"><Wrench className="h-3.5 w-3.5" /> Mano de Obra:</span>
-                    <span className="font-bold text-blue-600">${repairSummary.manoDeObra.toFixed(2)}</span>
                   </div>
                 </div>
                 <Button className="w-full" onClick={() => setSummaryOpen(false)}>Cerrar</Button>
@@ -878,50 +969,24 @@ export default function Reparaciones() {
 
         {/* Estadísticas */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Card className="p-4 border-0 shadow-sm bg-white">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center">
-                <Clock className="h-4 w-4 text-gray-600" />
+          {[
+            { label: 'Pendientes', value: totales.pendientes, icon: Clock, color: 'gray', bg: 'bg-gray-100', text: 'text-gray-600', val: 'text-gray-900' },
+            { label: 'En Proceso', value: totales.enProceso, icon: Wrench, color: 'yellow', bg: 'bg-yellow-100', text: 'text-yellow-600', val: 'text-yellow-700' },
+            { label: 'Completadas', value: totales.completadas, icon: CheckCircle, color: 'green', bg: 'bg-green-100', text: 'text-green-600', val: 'text-green-700' },
+            { label: 'Ganancia Total', value: `$${totales.gananciaTotal.toFixed(2)}`, icon: DollarSign, color: 'orange', bg: 'bg-orange-100', text: 'text-orange-600', val: 'text-orange-700' },
+          ].map((stat) => (
+            <Card key={stat.label} className="p-4 border-0 shadow-sm bg-white">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl ${stat.bg} flex items-center justify-center`}>
+                  <stat.icon className={`h-5 w-5 ${stat.text}`} />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">{stat.label}</p>
+                  <p className={`text-2xl font-bold ${stat.val}`}>{stat.value}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-gray-500">Pendientes</p>
-                <p className="text-2xl font-bold text-gray-900">{totales.pendientes}</p>
-              </div>
-            </div>
-          </Card>
-          <Card className="p-4 border-0 shadow-sm bg-white">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-yellow-100 flex items-center justify-center">
-                <Wrench className="h-4 w-4 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">En Proceso</p>
-                <p className="text-2xl font-bold text-yellow-700">{totales.enProceso}</p>
-              </div>
-            </div>
-          </Card>
-          <Card className="p-4 border-0 shadow-sm bg-white">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-green-100 flex items-center justify-center">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Completadas</p>
-                <p className="text-2xl font-bold text-green-700">{totales.completadas}</p>
-              </div>
-            </div>
-          </Card>
-          <Card className="p-4 border-0 shadow-sm bg-white">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-orange-100 flex items-center justify-center">
-                <DollarSign className="h-4 w-4 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Ganancia Total</p>
-                <p className="text-2xl font-bold text-orange-700">${totales.gananciaTotal.toFixed(2)}</p>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          ))}
         </div>
 
         {/* Filtros */}
@@ -929,32 +994,24 @@ export default function Reparaciones() {
           <div className="flex flex-col md:flex-row gap-3 items-start md:items-center">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Buscar por cliente, teléfono, código, dispositivo o técnico..."
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                className="pl-9 h-9 bg-gray-50 border-gray-200"
-              />
+              <Input placeholder="Buscar por cliente, teléfono, código, dispositivo o técnico..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="pl-9 h-9 bg-gray-50 border-gray-200" />
             </div>
-            <Select value={filtroEstado} onValueChange={(value: any) => setFiltroEstado(value)}>
-              <SelectTrigger className="w-[180px] h-9 bg-gray-50 border-gray-200">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos los estados</SelectItem>
-                <SelectItem value="pendiente">Pendiente</SelectItem>
-                <SelectItem value="en_proceso">En Proceso</SelectItem>
-                <SelectItem value="completada">Completada</SelectItem>
-                <SelectItem value="entregada">Entregada</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2 flex-wrap">
+              {(['todos', 'pendiente', 'en_proceso', 'completada', 'entregada'] as const).map(estado => (
+                <button key={estado} onClick={() => setFiltroEstado(estado)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${filtroEstado === estado ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                  {estado === 'todos' ? 'Todos' : estado === 'en_proceso' ? 'En Proceso' : estado.charAt(0).toUpperCase() + estado.slice(1)}
+                </button>
+              ))}
+            </div>
             <div className="flex items-center gap-2">
               <Input type="date" value={fechaInicio} onChange={(e) => setFechaInicio(e.target.value)} className="h-9 bg-gray-50 border-gray-200 w-36" />
               <span className="text-gray-400 text-sm">—</span>
               <Input type="date" value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} className="h-9 bg-gray-50 border-gray-200 w-36" />
             </div>
             {hayFiltrosActivos && (
-              <button onClick={limpiarFiltros} className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 whitespace-nowrap">
+              <button onClick={() => { setBusqueda(''); setFiltroEstado('todos'); setFechaInicio(''); setFechaFin(''); }}
+                className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 whitespace-nowrap">
                 <X className="h-3.5 w-3.5" />Limpiar
               </button>
             )}
@@ -996,7 +1053,7 @@ export default function Reparaciones() {
                         </td>
                         <td className="px-4 py-3">
                           <div>
-                            <p className="text-sm font-medium text-gray-900">{repair.cliente || 'Sin nombre'}</p>
+                            <p className="text-sm font-semibold text-gray-900">{repair.cliente || 'Sin nombre'}</p>
                             <p className="text-xs text-gray-400">{repair.telefono || '—'}</p>
                           </div>
                         </td>
@@ -1006,8 +1063,7 @@ export default function Reparaciones() {
                         <td className="px-4 py-3 hidden lg:table-cell">
                           {(repair as any).tecnico ? (
                             <span className="text-sm text-gray-700 flex items-center gap-1">
-                              <UserCog className="h-3.5 w-3.5 text-gray-400" />
-                              {(repair as any).tecnico}
+                              <UserCog className="h-3.5 w-3.5 text-gray-400" />{(repair as any).tecnico}
                             </span>
                           ) : (
                             <span className="text-xs text-gray-400 italic">Sin asignar</span>
@@ -1029,7 +1085,6 @@ export default function Reparaciones() {
                             </SelectContent>
                           </Select>
                         </td>
-                        {/* Celda de Checklist */}
                         <td className="px-4 py-3 hidden xl:table-cell">
                           {(() => {
                             let cl: { id: string; estado: string }[] = [];
@@ -1055,18 +1110,14 @@ export default function Reparaciones() {
                           {garantia ? (
                             garantia.activa ? (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                                <Shield className="h-3 w-3" />
-                                {garantia.diasRestantes}d
+                                <Shield className="h-3 w-3" />{garantia.diasRestantes}d
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-600">
-                                <ShieldOff className="h-3 w-3" />
-                                Vencida
+                                <ShieldOff className="h-3 w-3" />Vencida
                               </span>
                             )
-                          ) : (
-                            <span className="text-xs text-gray-400">—</span>
-                          )}
+                          ) : <span className="text-xs text-gray-400">—</span>}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div>
@@ -1076,28 +1127,13 @@ export default function Reparaciones() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-1">
-                            {/* Orden de Trabajo */}
-                            <button
-                              onClick={() => imprimirOrdenTrabajo(repair)}
-                              className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-orange-100 hover:text-orange-600 flex items-center justify-center transition-colors"
-                              title="Imprimir orden de trabajo"
-                            >
+                            <button onClick={() => imprimirOrdenTrabajo(repair)} className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-orange-100 hover:text-orange-600 flex items-center justify-center transition-colors" title="Imprimir orden">
                               <Printer className="h-3.5 w-3.5" />
                             </button>
-                            {/* Recibo/Factura */}
-                            <button
-                              onClick={() => { setReparacionSeleccionada(repair); setFacturaDialogOpen(true); }}
-                              className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-blue-100 hover:text-blue-600 flex items-center justify-center transition-colors"
-                              title="Ver recibo"
-                            >
+                            <button onClick={() => { setReparacionSeleccionada(repair); setFacturaDialogOpen(true); }} className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-blue-100 hover:text-blue-600 flex items-center justify-center transition-colors" title="Ver recibo">
                               <FileText className="h-3.5 w-3.5" />
                             </button>
-                            {/* Eliminar */}
-                            <button
-                              onClick={() => handleDelete(repair.id)}
-                              className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition-colors"
-                              title="Eliminar"
-                            >
+                            <button onClick={() => handleDelete(repair.id)} className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition-colors" title="Eliminar">
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           </div>
@@ -1108,9 +1144,7 @@ export default function Reparaciones() {
                 </tbody>
               </table>
               <div className="px-4 py-3 border-t border-gray-100 bg-gray-50">
-                <p className="text-xs text-gray-500">
-                  Mostrando {repairsFiltradas.length} de {repairs.length} reparaciones
-                </p>
+                <p className="text-xs text-gray-500">Mostrando {repairsFiltradas.length} de {repairs.length} reparaciones</p>
               </div>
             </div>
           )}
@@ -1122,9 +1156,7 @@ export default function Reparaciones() {
             <DialogHeader>
               <DialogTitle>Recibo de Reparación</DialogTitle>
             </DialogHeader>
-            {reparacionSeleccionada && (
-              <FacturaReparacion repair={reparacionSeleccionada} />
-            )}
+            {reparacionSeleccionada && <FacturaReparacion repair={reparacionSeleccionada} />}
           </DialogContent>
         </Dialog>
       </div>
