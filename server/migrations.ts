@@ -521,6 +521,16 @@ export async function applyMigrations() {
       { col: 'fechaEntrega',    sql: `ALTER TABLE repairs ADD COLUMN fechaEntrega TIMESTAMP NULL` },
       { col: 'tienda',          sql: `ALTER TABLE repairs ADD COLUMN tienda ENUM('admin','sucursal') NOT NULL DEFAULT 'admin'` },
       { col: 'estado',          sql: `ALTER TABLE repairs ADD COLUMN estado ENUM('pendiente','en_proceso','completada','entregada') NOT NULL DEFAULT 'pendiente'` },
+      { col: 'tecnico',          sql: `ALTER TABLE repairs ADD COLUMN tecnico VARCHAR(200) NULL` },
+      { col: 'garantiaDias',     sql: `ALTER TABLE repairs ADD COLUMN garantiaDias INT NOT NULL DEFAULT 30` },
+      { col: 'garantiaVence',    sql: `ALTER TABLE repairs ADD COLUMN garantiaVence TIMESTAMP NULL` },
+      { col: 'codigoDesbloqueo', sql: `ALTER TABLE repairs ADD COLUMN codigoDesbloqueo VARCHAR(100) NULL` },
+      { col: 'checklistComponentes',  sql: `ALTER TABLE repairs ADD COLUMN checklistComponentes TEXT NULL` },
+      { col: 'imagenesDispositivo',   sql: `ALTER TABLE repairs ADD COLUMN imagenesDispositivo TEXT NULL` },
+      { col: 'notas',            sql: `ALTER TABLE repairs ADD COLUMN notas TEXT NULL` },
+      { col: 'diagnostico',      sql: `ALTER TABLE repairs ADD COLUMN diagnostico TEXT NULL` },
+      { col: 'pagado',           sql: `ALTER TABLE repairs ADD COLUMN pagado INT NOT NULL DEFAULT 0` },
+      { col: 'codigo',           sql: `ALTER TABLE repairs ADD COLUMN codigo VARCHAR(50) NULL` },
     ];
     for (const { col, sql } of repairColumnsToAdd) {
       try {
