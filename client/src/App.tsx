@@ -28,6 +28,7 @@ import POSHistorial from './pages/POSHistorial';
 import Servicios from './pages/Servicios';
 import Clientes from './pages/Clientes';
 import TrackRepair from './pages/TrackRepair';
+import OrdenesPartes from './pages/OrdenesPartes';
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -111,6 +112,9 @@ function Router() {
       </Route>
       <Route path="/pos/display" component={POSDisplay} />
       <Route path="/track" component={TrackRepair} />
+      <Route path="/ordenes-partes">
+        {() => <ProtectedRoute component={OrdenesPartes} />}
+      </Route>
       <Route path="/servicios">
         {() => <ProtectedRoute component={Servicios} />}
       </Route>

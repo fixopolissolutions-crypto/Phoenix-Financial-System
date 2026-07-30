@@ -1364,6 +1364,61 @@ export const appRouter = router({
       }),
   }),
 
+  // ==================== ÓRDENES ESPECIALES DE PARTES ====================
+  partOrders: router({
+    list: publicProcedure
+      .input(z.object({
+        estado: z.string().optional(),
+      }).optional())
+      .query(async ({ input, ctx }) => {
+        const tienda = ctx.user?.tienda || 'admin';
+        return await db.getPartOrders({ tienda, estado: input?.estado });
+      }),
+
+    create: publicProcedure
+      .input(z.object({
+        proveedor: z.string().min(1),
+        descripcion: z.string().min(1),
+        cantidad: z.number().int().min(1).default(1),
+        precioUnitario: z.number().optional(),
+        precioTotal: z.number().optional(),
+        fechaOrden: z.string(),
+        fechaEstimada: z.string().optional(),
+        repairId: z.number().optional(),
+        repairCodigo: z.string().optional(),
+        notas: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const tienda = ctx.user?.tienda || 'admin';
+        const codigo = await db.getNextPartOrderCode(tienda);
+        return await db.createPartOrder({ ...input, codigo, tienda });
+      }),
+
+    update: publicProcedure
+      .input(z.object({
+        id: z.number(),
+        proveedor: z.string().optional(),
+        descripcion: z.string().optional(),
+        cantidad: z.number().int().optional(),
+        precioUnitario: z.number().optional(),
+        precioTotal: z.number().optional(),
+        estado: z.string().optional(),
+        fechaEstimada: z.string().optional(),
+        fechaRecibido: z.string().optional(),
+        notas: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        return await db.updatePartOrder(id, data);
+      }),
+
+    delete: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return await db.deletePartOrder(input.id);
+      }),
+  }),
+
   // ==================== PORTAL PÚBLICO DEL CLIENTE ====================
   track: router({
     byCode: publicProcedure

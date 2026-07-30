@@ -27,6 +27,7 @@ import {
   Scissors,
   Sun,
   Moon,
+  Truck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
@@ -44,6 +45,7 @@ const navGroups = [
       { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, adminOnly: true },
       { name: 'Reparaciones', href: '/reparaciones', icon: Wrench, adminOnly: true },
       { name: 'Clientes', href: '/clientes', icon: Users, adminOnly: true },
+      { name: 'Órdenes de Partes', href: '/ordenes-partes', icon: Truck, adminOnly: true },
       { name: 'Servidor', href: '/servidor', icon: Server, adminOnly: true },
       { name: 'Punto de Venta', href: '/pos', icon: ShoppingCart },
       { name: 'Historial POS', href: '/pos/historial', icon: Receipt },

@@ -1954,3 +1954,101 @@ export async function getCustomerRepairs(customerId: number) {
     await connection.end();
   }
 }
+
+// ─── Órdenes Especiales de Partes ────────────────────────────────────────────
+
+export async function getPartOrders(filters?: { tienda?: string; estado?: string }) {
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  try {
+    let query = `SELECT * FROM part_orders WHERE 1=1`;
+    const params: any[] = [];
+    if (filters?.tienda) { query += ` AND tienda = ?`; params.push(filters.tienda); }
+    if (filters?.estado) { query += ` AND estado = ?`; params.push(filters.estado); }
+    query += ` ORDER BY createdAt DESC`;
+    const [rows] = await connection.execute(query, params) as any[];
+    return rows as any[];
+  } finally {
+    await connection.end();
+  }
+}
+
+export async function createPartOrder(data: {
+  codigo: string; proveedor: string; descripcion: string; cantidad: number;
+  precioUnitario?: number; precioTotal?: number; estado?: string;
+  fechaOrden: string; fechaEstimada?: string; repairId?: number;
+  repairCodigo?: string; notas?: string; tienda: string;
+}) {
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  try {
+    const [result] = await connection.execute(
+      `INSERT INTO part_orders (codigo, proveedor, descripcion, cantidad, precioUnitario, precioTotal, estado, fechaOrden, fechaEstimada, repairId, repairCodigo, notas, tienda)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [data.codigo, data.proveedor, data.descripcion, data.cantidad,
+       data.precioUnitario ?? null, data.precioTotal ?? null,
+       data.estado ?? 'pendiente', data.fechaOrden, data.fechaEstimada ?? null,
+       data.repairId ?? null, data.repairCodigo ?? null, data.notas ?? null, data.tienda]
+    ) as any[];
+    return { id: (result as any).insertId, ...data };
+  } finally {
+    await connection.end();
+  }
+}
+
+export async function updatePartOrder(id: number, data: {
+  proveedor?: string; descripcion?: string; cantidad?: number;
+  precioUnitario?: number; precioTotal?: number; estado?: string;
+  fechaEstimada?: string; fechaRecibido?: string; notas?: string;
+}) {
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  try {
+    const fields: string[] = [];
+    const values: any[] = [];
+    if (data.proveedor !== undefined) { fields.push('proveedor = ?'); values.push(data.proveedor); }
+    if (data.descripcion !== undefined) { fields.push('descripcion = ?'); values.push(data.descripcion); }
+    if (data.cantidad !== undefined) { fields.push('cantidad = ?'); values.push(data.cantidad); }
+    if (data.precioUnitario !== undefined) { fields.push('precioUnitario = ?'); values.push(data.precioUnitario); }
+    if (data.precioTotal !== undefined) { fields.push('precioTotal = ?'); values.push(data.precioTotal); }
+    if (data.estado !== undefined) { fields.push('estado = ?'); values.push(data.estado); }
+    if (data.fechaEstimada !== undefined) { fields.push('fechaEstimada = ?'); values.push(data.fechaEstimada); }
+    if (data.fechaRecibido !== undefined) { fields.push('fechaRecibido = ?'); values.push(data.fechaRecibido); }
+    if (data.notas !== undefined) { fields.push('notas = ?'); values.push(data.notas); }
+    if (fields.length === 0) return { id };
+    values.push(id);
+    await connection.execute(`UPDATE part_orders SET ${fields.join(', ')} WHERE id = ?`, values);
+    return { id, ...data };
+  } finally {
+    await connection.end();
+  }
+}
+
+export async function deletePartOrder(id: number) {
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  try {
+    await connection.execute(`DELETE FROM part_orders WHERE id = ?`, [id]);
+    return { success: true };
+  } finally {
+    await connection.end();
+  }
+}
+
+export async function getNextPartOrderCode(tienda: string) {
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  try {
+    const prefix = tienda === 'admin' ? 'PO-ADM' : 'PO-SUC';
+    const [rows] = await connection.execute(
+      `SELECT codigo FROM part_orders WHERE tienda = ? ORDER BY id DESC LIMIT 1`,
+      [tienda]
+    ) as any[];
+    if (!Array.isArray(rows) || rows.length === 0) return `${prefix}-001`;
+    const last = (rows[0] as any).codigo as string;
+    const num = parseInt(last.split('-').pop() || '0', 10);
+    return `${prefix}-${String(num + 1).padStart(3, '0')}`;
+  } finally {
+    await connection.end();
+  }
+}

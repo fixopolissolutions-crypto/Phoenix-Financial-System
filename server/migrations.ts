@@ -624,6 +624,38 @@ export async function applyMigrations() {
       }
     }
 
+    // Migración 23: Crear tabla part_orders (órdenes especiales de partes a proveedores)
+    try {
+      await connection.execute(`
+        CREATE TABLE IF NOT EXISTS part_orders (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          codigo VARCHAR(50) NOT NULL,
+          proveedor VARCHAR(200) NOT NULL,
+          descripcion TEXT NOT NULL,
+          cantidad INT NOT NULL DEFAULT 1,
+          precioUnitario DECIMAL(10,2) NULL,
+          precioTotal DECIMAL(10,2) NULL,
+          estado ENUM('pendiente','ordenado','en_camino','recibido','cancelado') NOT NULL DEFAULT 'pendiente',
+          fechaOrden DATE NOT NULL,
+          fechaEstimada DATE NULL,
+          fechaRecibido DATE NULL,
+          repairId INT NULL,
+          repairCodigo VARCHAR(50) NULL,
+          notas TEXT NULL,
+          tienda VARCHAR(50) NOT NULL DEFAULT 'admin',
+          createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      console.log('[Migrations] ✅ Created part_orders table');
+    } catch (error: any) {
+      if (error.code === 'ER_TABLE_EXISTS_ERROR') {
+        console.log('[Migrations] ⏭️  part_orders table already exists');
+      } else {
+        console.log('[Migrations] ⚠️  Could not create part_orders:', error.message);
+      }
+    }
+
     await connection.end();
     console.log('[Migrations] ✅ All migrations completed successfully');
   } catch (error) {
