@@ -1034,17 +1034,22 @@ export async function createRepair(data: InsertRepair & { partes?: { partId: num
         repairData.codigoDesbloqueo, repairData.checklistComponentes, repairData.imagenesDispositivo
       ]
     );
-    await connection.end();
     const repairId = Number((result as any).insertId);
+    await connection.end();
 
-    // Agregar partes si se proporcionan
+    // Agregar partes si se proporcionan (conexión separada dentro de addRepairParts)
     if (data.partes && data.partes.length > 0) {
-      await addRepairParts(repairId, data.partes);
+      try {
+        await addRepairParts(repairId, data.partes);
+      } catch (partsError: any) {
+        // Las partes fallaron pero la reparación ya existe — registrar el error pero no fallar
+        console.error('[createRepair] Error al agregar partes, reparación creada sin partes:', partsError.message);
+      }
     }
 
     return { id: repairId, ...repairData };
   } catch (error) {
-    await connection.end();
+    try { await connection.end(); } catch {}
     throw error;
   }
 }
@@ -1232,9 +1237,9 @@ export async function addRepairParts(
       const nombreExterno = esExterna ? (parte.nombre || 'Parte externa') : null;
       
       await connection.execute(
-        `INSERT INTO repair_parts (repairId, partId, esExterna, nombreExterno, cantidad, precioUnitario)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [repairId, partId, esExterna, nombreExterno, parte.cantidad, costoUnitario]
+        `INSERT INTO repair_parts (repairId, partId, esExterna, nombreExterno, cantidad, costoUnitario, costoTotal)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [repairId, partId, esExterna, nombreExterno, parte.cantidad, costoUnitario, costoTotal]
       );
     }
     

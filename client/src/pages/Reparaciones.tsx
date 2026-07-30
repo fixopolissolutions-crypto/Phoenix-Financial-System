@@ -48,9 +48,18 @@ interface ChecklistItem { id: string; estado: ChecklistEstado; }
 interface RepairSummary {
   codigo: string;
   cliente: string;
+  telefono: string;
   dispositivo: string;
+  problema: string;
+  diagnostico: string;
+  tecnico: string;
   precioTotal: number;
   manoDeObra: number;
+  fechaIngreso: string;
+  garantiaDias: number;
+  checklistComponentes: string;
+  imagenesDispositivo: string;
+  notas: string;
 }
 
 // ─── Checklist de Diagnóstico ───────────────────────────────────────────────
@@ -290,17 +299,30 @@ export default function Reparaciones() {
   // Mutations
   const createMutation = trpc.repairs.create.useMutation({
     onSuccess: (result, variables) => {
+      // Guardar todos los datos para imprimir directamente (sin depender del caché)
       setRepairSummary({
         codigo: variables.codigo,
         cliente: variables.cliente || 'Sin nombre',
+        telefono: variables.telefono || '',
         dispositivo: variables.dispositivo || 'Sin dispositivo',
+        problema: variables.problema || '',
+        diagnostico: variables.diagnostico || '',
+        tecnico: (variables as any).tecnico || '',
         precioTotal: parseFloat(variables.precioTotal),
         manoDeObra: parseFloat(variables.precioManoObra),
+        fechaIngreso: variables.fechaIngreso instanceof Date
+          ? variables.fechaIngreso.toISOString().split('T')[0]
+          : String(variables.fechaIngreso),
+        garantiaDias: (variables as any).garantiaDias || 30,
+        checklistComponentes: (variables as any).checklistComponentes || '',
+        imagenesDispositivo: (variables as any).imagenesDispositivo || '',
+        notas: variables.notas || '',
       });
       setSummaryOpen(true);
-      refetch();
       setDialogOpen(false);
       resetForm();
+      refetch();
+      refetchNextCode();
       toast.success('Reparación registrada exitosamente');
     },
     onError: (error) => toast.error('Error al registrar: ' + error.message),
@@ -968,10 +990,26 @@ export default function Reparaciones() {
                 <div className="flex gap-2">
                   <Button variant="outline" className="flex-1" onClick={() => { setSummaryOpen(false); refetchNextCode(); }}>Cerrar</Button>
                   <Button className="flex-1 bg-orange-500 hover:bg-orange-600" onClick={() => {
-                    // Buscar la reparación recién creada en la lista y mostrar su orden
-                    const found = repairs.find((r: any) => r.codigo === repairSummary?.codigo);
-                    if (found) { imprimirOrdenTrabajo(found); }
-                    else { toast.info('La orden estará disponible en unos segundos. Recarga la página.'); }
+                    // Imprimir directamente con los datos del formulario (sin depender del caché)
+                    if (repairSummary) {
+                      imprimirOrdenTrabajo({
+                        codigo: repairSummary.codigo,
+                        cliente: repairSummary.cliente,
+                        telefono: repairSummary.telefono,
+                        dispositivo: repairSummary.dispositivo,
+                        problema: repairSummary.problema,
+                        diagnostico: repairSummary.diagnostico,
+                        tecnico: repairSummary.tecnico,
+                        precioTotal: repairSummary.precioTotal,
+                        precioManoObra: repairSummary.manoDeObra,
+                        fechaIngreso: repairSummary.fechaIngreso,
+                        garantiaDias: repairSummary.garantiaDias,
+                        checklistComponentes: repairSummary.checklistComponentes,
+                        imagenesDispositivo: repairSummary.imagenesDispositivo,
+                        notas: repairSummary.notas,
+                        estado: 'pendiente',
+                      });
+                    }
                   }}>
                     <Printer className="h-4 w-4 mr-1" /> Imprimir Orden
                   </Button>
