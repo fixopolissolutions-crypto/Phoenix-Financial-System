@@ -17,7 +17,8 @@ import {
   repairs, InsertRepair, Repair,
   repairParts, InsertRepairPart, RepairPart,
   inventoryMovements, InsertInventoryMovement, InventoryMovement,
-  storeConfig
+  storeConfig,
+  customers, InsertCustomer, Customer
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1006,6 +1007,11 @@ export async function createRepair(data: InsertRepair & { partes?: { partId: num
     fechaIngreso: data.fechaIngreso,
     tienda: data.tienda,
     notas: data.notas ?? null,
+    tecnico: (data as any).tecnico ?? null,
+    garantiaDias: (data as any).garantiaDias ?? 30,
+    codigoDesbloqueo: (data as any).codigoDesbloqueo ?? null,
+    checklistComponentes: (data as any).checklistComponentes ?? null,
+    imagenesDispositivo: (data as any).imagenesDispositivo ?? null,
   };
 
   // Usar mysql2 directamente
@@ -1016,14 +1022,16 @@ export async function createRepair(data: InsertRepair & { partes?: { partId: num
       `INSERT INTO repairs (
         codigo, cliente, telefono, dispositivo, problema, diagnostico,
         precioManoObra, precioTotal, costoPartes, ganancia,
-        fechaIngreso, tienda, notas
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        fechaIngreso, tienda, notas,
+        tecnico, garantiaDias, codigoDesbloqueo, checklistComponentes, imagenesDispositivo
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         repairData.codigo, repairData.cliente, repairData.telefono,
         repairData.dispositivo, repairData.problema, repairData.diagnostico,
         repairData.precioManoObra, repairData.precioTotal, repairData.costoPartes,
         repairData.ganancia, repairData.fechaIngreso, repairData.tienda,
-        repairData.notas
+        repairData.notas, repairData.tecnico, repairData.garantiaDias,
+        repairData.codigoDesbloqueo, repairData.checklistComponentes, repairData.imagenesDispositivo
       ]
     );
     await connection.end();
@@ -1124,6 +1132,18 @@ export async function updateRepair(id: number, data: Partial<InsertRepair>) {
     if ((data as any).pagado !== undefined) {
       updates.push('pagado = ?');
       values.push((data as any).pagado);
+    }
+    if ((data as any).codigoDesbloqueo !== undefined) {
+      updates.push('codigoDesbloqueo = ?');
+      values.push((data as any).codigoDesbloqueo);
+    }
+    if ((data as any).checklistComponentes !== undefined) {
+      updates.push('checklistComponentes = ?');
+      values.push((data as any).checklistComponentes);
+    }
+    if ((data as any).imagenesDispositivo !== undefined) {
+      updates.push('imagenesDispositivo = ?');
+      values.push((data as any).imagenesDispositivo);
     }
     
     if (updates.length > 0) {
@@ -1674,6 +1694,115 @@ export async function searchPosTransactions(params: {
         cambio: r.cambio ? parseFloat(r.cambio) : 0,
       })),
       total: countRows[0].total as number,
+    };
+  } finally {
+    await connection.end();
+  }
+}
+
+// ─── Customers (CRM) ──────────────────────────────────────────────────────────
+
+export async function getCustomers(filters: { tienda?: string; busqueda?: string } = {}) {
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  try {
+    let where = '1=1';
+    const values: any[] = [];
+    if (filters.tienda) { where += ' AND tienda = ?'; values.push(filters.tienda); }
+    if (filters.busqueda) {
+      where += ' AND (nombre LIKE ? OR telefono LIKE ? OR email LIKE ? OR empresa LIKE ?)';
+      const q = `%${filters.busqueda}%`;
+      values.push(q, q, q, q);
+    }
+    const [rows] = await connection.execute(
+      `SELECT * FROM customers WHERE ${where} ORDER BY nombre ASC`,
+      values
+    ) as any[];
+    return rows as Customer[];
+  } finally {
+    await connection.end();
+  }
+}
+
+export async function createCustomer(data: {
+  nombre: string;
+  telefono?: string;
+  email?: string;
+  direccion?: string;
+  empresa?: string;
+  esEmpresa?: number;
+  descuento?: number;
+  fuenteAdquisicion?: string;
+  notas?: string;
+  tienda: string;
+}) {
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  try {
+    const [result] = await connection.execute(
+      `INSERT INTO customers (nombre, telefono, email, direccion, empresa, esEmpresa, descuento, fuenteAdquisicion, notas, tienda)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        data.nombre, data.telefono ?? null, data.email ?? null, data.direccion ?? null,
+        data.empresa ?? null, data.esEmpresa ?? 0, data.descuento ?? 0,
+        data.fuenteAdquisicion ?? null, data.notas ?? null, data.tienda
+      ]
+    ) as any[];
+    return { id: Number(result.insertId), ...data };
+  } finally {
+    await connection.end();
+  }
+}
+
+export async function updateCustomer(id: number, data: Partial<InsertCustomer>) {
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  try {
+    const updates: string[] = [];
+    const values: any[] = [];
+    const fields = ['nombre', 'telefono', 'email', 'direccion', 'empresa', 'esEmpresa', 'descuento', 'fuenteAdquisicion', 'notas'] as const;
+    for (const field of fields) {
+      if ((data as any)[field] !== undefined) {
+        updates.push(`${field} = ?`);
+        values.push((data as any)[field]);
+      }
+    }
+    if (updates.length > 0) {
+      values.push(id);
+      await connection.execute(`UPDATE customers SET ${updates.join(', ')} WHERE id = ?`, values);
+    }
+    return { success: true };
+  } finally {
+    await connection.end();
+  }
+}
+
+export async function deleteCustomer(id: number) {
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  try {
+    await connection.execute('DELETE FROM customers WHERE id = ?', [id]);
+    return { success: true };
+  } finally {
+    await connection.end();
+  }
+}
+
+export async function getCustomerStats(customerId: number) {
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  try {
+    // Buscar reparaciones del cliente por teléfono o nombre
+    const [customer] = await connection.execute('SELECT * FROM customers WHERE id = ?', [customerId]) as any[];
+    if (!Array.isArray(customer) || customer.length === 0) return { reparaciones: 0, totalGastado: 0 };
+    const c = customer[0] as any;
+    const [repRows] = await connection.execute(
+      `SELECT COUNT(*) as total, COALESCE(SUM(precioTotal), 0) as totalGastado FROM repairs WHERE telefono = ? OR cliente = ?`,
+      [c.telefono, c.nombre]
+    ) as any[];
+    return {
+      reparaciones: Number(repRows[0].total),
+      totalGastado: parseFloat(repRows[0].totalGastado),
     };
   } finally {
     await connection.end();

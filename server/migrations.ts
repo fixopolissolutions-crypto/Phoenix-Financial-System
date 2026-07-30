@@ -470,6 +470,40 @@ export async function applyMigrations() {
       console.log('[Migrations] ⏭️  repairs tecnico/garantia columns already exist:', error.message);
     }
 
+    // ─── Migración 18: Add codigoDesbloqueo, checklistComponentes, imagenesDispositivo to repairs ─────
+    try {
+      await connection.execute(`ALTER TABLE repairs ADD COLUMN codigoDesbloqueo VARCHAR(100) NULL COMMENT 'PIN, patrón o contraseña del dispositivo'`);
+      await connection.execute(`ALTER TABLE repairs ADD COLUMN checklistComponentes TEXT NULL COMMENT 'JSON: estado de componentes del dispositivo'`);
+      await connection.execute(`ALTER TABLE repairs ADD COLUMN imagenesDispositivo TEXT NULL COMMENT 'JSON array de URLs de imágenes del dispositivo'`);
+      console.log('[Migrations] ✅ Added codigoDesbloqueo, checklistComponentes, imagenesDispositivo to repairs');
+    } catch (error: any) {
+      console.log('[Migrations] ⏭️  repairs new columns already exist:', error.message);
+    }
+
+    // ─── Migración 19: Create customers (CRM) table ───────────────────────────────────────────────
+    try {
+      await connection.execute(`
+        CREATE TABLE IF NOT EXISTS customers (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          nombre VARCHAR(200) NOT NULL,
+          telefono VARCHAR(50) NULL,
+          email VARCHAR(320) NULL,
+          direccion TEXT NULL,
+          empresa VARCHAR(200) NULL COMMENT 'Para clientes B2B',
+          esEmpresa INT NOT NULL DEFAULT 0 COMMENT '0=persona, 1=empresa',
+          descuento DECIMAL(5,2) NOT NULL DEFAULT 0.00 COMMENT 'Porcentaje de descuento fijo',
+          fuenteAdquisicion VARCHAR(100) NULL COMMENT 'referido, redes_sociales, walk_in, google, otro',
+          notas TEXT NULL,
+          tienda ENUM('admin','sucursal') NOT NULL DEFAULT 'admin',
+          createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      console.log('[Migrations] ✅ Created customers table');
+    } catch (error: any) {
+      console.log('[Migrations] ⏭️  customers table already exists:', error.message);
+    }
+
     await connection.end();
     console.log('[Migrations] ✅ All migrations completed successfully');
     

@@ -270,6 +270,9 @@ export const repairs = mysqlTable("repairs", {
   tecnico: varchar("tecnico", { length: 200 }),
   garantiaDias: int("garantiaDias").default(30).notNull(),
   garantiaVence: timestamp("garantiaVence"),
+  codigoDesbloqueo: varchar("codigoDesbloqueo", { length: 100 }), // PIN, patrón o contraseña del dispositivo
+  checklistComponentes: text("checklistComponentes"), // JSON: estado de pantalla, botones, cámaras, etc.
+  imagenesDispositivo: text("imagenesDispositivo"), // JSON array de URLs de imágenes del dispositivo
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -334,3 +337,25 @@ export const storeConfig = mysqlTable("store_config", {
 });
 
 export type StoreConfig = typeof storeConfig.$inferSelect;
+
+/**
+ * Clientes (CRM)
+ * Registro centralizado de clientes con historial, descuentos y fuente de adquisición
+ */
+export const customers = mysqlTable("customers", {
+  id: int("id").autoincrement().primaryKey(),
+  nombre: varchar("nombre", { length: 200 }).notNull(),
+  telefono: varchar("telefono", { length: 50 }),
+  email: varchar("email", { length: 320 }),
+  direccion: text("direccion"),
+  empresa: varchar("empresa", { length: 200 }), // Para clientes B2B
+  esEmpresa: int("esEmpresa").default(0).notNull(), // 0 = persona, 1 = empresa
+  descuento: decimal("descuento", { precision: 5, scale: 2 }).default("0.00").notNull(), // % de descuento fijo
+  fuenteAdquisicion: varchar("fuenteAdquisicion", { length: 100 }), // referido, redes_sociales, walk_in, google, otro
+  notas: text("notas"),
+  tienda: mysqlEnum("tienda", ["admin", "sucursal"]).default("admin").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Customer = typeof customers.$inferSelect;
+export type InsertCustomer = typeof customers.$inferInsert;

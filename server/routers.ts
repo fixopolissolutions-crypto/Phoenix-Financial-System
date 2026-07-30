@@ -692,6 +692,11 @@ export const appRouter = router({
         precioTotal: z.string(),
         fechaIngreso: z.string(),
         notas: z.string().optional(),
+        tecnico: z.string().optional(),
+        garantiaDias: z.number().optional(),
+        codigoDesbloqueo: z.string().optional(),
+        checklistComponentes: z.string().optional(), // JSON serializado
+        imagenesDispositivo: z.string().optional(), // JSON array de URLs
         partes: z.array(z.object({
           partId: z.number().optional(), // Opcional para partes externas
           cantidad: z.number(),
@@ -735,6 +740,9 @@ export const appRouter = router({
         garantiaDias: z.number().optional(),
         garantiaVence: z.string().optional(),
         pagado: z.number().optional(),
+        codigoDesbloqueo: z.string().optional(),
+        checklistComponentes: z.string().optional(),
+        imagenesDispositivo: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
         const updateData: any = { ...input };
@@ -1195,6 +1203,62 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
-});
+  customers: router({
+    list: publicProcedure
+      .input(z.object({
+        busqueda: z.string().optional(),
+      }).optional())
+      .query(async ({ input, ctx }) => {
+        const tienda = ctx.user?.tienda || 'admin';
+        return await db.getCustomers({ tienda, busqueda: input?.busqueda });
+      }),
 
+    create: publicProcedure
+      .input(z.object({
+        nombre: z.string(),
+        telefono: z.string().optional(),
+        email: z.string().optional(),
+        direccion: z.string().optional(),
+        empresa: z.string().optional(),
+        esEmpresa: z.number().optional(),
+        descuento: z.number().optional(),
+        fuenteAdquisicion: z.string().optional(),
+        notas: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const tienda = ctx.user?.tienda || 'admin';
+        return await db.createCustomer({ ...input, tienda });
+      }),
+
+    update: publicProcedure
+      .input(z.object({
+        id: z.number(),
+        nombre: z.string().optional(),
+        telefono: z.string().optional(),
+        email: z.string().optional(),
+        direccion: z.string().optional(),
+        empresa: z.string().optional(),
+        esEmpresa: z.number().optional(),
+        descuento: z.number().optional(),
+        fuenteAdquisicion: z.string().optional(),
+        notas: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        return await db.updateCustomer(id, data as any);
+      }),
+
+    delete: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return await db.deleteCustomer(input.id);
+      }),
+
+    getStats: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return await db.getCustomerStats(input.id);
+      }),
+  }),
+});
 export type AppRouter = typeof appRouter;

@@ -25,7 +25,8 @@ import { trpc } from '@/lib/trpc';
 import {
   Wrench, Plus, DollarSign, Clock, CheckCircle, Package, Trash2,
   FileText, Search, X, User, Phone, Smartphone, CalendarRange,
-  CheckSquare, Eye, MoreVertical, Shield, ShieldOff, Printer, UserCog
+  CheckSquare, Eye, MoreVertical, Shield, ShieldOff, Printer, UserCog,
+  Lock, Camera, ImageIcon, AlertTriangle, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { FacturaReparacion } from '@/components/FacturaReparacion';
 import { toast } from 'sonner';
@@ -38,6 +39,35 @@ interface ParteSeleccionada {
   cantidad: number;
   costoUnitario: string;
   cantidadDisponible?: number;
+}
+
+// ─── Checklist de Diagnóstico ───────────────────────────────────────────────
+const CHECKLIST_ITEMS = [
+  { id: 'pantalla', label: 'Pantalla', icon: '📱' },
+  { id: 'tactil', label: 'Táctil', icon: '👆' },
+  { id: 'boton_home', label: 'Botón Home', icon: '⭕' },
+  { id: 'boton_power', label: 'Botón Power', icon: '🔴' },
+  { id: 'botones_volumen', label: 'Botones Volumen', icon: '🔊' },
+  { id: 'camara_trasera', label: 'Cámara Trasera', icon: '📷' },
+  { id: 'camara_frontal', label: 'Cámara Frontal', icon: '🤳' },
+  { id: 'altavoz', label: 'Altavoz', icon: '🔈' },
+  { id: 'microfono', label: 'Micrófono', icon: '🎤' },
+  { id: 'auricular', label: 'Auricular', icon: '👂' },
+  { id: 'carga', label: 'Puerto de Carga', icon: '🔌' },
+  { id: 'bateria', label: 'Batería', icon: '🔋' },
+  { id: 'wifi', label: 'Wi-Fi', icon: '📶' },
+  { id: 'bluetooth', label: 'Bluetooth', icon: '🔵' },
+  { id: 'sim', label: 'Lector SIM', icon: '💳' },
+  { id: 'huella', label: 'Lector de Huella', icon: '🖐️' },
+  { id: 'face_id', label: 'Face ID', icon: '😊' },
+  { id: 'carcasa', label: 'Carcasa/Chasis', icon: '🛡️' },
+];
+
+type ChecklistEstado = 'ok' | 'falla' | 'no_aplica';
+
+interface ChecklistItem {
+  id: string;
+  estado: ChecklistEstado;
 }
 
 interface RepairSummary {
@@ -59,6 +89,42 @@ function imprimirOrdenTrabajo(repair: any) {
           return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
         })()
       : 'N/A';
+
+  // Parsear checklist e imágenes si existen
+  let checklistItems: { id: string; estado: string }[] = [];
+  let imagenes: string[] = [];
+  try {
+    if (repair.checklistComponentes) checklistItems = JSON.parse(repair.checklistComponentes);
+    if (repair.imagenesDispositivo) imagenes = JSON.parse(repair.imagenesDispositivo);
+  } catch { /* ignorar errores de parse */ }
+
+  const CHECKLIST_LABELS: Record<string, string> = {
+    pantalla: 'Pantalla', tactil: 'Táctil', boton_home: 'Botón Home', boton_power: 'Botón Power',
+    botones_volumen: 'Botones Volumen', camara_trasera: 'Cámara Trasera', camara_frontal: 'Cámara Frontal',
+    altavoz: 'Altavoz', microfono: 'Micrófono', auricular: 'Auricular', carga: 'Puerto de Carga',
+    bateria: 'Batería', wifi: 'Wi-Fi', bluetooth: 'Bluetooth', sim: 'Lector SIM',
+    huella: 'Lector de Huella', face_id: 'Face ID', carcasa: 'Carcasa/Chasis',
+  };
+
+  const checklistHtml = checklistItems.length > 0 ? `
+  <div class="problem-box" style="margin-bottom:12px">
+    <div class="section-title">Checklist de Componentes al Ingreso</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:6px">
+      ${checklistItems.map(c => `
+        <div style="display:flex;align-items:center;gap:4px;font-size:10px;padding:3px 6px;border-radius:4px;background:${c.estado === 'ok' ? '#f0fdf4' : c.estado === 'falla' ? '#fef2f2' : '#f9fafb'};border:1px solid ${c.estado === 'ok' ? '#86efac' : c.estado === 'falla' ? '#fca5a5' : '#e5e7eb'}">
+          <span style="font-weight:700;color:${c.estado === 'ok' ? '#15803d' : c.estado === 'falla' ? '#dc2626' : '#9ca3af'}">${c.estado === 'ok' ? '✓' : c.estado === 'falla' ? '✗' : '—'}</span>
+          <span style="color:#374151">${CHECKLIST_LABELS[c.id] || c.id}</span>
+        </div>`).join('')}
+    </div>
+  </div>` : '';
+
+  const imagenesHtml = imagenes.length > 0 ? `
+  <div class="problem-box" style="margin-bottom:12px">
+    <div class="section-title">Fotos del Dispositivo al Ingreso</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px">
+      ${imagenes.map(url => `<img src="${url}" style="width:100%;height:80px;object-fit:cover;border-radius:4px;border:1px solid #ddd" />`).join('')}
+    </div>
+  </div>` : '';
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -125,6 +191,10 @@ function imprimirOrdenTrabajo(repair: any) {
     <p>${repair.notas}</p>
   </div>` : ''}
 
+  ${checklistHtml}
+
+  ${imagenesHtml}
+
   <div class="grid2">
     <div class="section">
       <div class="section-title">Costos</div>
@@ -174,6 +244,13 @@ export default function Reparaciones() {
   const [precioTotal, setPrecioTotal] = useState<number>(0);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [repairSummary, setRepairSummary] = useState<RepairSummary | null>(null);
+  // Nuevos estados: checklist, imágenes y desbloqueo
+  const [checklist, setChecklist] = useState<ChecklistItem[]>(
+    CHECKLIST_ITEMS.map(item => ({ id: item.id, estado: 'no_aplica' as ChecklistEstado }))
+  );
+  const [imagenesDispositivo, setImagenesDispositivo] = useState<string[]>([]);
+  const [checklistExpandido, setChecklistExpandido] = useState(false);
+  const [subiendoImagen, setSubiendoImagen] = useState(false);
 
   // Queries
   const { data: repairs = [], refetch } = trpc.repairs.list.useQuery();
@@ -230,6 +307,46 @@ export default function Reparaciones() {
   const resetForm = () => {
     setPartesSeleccionadas([]);
     setPrecioTotal(0);
+    setChecklist(CHECKLIST_ITEMS.map(item => ({ id: item.id, estado: 'no_aplica' as ChecklistEstado })));
+    setImagenesDispositivo([]);
+    setChecklistExpandido(false);
+  };
+
+  // Manejador para cambiar estado de un componente del checklist
+  const handleChecklistChange = (itemId: string, estado: ChecklistEstado) => {
+    setChecklist(prev => prev.map(c => c.id === itemId ? { ...c, estado } : c));
+  };
+
+  // Subir imagen del dispositivo
+  const handleSubirImagen = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (imagenesDispositivo.length >= 6) {
+      toast.error('Máximo 6 imágenes por reparación');
+      return;
+    }
+    setSubiendoImagen(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        const base64 = (ev.target?.result as string).split(',')[1];
+        const res = await fetch('/api/product-image/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ base64, mimeType: file.type, fileName: file.name }),
+        });
+        const data = await res.json();
+        if (data.url) {
+          setImagenesDispositivo(prev => [...prev, data.url]);
+          toast.success('Imagen agregada');
+        }
+        setSubiendoImagen(false);
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      toast.error('Error al subir imagen');
+      setSubiendoImagen(false);
+    }
   };
 
   // Filtrar reparaciones
@@ -344,6 +461,11 @@ export default function Reparaciones() {
       return parte;
     });
 
+    // Serializar checklist (solo los que tienen estado ok o falla)
+    const checklistFiltrado = checklist.filter(c => c.estado !== 'no_aplica');
+    const checklistJson = checklistFiltrado.length > 0 ? JSON.stringify(checklistFiltrado) : undefined;
+    const imagenesJson = imagenesDispositivo.length > 0 ? JSON.stringify(imagenesDispositivo) : undefined;
+
     createMutation.mutate({
       codigo: formData.get('codigo') as string,
       cliente: clienteVal,
@@ -355,6 +477,11 @@ export default function Reparaciones() {
       precioTotal: precioTotal.toFixed(2),
       fechaIngreso: formData.get('fechaIngreso') as string,
       notas: formData.get('notas') as string || undefined,
+      tecnico: formData.get('tecnico') as string || undefined,
+      garantiaDias: parseInt(formData.get('garantiaDias') as string) || 30,
+      codigoDesbloqueo: formData.get('codigoDesbloqueo') as string || undefined,
+      checklistComponentes: checklistJson,
+      imagenesDispositivo: imagenesJson,
       partes: partesParaBackend.length > 0 ? partesParaBackend : undefined,
     });
   };
@@ -480,6 +607,20 @@ export default function Reparaciones() {
                   </div>
                 </div>
 
+                {/* Código de Desbloqueo */}
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <Label htmlFor="codigoDesbloqueo" className="flex items-center gap-1.5 text-amber-800 font-semibold mb-2">
+                    <Lock className="h-3.5 w-3.5" />
+                    Código de Desbloqueo
+                    <span className="text-xs font-normal text-amber-600">(PIN, patrón o contraseña)</span>
+                  </Label>
+                  <Input id="codigoDesbloqueo" name="codigoDesbloqueo" placeholder="Ej: 1234, patrón L, sin código..." className="bg-white" />
+                  <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    Esta información es confidencial y solo visible para el técnico asignado.
+                  </p>
+                </div>
+
                 {/* Problema y Diagnóstico */}
                 <div>
                   <Label htmlFor="problema">Problema Reportado *</Label>
@@ -488,6 +629,120 @@ export default function Reparaciones() {
                 <div>
                   <Label htmlFor="diagnostico">Diagnóstico</Label>
                   <Textarea id="diagnostico" name="diagnostico" placeholder="Diagnóstico técnico" />
+                </div>
+
+                {/* Checklist de Diagnóstico */}
+                <div className="border rounded-lg overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setChecklistExpandido(!checklistExpandido)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <CheckSquare className="h-4 w-4 text-blue-600" />
+                      <span className="font-semibold text-sm text-gray-800">Checklist de Componentes</span>
+                      <span className="text-xs text-gray-500">
+                        ({checklist.filter(c => c.estado === 'falla').length} fallas, {checklist.filter(c => c.estado === 'ok').length} OK)
+                      </span>
+                    </div>
+                    {checklistExpandido ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
+                  </button>
+                  {checklistExpandido && (
+                    <div className="p-4">
+                      <p className="text-xs text-gray-500 mb-3">Registra el estado de cada componente al momento de recibir el dispositivo. Esto protege a la tienda de reclamos futuros.</p>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {CHECKLIST_ITEMS.map(item => {
+                          const estado = checklist.find(c => c.id === item.id)?.estado || 'no_aplica';
+                          return (
+                            <div key={item.id} className="border rounded-lg p-2">
+                              <p className="text-xs font-medium text-gray-700 mb-1.5">{item.icon} {item.label}</p>
+                              <div className="flex gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleChecklistChange(item.id, 'ok')}
+                                  className={`flex-1 text-xs py-1 rounded font-medium transition-colors ${
+                                    estado === 'ok'
+                                      ? 'bg-green-500 text-white'
+                                      : 'bg-gray-100 text-gray-600 hover:bg-green-100'
+                                  }`}
+                                >
+                                  OK
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleChecklistChange(item.id, 'falla')}
+                                  className={`flex-1 text-xs py-1 rounded font-medium transition-colors ${
+                                    estado === 'falla'
+                                      ? 'bg-red-500 text-white'
+                                      : 'bg-gray-100 text-gray-600 hover:bg-red-100'
+                                  }`}
+                                >
+                                  Falla
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleChecklistChange(item.id, 'no_aplica')}
+                                  className={`flex-1 text-xs py-1 rounded font-medium transition-colors ${
+                                    estado === 'no_aplica'
+                                      ? 'bg-gray-400 text-white'
+                                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                  }`}
+                                >
+                                  N/A
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Imágenes del Dispositivo */}
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <Label className="flex items-center gap-1.5 font-semibold">
+                      <Camera className="h-4 w-4 text-gray-600" />
+                      Fotos del Dispositivo
+                      <span className="text-xs font-normal text-gray-500">({imagenesDispositivo.length}/6)</span>
+                    </Label>
+                    <label className={`cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      subiendoImagen || imagenesDispositivo.length >= 6
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                    }`}>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleSubirImagen}
+                        disabled={subiendoImagen || imagenesDispositivo.length >= 6}
+                      />
+                      {subiendoImagen ? 'Subiendo...' : '+ Agregar Foto'}
+                    </label>
+                  </div>
+                  {imagenesDispositivo.length > 0 ? (
+                    <div className="grid grid-cols-3 gap-2">
+                      {imagenesDispositivo.map((url, idx) => (
+                        <div key={idx} className="relative group">
+                          <img src={url} alt={`Foto ${idx + 1}`} className="w-full h-20 object-cover rounded-lg border" />
+                          <button
+                            type="button"
+                            onClick={() => setImagenesDispositivo(prev => prev.filter((_, i) => i !== idx))}
+                            className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 text-gray-400">
+                      <ImageIcon className="h-8 w-8 mx-auto mb-1 opacity-40" />
+                      <p className="text-xs">Agrega fotos del estado del dispositivo al recibirlo</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Partes Utilizadas */}
@@ -724,6 +979,7 @@ export default function Reparaciones() {
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Dispositivo</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden lg:table-cell">Técnico</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Estado</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden xl:table-cell">Checklist</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Garantía</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Total</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Acciones</th>
@@ -772,6 +1028,28 @@ export default function Reparaciones() {
                               <SelectItem value="entregada">Entregada</SelectItem>
                             </SelectContent>
                           </Select>
+                        </td>
+                        {/* Celda de Checklist */}
+                        <td className="px-4 py-3 hidden xl:table-cell">
+                          {(() => {
+                            let cl: { id: string; estado: string }[] = [];
+                            try { if ((repair as any).checklistComponentes) cl = JSON.parse((repair as any).checklistComponentes); } catch {}
+                            const fallas = cl.filter(c => c.estado === 'falla').length;
+                            const oks = cl.filter(c => c.estado === 'ok').length;
+                            const imgs = (() => { try { return JSON.parse((repair as any).imagenesDispositivo || '[]').length; } catch { return 0; } })();
+                            if (cl.length === 0 && imgs === 0) return <span className="text-xs text-gray-400">—</span>;
+                            return (
+                              <div className="flex flex-col gap-0.5">
+                                {cl.length > 0 && (
+                                  <div className="flex items-center gap-1">
+                                    {fallas > 0 && <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">✗ {fallas}</span>}
+                                    {oks > 0 && <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">✓ {oks}</span>}
+                                  </div>
+                                )}
+                                {imgs > 0 && <span className="text-xs text-blue-600 flex items-center gap-0.5"><Camera className="h-3 w-3" />{imgs}</span>}
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="px-4 py-3 hidden md:table-cell">
                           {garantia ? (
