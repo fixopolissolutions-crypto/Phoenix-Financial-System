@@ -278,7 +278,10 @@ export default function Reparaciones() {
   // Queries
   const { data: repairs = [], refetch } = trpc.repairs.list.useQuery();
   const { data: parts = [] } = trpc.inventoryParts.list.useQuery({ activo: 1 });
-  const { data: nextCodeData } = trpc.repairs.getNextCode.useQuery();
+  const { data: nextCodeData, refetch: refetchNextCode } = trpc.repairs.getNextCode.useQuery(undefined, {
+    // Refrescar cada vez que el dialog se abra para evitar códigos duplicados
+    staleTime: 0,
+  });
 
   useEffect(() => {
     if (nextCodeData?.codigo) setSiguienteCodigo(nextCodeData.codigo);
@@ -389,25 +392,26 @@ export default function Reparaciones() {
     setWizardStep(prev => prev + 1);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     for (const parte of partesSeleccionadas) {
       if (parte.esExterna && !parte.nombre.trim()) { toast.error('Todas las partes externas deben tener un nombre'); return; }
       if (!parte.esExterna && parte.cantidadDisponible !== undefined && parte.cantidad > parte.cantidadDisponible) {
         toast.error(`Stock insuficiente para ${parte.nombre}`); return;
       }
     }
-
     const partesParaBackend = partesSeleccionadas.map(p => {
       const parte: any = { cantidad: p.cantidad };
       if (p.esExterna) { parte.nombre = p.nombre; parte.costoUnitario = p.costoUnitario; }
       else { parte.partId = p.partId; }
       return parte;
     });
-
     const checklistFiltrado = checklist.filter(c => c.estado !== 'no_aplica');
-
+    // Obtener código fresco del servidor para evitar duplicados
+    const freshCode = await refetchNextCode();
+    const codigoFinal = freshCode.data?.codigo || siguienteCodigo;
+    setSiguienteCodigo(codigoFinal);
     createMutation.mutate({
-      codigo: siguienteCodigo,
+      codigo: codigoFinal,
       cliente: formData.cliente,
       telefono: formData.telefono,
       dispositivo: formData.dispositivo,
@@ -961,7 +965,17 @@ export default function Reparaciones() {
                     <span className="font-bold text-green-700">${repairSummary.precioTotal.toFixed(2)}</span>
                   </div>
                 </div>
-                <Button className="w-full" onClick={() => setSummaryOpen(false)}>Cerrar</Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1" onClick={() => { setSummaryOpen(false); refetchNextCode(); }}>Cerrar</Button>
+                  <Button className="flex-1 bg-orange-500 hover:bg-orange-600" onClick={() => {
+                    // Buscar la reparación recién creada en la lista y mostrar su orden
+                    const found = repairs.find((r: any) => r.codigo === repairSummary?.codigo);
+                    if (found) { imprimirOrdenTrabajo(found); }
+                    else { toast.info('La orden estará disponible en unos segundos. Recarga la página.'); }
+                  }}>
+                    <Printer className="h-4 w-4 mr-1" /> Imprimir Orden
+                  </Button>
+                </div>
               </div>
             )}
           </DialogContent>
