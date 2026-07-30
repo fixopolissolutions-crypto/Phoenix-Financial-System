@@ -1929,3 +1929,28 @@ export async function getRepairStatusLog(repairId: number) {
     await connection.end();
   }
 }
+
+// ─── Reparaciones por cliente ─────────────────────────────────────────────────
+
+export async function getCustomerRepairs(customerId: number) {
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  try {
+    const [customer] = await connection.execute(
+      'SELECT * FROM customers WHERE id = ?', [customerId]
+    ) as any[];
+    if (!Array.isArray(customer) || customer.length === 0) return [];
+    const c = customer[0] as any;
+    const [rows] = await connection.execute(
+      `SELECT id, codigo, dispositivo, problema, estado, fechaIngreso, fechaCompletado, fechaEntrega,
+              precioTotal, precioManoObra, tecnico, garantiaDias, garantiaVence, tienda
+       FROM repairs
+       WHERE telefono = ? OR cliente = ?
+       ORDER BY fechaIngreso DESC`,
+      [c.telefono, c.nombre]
+    ) as any[];
+    return rows as any[];
+  } finally {
+    await connection.end();
+  }
+}

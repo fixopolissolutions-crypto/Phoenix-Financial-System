@@ -65,6 +65,10 @@ export default function Clientes() {
     { id: selectedCustomer?.id ?? 0 },
     { enabled: !!selectedCustomer?.id }
   );
+  const { data: customerRepairs = [] } = trpc.customers.getRepairs.useQuery(
+    { id: selectedCustomer?.id ?? 0 },
+    { enabled: !!selectedCustomer?.id }
+  );
 
   const createMutation = trpc.customers.create.useMutation({
     onSuccess: () => { toast.success('Cliente registrado'); refetch(); setDialogOpen(false); },
@@ -474,6 +478,45 @@ export default function Clientes() {
                   <div className="bg-gray-50 rounded-lg p-3">
                     <p className="text-xs font-semibold text-gray-500 mb-1">NOTAS</p>
                     <p className="text-sm text-gray-700">{selectedCustomer.notas}</p>
+                  </div>
+                )}
+
+                {/* Historial de Reparaciones */}
+                {customerRepairs.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 mb-2 flex items-center gap-1">
+                      <Wrench className="h-3.5 w-3.5" /> HISTORIAL DE REPARACIONES ({customerRepairs.length})
+                    </p>
+                    <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                      {(customerRepairs as any[]).map((r: any) => (
+                        <div key={r.id} className="bg-gray-50 rounded-lg p-3 flex items-start gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs font-bold text-orange-600">{r.codigo}</span>
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                r.estado === 'completada' ? 'bg-green-100 text-green-700' :
+                                r.estado === 'en_proceso' ? 'bg-blue-100 text-blue-700' :
+                                r.estado === 'entregada' ? 'bg-purple-100 text-purple-700' :
+                                'bg-yellow-100 text-yellow-700'
+                              }`}>
+                                {r.estado === 'pendiente' ? 'Pendiente' : r.estado === 'en_proceso' ? 'En Proceso' : r.estado === 'completada' ? 'Completada' : 'Entregada'}
+                              </span>
+                            </div>
+                            <p className="text-sm font-medium text-gray-800 mt-0.5 truncate">{r.dispositivo}</p>
+                            {r.problema && <p className="text-xs text-gray-500 truncate">{r.problema}</p>}
+                            <div className="flex items-center gap-3 mt-1">
+                              {r.fechaIngreso && <span className="text-xs text-gray-400">{new Date(r.fechaIngreso).toLocaleDateString('es-MX')}</span>}
+                              {r.tecnico && <span className="text-xs text-gray-500">Téc: {r.tecnico}</span>}
+                            </div>
+                          </div>
+                          {r.precioTotal && (
+                            <div className="text-right flex-shrink-0">
+                              <p className="text-sm font-bold text-green-700">${parseFloat(r.precioTotal).toFixed(2)}</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 

@@ -1321,6 +1321,12 @@ export const appRouter = router({
       .query(async ({ input }) => {
         return await db.getCustomerStats(input.id);
       }),
+
+    getRepairs: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return await db.getCustomerRepairs(input.id);
+      }),
   }),
 
   // ==================== TECHNICIANS ====================
