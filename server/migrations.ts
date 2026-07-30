@@ -504,6 +504,38 @@ export async function applyMigrations() {
       console.log('[Migrations] ⏭️  customers table already exists:', error.message);
     }
 
+    // ─── Migración 20: Add missing base columns to repairs (schema mismatch fix) ─────────────────
+    // La tabla fue creada con un schema antiguo (clienteNombre, dispositivoMarca, etc.)
+    // Esta migración agrega las columnas que usa el código actual si no existen.
+    const repairColumnsToAdd: { col: string; sql: string }[] = [
+      { col: 'cliente',         sql: `ALTER TABLE repairs ADD COLUMN cliente VARCHAR(200) NULL` },
+      { col: 'telefono',        sql: `ALTER TABLE repairs ADD COLUMN telefono VARCHAR(50) NULL` },
+      { col: 'dispositivo',     sql: `ALTER TABLE repairs ADD COLUMN dispositivo VARCHAR(200) NULL` },
+      { col: 'problema',        sql: `ALTER TABLE repairs ADD COLUMN problema TEXT NULL` },
+      { col: 'precioManoObra',  sql: `ALTER TABLE repairs ADD COLUMN precioManoObra DECIMAL(10,2) NOT NULL DEFAULT 0.00` },
+      { col: 'precioTotal',     sql: `ALTER TABLE repairs ADD COLUMN precioTotal DECIMAL(10,2) NOT NULL DEFAULT 0.00` },
+      { col: 'costoPartes',     sql: `ALTER TABLE repairs ADD COLUMN costoPartes DECIMAL(10,2) NOT NULL DEFAULT 0.00` },
+      { col: 'ganancia',        sql: `ALTER TABLE repairs ADD COLUMN ganancia DECIMAL(10,2) NOT NULL DEFAULT 0.00` },
+      { col: 'fechaIngreso',    sql: `ALTER TABLE repairs ADD COLUMN fechaIngreso TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP` },
+      { col: 'fechaCompletado', sql: `ALTER TABLE repairs ADD COLUMN fechaCompletado TIMESTAMP NULL` },
+      { col: 'fechaEntrega',    sql: `ALTER TABLE repairs ADD COLUMN fechaEntrega TIMESTAMP NULL` },
+      { col: 'tienda',          sql: `ALTER TABLE repairs ADD COLUMN tienda ENUM('admin','sucursal') NOT NULL DEFAULT 'admin'` },
+      { col: 'estado',          sql: `ALTER TABLE repairs ADD COLUMN estado ENUM('pendiente','en_proceso','completada','entregada') NOT NULL DEFAULT 'pendiente'` },
+    ];
+    for (const { col, sql } of repairColumnsToAdd) {
+      try {
+        await connection.execute(sql);
+        console.log(`[Migrations] ✅ Added column ${col} to repairs`);
+      } catch (error: any) {
+        if (error.code === 'ER_DUP_FIELDNAME' || (error.message && error.message.includes('Duplicate column name'))) {
+          // columna ya existe, ignorar silenciosamente
+        } else {
+          console.log(`[Migrations] ⏭️  Column ${col}:`, error.message);
+        }
+      }
+    }
+    console.log('[Migrations] ✅ Migration 20 complete: repairs base columns verified');
+
     await connection.end();
     console.log('[Migrations] ✅ All migrations completed successfully');
     
