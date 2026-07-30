@@ -389,3 +389,20 @@ export const repairLaborLines = mysqlTable("repair_labor_lines", {
 });
 export type RepairLaborLine = typeof repairLaborLines.$inferSelect;
 export type InsertRepairLaborLine = typeof repairLaborLines.$inferInsert;
+
+
+/**
+ * Técnicos
+ * Lista de técnicos disponibles para asignar a reparaciones
+ */
+export const technicians = mysqlTable("technicians", {
+  id: int("id").autoincrement().primaryKey(),
+  nombre: varchar("nombre", { length: 200 }).notNull(),
+  especialidad: varchar("especialidad", { length: 200 }),
+  telefono: varchar("telefono", { length: 50 }),
+  activo: int("activo").default(1).notNull(),
+  tienda: varchar("tienda", { length: 50 }).notNull().default("ADM"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type Technician = typeof technicians.$inferSelect;
+export type InsertTechnician = typeof technicians.$inferInsert;

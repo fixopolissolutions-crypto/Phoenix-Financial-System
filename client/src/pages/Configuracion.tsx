@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
-import { Settings, Percent, DollarSign, Calendar, Globe, Save, Lock, Eye, EyeOff, Receipt, Loader2 } from 'lucide-react';
+import { Settings, Percent, DollarSign, Calendar, Globe, Save, Lock, Eye, EyeOff, Receipt, Loader2, Wrench, UserPlus, Trash2, ToggleLeft, ToggleRight, Phone } from 'lucide-react';
 
 const DIAS_SEMANA = [
   { value: '0', label: 'Domingo' },
@@ -71,6 +71,30 @@ export default function Configuracion() {
     onError: () => {
       toast.error('Error al actualizar la contraseña');
     },
+  });
+
+  // ─── Técnicos ───────────────────────────────────────────────────────────────
+  const [nuevoTecnico, setNuevoTecnico] = useState({ nombre: '', especialidad: '', telefono: '' });
+  const [showTecnicoForm, setShowTecnicoForm] = useState(false);
+
+  const { data: tecnicos = [], refetch: refetchTecnicos } = trpc.technicians.list.useQuery();
+
+  const createTecnicoMutation = trpc.technicians.create.useMutation({
+    onSuccess: () => {
+      toast.success('Técnico agregado');
+      setNuevoTecnico({ nombre: '', especialidad: '', telefono: '' });
+      setShowTecnicoForm(false);
+      refetchTecnicos();
+    },
+    onError: (e) => toast.error('Error: ' + e.message),
+  });
+
+  const updateTecnicoMutation = trpc.technicians.update.useMutation({
+    onSuccess: () => { refetchTecnicos(); },
+  });
+
+  const deleteTecnicoMutation = trpc.technicians.delete.useMutation({
+    onSuccess: () => { toast.success('Técnico eliminado'); refetchTecnicos(); },
   });
 
   // Cargar configuración cuando lleguen los datos
@@ -534,6 +558,137 @@ export default function Configuracion() {
 
             </div>
           </Card>
+
+          {/* ─── Sección de Técnicos ─── */}
+          <Card className="p-6 border-0 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <Wrench className="h-4 w-4 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Técnicos</h3>
+                  <p className="text-xs text-gray-500">Gestiona los técnicos disponibles para reparaciones</p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => setShowTecnicoForm(!showTecnicoForm)}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <UserPlus className="h-4 w-4 mr-1" />
+                Agregar Técnico
+              </Button>
+            </div>
+
+            {/* Formulario de nuevo técnico */}
+            {showTecnicoForm && (
+              <div className="bg-blue-50 rounded-xl p-4 mb-4 space-y-3">
+                <h4 className="font-medium text-blue-800 text-sm">Nuevo Técnico</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <Label className="text-xs">Nombre *</Label>
+                    <Input
+                      placeholder="Ej: Juan Pérez"
+                      value={nuevoTecnico.nombre}
+                      onChange={(e) => setNuevoTecnico(p => ({ ...p, nombre: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Especialidad</Label>
+                    <Input
+                      placeholder="Ej: iPhone, Samsung"
+                      value={nuevoTecnico.especialidad}
+                      onChange={(e) => setNuevoTecnico(p => ({ ...p, especialidad: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Teléfono</Label>
+                    <Input
+                      placeholder="Ej: 555-1234"
+                      value={nuevoTecnico.telefono}
+                      onChange={(e) => setNuevoTecnico(p => ({ ...p, telefono: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (!nuevoTecnico.nombre.trim()) { toast.error('El nombre es requerido'); return; }
+                      createTecnicoMutation.mutate(nuevoTecnico);
+                    }}
+                    disabled={createTecnicoMutation.isPending}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    {createTecnicoMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar'}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setShowTecnicoForm(false)}>Cancelar</Button>
+                </div>
+              </div>
+            )}
+
+            {/* Lista de técnicos */}
+            {tecnicos.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">
+                <Wrench className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                <p className="text-sm">No hay técnicos registrados</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {tecnicos.map((t: any) => (
+                  <div
+                    key={t.id}
+                    className={`flex items-center justify-between p-3 rounded-lg border ${
+                      t.activo ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100 opacity-60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ${
+                        t.activo ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-500'
+                      }`}>
+                        {t.nombre.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm text-gray-900">{t.nombre}</p>
+                        <div className="flex items-center gap-3 text-xs text-gray-500">
+                          {t.especialidad && <span>{t.especialidad}</span>}
+                          {t.telefono && (
+                            <span className="flex items-center gap-1">
+                              <Phone className="h-3 w-3" />{t.telefono}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => updateTecnicoMutation.mutate({ id: t.id, activo: t.activo ? 0 : 1 })}
+                        className="text-gray-400 hover:text-blue-600 transition-colors"
+                        title={t.activo ? 'Desactivar' : 'Activar'}
+                      >
+                        {t.activo
+                          ? <ToggleRight className="h-6 w-6 text-green-500" />
+                          : <ToggleLeft className="h-6 w-6 text-gray-400" />
+                        }
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`¿Eliminar a ${t.nombre}?`)) {
+                            deleteTecnicoMutation.mutate({ id: t.id });
+                          }
+                        }}
+                        className="text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
         </div>
       </div>
     </DashboardLayout>

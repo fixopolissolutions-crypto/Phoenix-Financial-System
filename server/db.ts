@@ -1813,3 +1813,62 @@ export async function getCustomerStats(customerId: number) {
     await connection.end();
   }
 }
+
+// ─── Técnicos ────────────────────────────────────────────────────────────────
+
+export async function listTechnicians(tienda?: string) {
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  try {
+    const [rows] = await connection.execute(
+      `SELECT * FROM technicians ORDER BY activo DESC, nombre ASC`
+    ) as any[];
+    return rows as any[];
+  } finally {
+    await connection.end();
+  }
+}
+
+export async function createTechnician(data: { nombre: string; especialidad?: string; telefono?: string; tienda?: string }) {
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  try {
+    const [result] = await connection.execute(
+      `INSERT INTO technicians (nombre, especialidad, telefono, tienda) VALUES (?, ?, ?, ?)`,
+      [data.nombre, data.especialidad || null, data.telefono || null, data.tienda || 'ADM']
+    ) as any[];
+    return { id: (result as any).insertId, ...data };
+  } finally {
+    await connection.end();
+  }
+}
+
+export async function updateTechnician(id: number, data: { nombre?: string; especialidad?: string; telefono?: string; activo?: number }) {
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  try {
+    const fields: string[] = [];
+    const values: any[] = [];
+    if (data.nombre !== undefined) { fields.push('nombre = ?'); values.push(data.nombre); }
+    if (data.especialidad !== undefined) { fields.push('especialidad = ?'); values.push(data.especialidad); }
+    if (data.telefono !== undefined) { fields.push('telefono = ?'); values.push(data.telefono); }
+    if (data.activo !== undefined) { fields.push('activo = ?'); values.push(data.activo); }
+    if (fields.length === 0) return { id };
+    values.push(id);
+    await connection.execute(`UPDATE technicians SET ${fields.join(', ')} WHERE id = ?`, values);
+    return { id, ...data };
+  } finally {
+    await connection.end();
+  }
+}
+
+export async function deleteTechnician(id: number) {
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  try {
+    await connection.execute(`DELETE FROM technicians WHERE id = ?`, [id]);
+    return { success: true };
+  } finally {
+    await connection.end();
+  }
+}

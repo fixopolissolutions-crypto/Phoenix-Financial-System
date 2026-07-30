@@ -1260,5 +1260,40 @@ export const appRouter = router({
         return await db.getCustomerStats(input.id);
       }),
   }),
+
+  // ==================== TECHNICIANS ====================
+  technicians: router({
+    list: publicProcedure
+      .query(async () => {
+        return await db.listTechnicians();
+      }),
+    create: publicProcedure
+      .input(z.object({
+        nombre: z.string().min(1),
+        especialidad: z.string().optional(),
+        telefono: z.string().optional(),
+        tienda: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return await db.createTechnician(input);
+      }),
+    update: publicProcedure
+      .input(z.object({
+        id: z.number(),
+        nombre: z.string().optional(),
+        especialidad: z.string().optional(),
+        telefono: z.string().optional(),
+        activo: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        return await db.updateTechnician(id, data);
+      }),
+    delete: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return await db.deleteTechnician(input.id);
+      }),
+  }),
 });
 export type AppRouter = typeof appRouter;

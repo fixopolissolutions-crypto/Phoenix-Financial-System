@@ -580,6 +580,28 @@ export async function applyMigrations() {
       console.log('[Migrations] ⚠️  Migration 20 error:', error.message);
     }
 
+    // Migración 21: Crear tabla technicians
+    try {
+      await connection.execute(`
+        CREATE TABLE IF NOT EXISTS technicians (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          nombre VARCHAR(200) NOT NULL,
+          especialidad VARCHAR(200) NULL,
+          telefono VARCHAR(50) NULL,
+          activo INT NOT NULL DEFAULT 1,
+          tienda VARCHAR(50) NOT NULL DEFAULT 'ADM',
+          createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      console.log('[Migrations] ✅ Created technicians table');
+    } catch (error: any) {
+      if (error.code === 'ER_TABLE_EXISTS_ERROR') {
+        console.log('[Migrations] ⏭️  technicians table already exists');
+      } else {
+        console.log('[Migrations] ⚠️  Could not create technicians:', error.message);
+      }
+    }
+
     await connection.end();
     console.log('[Migrations] ✅ All migrations completed successfully');
     

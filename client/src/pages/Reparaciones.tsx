@@ -286,6 +286,7 @@ export default function Reparaciones() {
 
   // Queries
   const { data: repairs = [], refetch } = trpc.repairs.list.useQuery();
+  const { data: tecnicosDisponibles = [] } = trpc.technicians.list.useQuery();
   const { data: parts = [] } = trpc.inventoryParts.list.useQuery({ activo: 1 });
   const { data: nextCodeData, refetch: refetchNextCode } = trpc.repairs.getNextCode.useQuery(undefined, {
     // Refrescar cada vez que el dialog se abra para evitar códigos duplicados
@@ -629,12 +630,39 @@ export default function Reparaciones() {
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-semibold text-gray-700">Técnico Asignado</Label>
-                        <Input
-                          value={formData.tecnico}
-                          onChange={(e) => updateField('tecnico', e.target.value)}
-                          placeholder="Nombre del técnico"
-                          className="h-11"
-                        />
+                        {(tecnicosDisponibles as any[]).filter((t: any) => t.activo).length > 0 ? (
+                          <Select
+                            value={formData.tecnico}
+                            onValueChange={(v) => updateField('tecnico', v)}
+                          >
+                            <SelectTrigger className="h-11">
+                              <SelectValue placeholder="Seleccionar técnico..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="sin_asignar">Sin asignar</SelectItem>
+                              {(tecnicosDisponibles as any[])
+                                .filter((t: any) => t.activo)
+                                .map((t: any) => (
+                                  <SelectItem key={t.id} value={t.nombre}>
+                                    {t.nombre}{t.especialidad ? ` — ${t.especialidad}` : ''}
+                                  </SelectItem>
+                                ))
+                              }
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <div className="flex gap-2">
+                            <Input
+                              value={formData.tecnico}
+                              onChange={(e) => updateField('tecnico', e.target.value)}
+                              placeholder="Nombre del técnico"
+                              className="h-11"
+                            />
+                            <span className="text-xs text-amber-600 self-center whitespace-nowrap">
+                              Agrega técnicos en Configuración
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
