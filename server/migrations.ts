@@ -504,74 +504,81 @@ export async function applyMigrations() {
       console.log('[Migrations] ⏭️  customers table already exists:', error.message);
     }
 
-    // ─── Migración 20: Add missing base columns to repairs (schema mismatch fix) ─────────────────
-    // La tabla fue creada con un schema antiguo (clienteNombre, dispositivoMarca, etc.)
-    // Esta migración agrega las columnas que usa el código actual si no existen.
-    const repairColumnsToAdd: { col: string; sql: string }[] = [
-      { col: 'cliente',         sql: `ALTER TABLE repairs ADD COLUMN cliente VARCHAR(200) NULL` },
-      { col: 'telefono',        sql: `ALTER TABLE repairs ADD COLUMN telefono VARCHAR(50) NULL` },
-      { col: 'dispositivo',     sql: `ALTER TABLE repairs ADD COLUMN dispositivo VARCHAR(200) NULL` },
-      { col: 'problema',        sql: `ALTER TABLE repairs ADD COLUMN problema TEXT NULL` },
-      { col: 'precioManoObra',  sql: `ALTER TABLE repairs ADD COLUMN precioManoObra DECIMAL(10,2) NOT NULL DEFAULT 0.00` },
-      { col: 'precioTotal',     sql: `ALTER TABLE repairs ADD COLUMN precioTotal DECIMAL(10,2) NOT NULL DEFAULT 0.00` },
-      { col: 'costoPartes',     sql: `ALTER TABLE repairs ADD COLUMN costoPartes DECIMAL(10,2) NOT NULL DEFAULT 0.00` },
-      { col: 'ganancia',        sql: `ALTER TABLE repairs ADD COLUMN ganancia DECIMAL(10,2) NOT NULL DEFAULT 0.00` },
-      { col: 'fechaIngreso',    sql: `ALTER TABLE repairs ADD COLUMN fechaIngreso TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP` },
-      { col: 'fechaCompletado', sql: `ALTER TABLE repairs ADD COLUMN fechaCompletado TIMESTAMP NULL` },
-      { col: 'fechaEntrega',    sql: `ALTER TABLE repairs ADD COLUMN fechaEntrega TIMESTAMP NULL` },
-      { col: 'tienda',          sql: `ALTER TABLE repairs ADD COLUMN tienda ENUM('admin','sucursal') NOT NULL DEFAULT 'admin'` },
-      { col: 'estado',          sql: `ALTER TABLE repairs ADD COLUMN estado ENUM('pendiente','en_proceso','completada','entregada') NOT NULL DEFAULT 'pendiente'` },
-      { col: 'tecnico',          sql: `ALTER TABLE repairs ADD COLUMN tecnico VARCHAR(200) NULL` },
-      { col: 'garantiaDias',     sql: `ALTER TABLE repairs ADD COLUMN garantiaDias INT NOT NULL DEFAULT 30` },
-      { col: 'garantiaVence',    sql: `ALTER TABLE repairs ADD COLUMN garantiaVence TIMESTAMP NULL` },
-      { col: 'codigoDesbloqueo', sql: `ALTER TABLE repairs ADD COLUMN codigoDesbloqueo VARCHAR(100) NULL` },
-      { col: 'checklistComponentes',  sql: `ALTER TABLE repairs ADD COLUMN checklistComponentes TEXT NULL` },
-      { col: 'imagenesDispositivo',   sql: `ALTER TABLE repairs ADD COLUMN imagenesDispositivo TEXT NULL` },
-      { col: 'notas',            sql: `ALTER TABLE repairs ADD COLUMN notas TEXT NULL` },
-      { col: 'diagnostico',      sql: `ALTER TABLE repairs ADD COLUMN diagnostico TEXT NULL` },
-      { col: 'pagado',           sql: `ALTER TABLE repairs ADD COLUMN pagado INT NOT NULL DEFAULT 0` },
-      { col: 'codigo',           sql: `ALTER TABLE repairs ADD COLUMN codigo VARCHAR(50) NULL` },
-    ];
-    for (const { col, sql } of repairColumnsToAdd) {
-      try {
-        await connection.execute(sql);
-        console.log(`[Migrations] ✅ Added column ${col} to repairs`);
-      } catch (error: any) {
-        if (error.code === 'ER_DUP_FIELDNAME' || (error.message && error.message.includes('Duplicate column name'))) {
-          // columna ya existe, ignorar silenciosamente
-        } else {
-          console.log(`[Migrations] ⏭️  Column ${col}:`, error.message);
+    // ─── Migración 20: Sincronización completa del schema de repairs ────────────────────────
+    // Usa SHOW COLUMNS para detectar el estado real de la tabla y aplicar
+    // exactamente los cambios necesarios (agregar columnas faltantes y
+    // hacer nullable las columnas del esquema antiguo).
+    try {
+      const [cols] = await connection.execute(`SHOW COLUMNS FROM repairs`) as any[];
+      const existingCols = new Set(cols.map((c: any) => c.Field));
+      const notNullCols = new Set(cols.filter((c: any) => c.Null === 'NO' && c.Default === null).map((c: any) => c.Field));
+
+      // 1. Agregar columnas nuevas que faltan
+      const colsToAdd: { col: string; sql: string }[] = [
+        { col: 'cliente',              sql: `ALTER TABLE repairs ADD COLUMN cliente VARCHAR(200) NULL` },
+        { col: 'telefono',             sql: `ALTER TABLE repairs ADD COLUMN telefono VARCHAR(50) NULL` },
+        { col: 'dispositivo',          sql: `ALTER TABLE repairs ADD COLUMN dispositivo VARCHAR(200) NULL` },
+        { col: 'problema',             sql: `ALTER TABLE repairs ADD COLUMN problema TEXT NULL` },
+        { col: 'diagnostico',          sql: `ALTER TABLE repairs ADD COLUMN diagnostico TEXT NULL` },
+        { col: 'precioManoObra',       sql: `ALTER TABLE repairs ADD COLUMN precioManoObra DECIMAL(10,2) NOT NULL DEFAULT 0.00` },
+        { col: 'precioTotal',          sql: `ALTER TABLE repairs ADD COLUMN precioTotal DECIMAL(10,2) NOT NULL DEFAULT 0.00` },
+        { col: 'costoPartes',          sql: `ALTER TABLE repairs ADD COLUMN costoPartes DECIMAL(10,2) NOT NULL DEFAULT 0.00` },
+        { col: 'ganancia',             sql: `ALTER TABLE repairs ADD COLUMN ganancia DECIMAL(10,2) NOT NULL DEFAULT 0.00` },
+        { col: 'estado',               sql: `ALTER TABLE repairs ADD COLUMN estado ENUM('pendiente','en_proceso','completada','entregada') NOT NULL DEFAULT 'pendiente'` },
+        { col: 'fechaIngreso',         sql: `ALTER TABLE repairs ADD COLUMN fechaIngreso TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP` },
+        { col: 'fechaCompletado',      sql: `ALTER TABLE repairs ADD COLUMN fechaCompletado TIMESTAMP NULL` },
+        { col: 'fechaEntrega',         sql: `ALTER TABLE repairs ADD COLUMN fechaEntrega TIMESTAMP NULL` },
+        { col: 'tienda',               sql: `ALTER TABLE repairs ADD COLUMN tienda ENUM('admin','sucursal') NOT NULL DEFAULT 'admin'` },
+        { col: 'pagado',               sql: `ALTER TABLE repairs ADD COLUMN pagado INT NOT NULL DEFAULT 0` },
+        { col: 'notas',                sql: `ALTER TABLE repairs ADD COLUMN notas TEXT NULL` },
+        { col: 'tecnico',              sql: `ALTER TABLE repairs ADD COLUMN tecnico VARCHAR(200) NULL` },
+        { col: 'garantiaDias',         sql: `ALTER TABLE repairs ADD COLUMN garantiaDias INT NOT NULL DEFAULT 30` },
+        { col: 'garantiaVence',        sql: `ALTER TABLE repairs ADD COLUMN garantiaVence TIMESTAMP NULL` },
+        { col: 'codigoDesbloqueo',     sql: `ALTER TABLE repairs ADD COLUMN codigoDesbloqueo VARCHAR(100) NULL` },
+        { col: 'checklistComponentes', sql: `ALTER TABLE repairs ADD COLUMN checklistComponentes TEXT NULL` },
+        { col: 'imagenesDispositivo',  sql: `ALTER TABLE repairs ADD COLUMN imagenesDispositivo TEXT NULL` },
+      ];
+      for (const { col, sql } of colsToAdd) {
+        if (!existingCols.has(col)) {
+          try {
+            await connection.execute(sql);
+            console.log(`[Migrations] ✅ Added column ${col} to repairs`);
+          } catch (e: any) {
+            console.log(`[Migrations] ⚠️  Could not add ${col}:`, e.message);
+          }
         }
       }
-    }
-    console.log('[Migrations] ✅ Migration 20 complete: repairs base columns verified');
 
-    // ─── Migración 20b: Make old-schema columns nullable so INSERT doesn't fail ───
-    // La tabla tiene columnas del esquema antiguo (clienteNombre, clienteTelefono, etc.)
-    // que son NOT NULL. El INSERT nuevo no las incluye, así que MySQL las rechaza.
-    // Las hacemos nullable para que el INSERT funcione sin ellas.
-    const oldColumnsToNullify = [
-      `ALTER TABLE repairs MODIFY COLUMN clienteNombre VARCHAR(200) NULL`,
-      `ALTER TABLE repairs MODIFY COLUMN clienteTelefono VARCHAR(50) NULL`,
-      `ALTER TABLE repairs MODIFY COLUMN clienteEmail VARCHAR(320) NULL`,
-      `ALTER TABLE repairs MODIFY COLUMN dispositivoMarca VARCHAR(100) NULL`,
-      `ALTER TABLE repairs MODIFY COLUMN dispositivoModelo VARCHAR(100) NULL`,
-      `ALTER TABLE repairs MODIFY COLUMN dispositivoImei VARCHAR(20) NULL`,
-      `ALTER TABLE repairs MODIFY COLUMN descripcionProblema TEXT NULL`,
-      `ALTER TABLE repairs MODIFY COLUMN costoPartes DECIMAL(10,2) NULL DEFAULT 0.00`,
-      `ALTER TABLE repairs MODIFY COLUMN costoManoObra DECIMAL(10,2) NULL DEFAULT 0.00`,
-      `ALTER TABLE repairs MODIFY COLUMN costoTotal DECIMAL(10,2) NULL DEFAULT 0.00`,
-      `ALTER TABLE repairs MODIFY COLUMN anticipo DECIMAL(10,2) NULL DEFAULT 0.00`,
-      `ALTER TABLE repairs MODIFY COLUMN fechaRecibido TIMESTAMP NULL`,
-    ];
-    for (const sql of oldColumnsToNullify) {
-      try {
-        await connection.execute(sql);
-      } catch (error: any) {
-        // Ignorar si la columna no existe (ya tiene el nuevo esquema)
+      // 2. Hacer nullable las columnas del esquema antiguo que son NOT NULL sin default
+      // (clienteNombre, descripcionProblema, etc.) para que el INSERT nuevo no falle
+      const oldNotNullCols: { col: string; sql: string }[] = [
+        { col: 'clienteNombre',     sql: `ALTER TABLE repairs MODIFY COLUMN clienteNombre VARCHAR(200) NULL DEFAULT NULL` },
+        { col: 'clienteTelefono',   sql: `ALTER TABLE repairs MODIFY COLUMN clienteTelefono VARCHAR(50) NULL DEFAULT NULL` },
+        { col: 'clienteEmail',      sql: `ALTER TABLE repairs MODIFY COLUMN clienteEmail VARCHAR(320) NULL DEFAULT NULL` },
+        { col: 'dispositivoMarca',  sql: `ALTER TABLE repairs MODIFY COLUMN dispositivoMarca VARCHAR(100) NULL DEFAULT NULL` },
+        { col: 'dispositivoModelo', sql: `ALTER TABLE repairs MODIFY COLUMN dispositivoModelo VARCHAR(100) NULL DEFAULT NULL` },
+        { col: 'dispositivoImei',   sql: `ALTER TABLE repairs MODIFY COLUMN dispositivoImei VARCHAR(20) NULL DEFAULT NULL` },
+        { col: 'descripcionProblema', sql: `ALTER TABLE repairs MODIFY COLUMN descripcionProblema TEXT NULL` },
+        { col: 'costoManoObra',     sql: `ALTER TABLE repairs MODIFY COLUMN costoManoObra DECIMAL(10,2) NULL DEFAULT 0.00` },
+        { col: 'costoTotal',        sql: `ALTER TABLE repairs MODIFY COLUMN costoTotal DECIMAL(10,2) NULL DEFAULT 0.00` },
+        { col: 'anticipo',          sql: `ALTER TABLE repairs MODIFY COLUMN anticipo DECIMAL(10,2) NULL DEFAULT 0.00` },
+        { col: 'fechaRecibido',     sql: `ALTER TABLE repairs MODIFY COLUMN fechaRecibido TIMESTAMP NULL DEFAULT NULL` },
+        { col: 'prioridad',         sql: `ALTER TABLE repairs MODIFY COLUMN prioridad VARCHAR(50) NULL DEFAULT 'normal'` },
+      ];
+      for (const { col, sql } of oldNotNullCols) {
+        if (existingCols.has(col) && notNullCols.has(col)) {
+          try {
+            await connection.execute(sql);
+            console.log(`[Migrations] ✅ Made ${col} nullable in repairs`);
+          } catch (e: any) {
+            console.log(`[Migrations] ⚠️  Could not nullify ${col}:`, e.message);
+          }
+        }
       }
+      console.log('[Migrations] ✅ Migration 20 complete: repairs schema fully synchronized');
+    } catch (error: any) {
+      console.log('[Migrations] ⚠️  Migration 20 error:', error.message);
     }
-    console.log('[Migrations] ✅ Migration 20b complete: old-schema columns made nullable');
 
     await connection.end();
     console.log('[Migrations] ✅ All migrations completed successfully');
