@@ -1872,3 +1872,39 @@ export async function deleteTechnician(id: number) {
     await connection.end();
   }
 }
+
+// ─── Historial de Estados de Reparación ──────────────────────────────────────
+
+export async function addRepairStatusLog(data: {
+  repairId: number;
+  estadoAnterior?: string;
+  estadoNuevo: string;
+  nota?: string;
+  usuario?: string;
+}) {
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  try {
+    await connection.execute(
+      `INSERT INTO repair_status_log (repairId, estadoAnterior, estadoNuevo, nota, usuario) VALUES (?, ?, ?, ?, ?)`,
+      [data.repairId, data.estadoAnterior || null, data.estadoNuevo, data.nota || null, data.usuario || null]
+    );
+    return { success: true };
+  } finally {
+    await connection.end();
+  }
+}
+
+export async function getRepairStatusLog(repairId: number) {
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  try {
+    const [rows] = await connection.execute(
+      `SELECT * FROM repair_status_log WHERE repairId = ? ORDER BY createdAt ASC`,
+      [repairId]
+    ) as any[];
+    return rows as any[];
+  } finally {
+    await connection.end();
+  }
+}

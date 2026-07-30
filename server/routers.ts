@@ -815,6 +815,53 @@ export const appRouter = router({
           throw error;
         }
       }),
+
+    // Cambiar estado con log automático
+    changeStatus: publicProcedure
+      .input(z.object({
+        id: z.number(),
+        estadoNuevo: z.enum(['pendiente', 'en_proceso', 'completada', 'entregada']),
+        nota: z.string().optional(),
+        usuario: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        // Obtener estado anterior
+        const repairs = await db.getRepairs({});
+        const repair = (repairs as any[]).find((r: any) => r.id === input.id);
+        const estadoAnterior = repair?.estado || null;
+        const usuario = input.usuario || ctx.user?.nombre || ctx.user?.username || 'Sistema';
+
+        // Actualizar estado
+        const updateData: any = { estado: input.estadoNuevo };
+        if (input.estadoNuevo === 'completada') updateData.fechaCompletado = new Date();
+        if (input.estadoNuevo === 'entregada') {
+          updateData.fechaEntrega = new Date();
+          // Calcular fecha de vencimiento de garantía
+          const garantiaDias = repair?.garantiaDias || 30;
+          const garantiaVence = new Date();
+          garantiaVence.setDate(garantiaVence.getDate() + Number(garantiaDias));
+          updateData.garantiaVence = garantiaVence;
+        }
+        await db.updateRepair(input.id, updateData);
+
+        // Registrar en el log
+        await db.addRepairStatusLog({
+          repairId: input.id,
+          estadoAnterior,
+          estadoNuevo: input.estadoNuevo,
+          nota: input.nota,
+          usuario,
+        });
+
+        return { success: true };
+      }),
+
+    // Obtener historial de estados
+    getStatusLog: publicProcedure
+      .input(z.object({ repairId: z.number() }))
+      .query(async ({ input }) => {
+        return await db.getRepairStatusLog(input.repairId);
+      }),
   }),
 
   // ==================== STORE CONFIG ====================

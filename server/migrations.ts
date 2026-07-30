@@ -602,9 +602,30 @@ export async function applyMigrations() {
       }
     }
 
+        // Migración 22: Crear tabla repair_status_log
+    try {
+      await connection.execute(`
+        CREATE TABLE IF NOT EXISTS repair_status_log (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          repairId INT NOT NULL,
+          estadoAnterior VARCHAR(50) NULL,
+          estadoNuevo VARCHAR(50) NOT NULL,
+          nota TEXT NULL,
+          usuario VARCHAR(200) NULL,
+          createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      console.log('[Migrations] ✅ Created repair_status_log table');
+    } catch (error: any) {
+      if (error.code === 'ER_TABLE_EXISTS_ERROR') {
+        console.log('[Migrations] ⏭️  repair_status_log table already exists');
+      } else {
+        console.log('[Migrations] ⚠️  Could not create repair_status_log:', error.message);
+      }
+    }
+
     await connection.end();
     console.log('[Migrations] ✅ All migrations completed successfully');
-    
   } catch (error) {
     console.error('[Migrations] ❌ Error applying migrations:', error);
     // No lanzar el error para no detener el servidor

@@ -278,15 +278,22 @@ export default function Reparaciones() {
   const [precioTotal, setPrecioTotal] = useState<number>(0);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [repairSummary, setRepairSummary] = useState<RepairSummary | null>(null);
+  const [historialOpen, setHistorialOpen] = useState(false);
+  const [historialRepair, setHistorialRepair] = useState<any>(null);
+  const [notaCambioEstado, setNotaCambioEstado] = useState('');
   const [checklist, setChecklist] = useState<ChecklistItem[]>(
     CHECKLIST_ITEMS.map(item => ({ id: item.id, estado: 'no_aplica' as ChecklistEstado }))
   );
   const [imagenesDispositivo, setImagenesDispositivo] = useState<string[]>([]);
   const [subiendoImagen, setSubiendoImagen] = useState(false);
+  const [lineasManoObra, setLineasManoObra] = useState<{descripcion: string; precio: number}[]>([{ descripcion: '', precio: 0 }]);
 
   // Queries
   const { data: repairs = [], refetch } = trpc.repairs.list.useQuery();
   const { data: tecnicosDisponibles = [] } = trpc.technicians.list.useQuery();
+  const { data: clientesCRM = [] } = trpc.customers.list.useQuery();
+  const [sugerenciasCliente, setSugerenciasCliente] = useState<any[]>([]);
+  const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
   const { data: parts = [] } = trpc.inventoryParts.list.useQuery({ activo: 1 });
   const { data: nextCodeData, refetch: refetchNextCode } = trpc.repairs.getNextCode.useQuery(undefined, {
     // Refrescar cada vez que el dialog se abra para evitar códigos duplicados
@@ -329,6 +336,20 @@ export default function Reparaciones() {
     onError: (error) => toast.error('Error al registrar: ' + error.message),
   });
 
+  const changeStatusMutation = trpc.repairs.changeStatus.useMutation({
+    onSuccess: () => {
+      refetch();
+      toast.success('Estado actualizado');
+    },
+    onError: (e) => toast.error('Error: ' + e.message),
+  });
+
+  // Query de historial (solo cuando hay una reparación seleccionada)
+  const { data: statusLog = [], refetch: refetchLog } = trpc.repairs.getStatusLog.useQuery(
+    { repairId: historialRepair?.id ?? 0 },
+    { enabled: !!historialRepair?.id }
+  );
+
   const updateMutation = trpc.repairs.update.useMutation({
     onSuccess: () => { toast.success('Reparación actualizada'); refetch(); },
     onError: (error) => toast.error('Error al actualizar: ' + error.message),
@@ -350,6 +371,7 @@ export default function Reparaciones() {
     setPrecioTotal(0);
     setChecklist(CHECKLIST_ITEMS.map(item => ({ id: item.id, estado: 'no_aplica' as ChecklistEstado })));
     setImagenesDispositivo([]);
+    setLineasManoObra([{ descripcion: '', precio: 0 }]);
   };
 
   const updateField = (field: string, value: string) => {
@@ -508,11 +530,8 @@ export default function Reparaciones() {
     total: repairs.length,
   }), [repairs]);
 
-  const handleUpdateEstado = (id: number, nuevoEstado: string) => {
-    const updateData: any = { id, estado: nuevoEstado as any };
-    if (nuevoEstado === 'completada') updateData.fechaCompletado = new Date().toISOString();
-    else if (nuevoEstado === 'entregada') updateData.fechaEntrega = new Date().toISOString();
-    updateMutation.mutate(updateData);
+  const handleUpdateEstado = (id: number, nuevoEstado: string, nota?: string) => {
+    changeStatusMutation.mutate({ id, estadoNuevo: nuevoEstado as any, nota });
   };
 
   const handleDelete = (id: number) => {
@@ -595,6 +614,55 @@ export default function Reparaciones() {
                       </div>
                       <h3 className="text-lg font-bold text-gray-900">Información del Cliente</h3>
                       <p className="text-sm text-gray-500">¿Quién trae el dispositivo a reparar?</p>
+                    </div>
+
+                    {/* Buscador de cliente del CRM */}
+                    <div className="relative">
+                      <Label className="text-sm font-semibold text-gray-700">Buscar Cliente del CRM</Label>
+                      <div className="relative mt-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="Escribe nombre o teléfono para buscar en el CRM..."
+                          className="w-full pl-9 pr-4 h-11 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                          onChange={(e) => {
+                            const q = e.target.value.toLowerCase();
+                            if (q.length >= 2) {
+                              const found = (clientesCRM as any[]).filter((c: any) =>
+                                c.nombre?.toLowerCase().includes(q) || c.telefono?.includes(q)
+                              ).slice(0, 5);
+                              setSugerenciasCliente(found);
+                              setMostrarSugerencias(found.length > 0);
+                            } else {
+                              setMostrarSugerencias(false);
+                            }
+                          }}
+                          onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
+                        />
+                      </div>
+                      {mostrarSugerencias && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                          {sugerenciasCliente.map((c: any) => (
+                            <button key={c.id} type="button"
+                              className="w-full text-left px-4 py-3 hover:bg-blue-50 flex items-center gap-3 border-b border-gray-100 last:border-0"
+                              onClick={() => {
+                                updateField('cliente', c.nombre);
+                                updateField('telefono', c.telefono || '');
+                                setMostrarSugerencias(false);
+                                toast.success(`Cliente ${c.nombre} cargado`);
+                              }}
+                            >
+                              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                <User className="h-4 w-4 text-blue-600" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold text-gray-800">{c.nombre}</p>
+                                <p className="text-xs text-gray-500">{c.telefono}{c.empresa ? ` · ${c.empresa}` : ''}</p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-5">
@@ -900,6 +968,61 @@ export default function Reparaciones() {
                       )}
                     </div>
 
+                    {/* Desglose de Mano de Obra */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                          <Wrench className="h-4 w-4 text-gray-600" />
+                          Mano de Obra
+                        </Label>
+                        <button type="button"
+                          onClick={() => setLineasManoObra(prev => [...prev, { descripcion: '', precio: 0 }])}
+                          className="text-xs bg-green-100 text-green-700 hover:bg-green-200 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1">
+                          + Agregar Línea
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        {lineasManoObra.map((linea, idx) => (
+                          <div key={idx} className="flex gap-2 items-center">
+                            <input
+                              type="text"
+                              value={linea.descripcion}
+                              onChange={e => setLineasManoObra(prev => prev.map((l, i) => i === idx ? { ...l, descripcion: e.target.value } : l))}
+                              placeholder={`Ej: ${idx === 0 ? 'Cambio de pantalla' : idx === 1 ? 'Limpieza de placa' : 'Servicio adicional'}`}
+                              className="flex-1 h-10 border border-gray-200 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                            />
+                            <div className="relative w-28">
+                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={linea.precio || ''}
+                                onChange={e => {
+                                  const val = parseFloat(e.target.value) || 0;
+                                  setLineasManoObra(prev => prev.map((l, i) => i === idx ? { ...l, precio: val } : l));
+                                  const totalMO = lineasManoObra.reduce((s, l, i) => s + (i === idx ? val : l.precio), 0);
+                                  setPrecioTotal(costoTotalPartes + totalMO);
+                                }}
+                                className="w-full h-10 border border-gray-200 rounded-lg pl-6 pr-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-green-300"
+                              />
+                            </div>
+                            {lineasManoObra.length > 1 && (
+                              <button type="button"
+                                onClick={() => {
+                                  const nuevas = lineasManoObra.filter((_, i) => i !== idx);
+                                  setLineasManoObra(nuevas);
+                                  setPrecioTotal(costoTotalPartes + nuevas.reduce((s, l) => s + l.precio, 0));
+                                }}
+                                className="w-8 h-8 rounded-lg bg-red-100 hover:bg-red-200 text-red-500 flex items-center justify-center flex-shrink-0">
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
                     {/* Precio total */}
                     <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-5 space-y-4">
                       <div className="space-y-2">
@@ -914,6 +1037,7 @@ export default function Reparaciones() {
                             className="pl-8 h-14 text-2xl font-bold text-gray-900 bg-white border-2 border-gray-200 focus:border-orange-400"
                           />
                         </div>
+                        <p className="text-xs text-gray-400">Puedes ajustar el total manualmente si es necesario</p>
                       </div>
                       <div className="grid grid-cols-3 gap-3">
                         <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
@@ -922,11 +1046,11 @@ export default function Reparaciones() {
                         </div>
                         <div className="bg-white rounded-lg p-3 text-center border border-green-200 bg-green-50">
                           <p className="text-xs text-green-600 mb-1">Mano de Obra</p>
-                          <p className="text-lg font-bold text-green-700">${manoDeObra.toFixed(2)}</p>
+                          <p className="text-lg font-bold text-green-700">${lineasManoObra.reduce((s, l) => s + l.precio, 0).toFixed(2)}</p>
                         </div>
                         <div className="bg-white rounded-lg p-3 text-center border border-orange-200 bg-orange-50">
-                          <p className="text-xs text-orange-600 mb-1">Ganancia</p>
-                          <p className="text-lg font-bold text-orange-700">${manoDeObra.toFixed(2)}</p>
+                          <p className="text-xs text-orange-600 mb-1">Ganancia Estimada</p>
+                          <p className="text-lg font-bold text-orange-700">${(precioTotal - costoTotalPartes).toFixed(2)}</p>
                         </div>
                       </div>
                     </div>
@@ -1210,6 +1334,9 @@ export default function Reparaciones() {
                             <button onClick={() => imprimirOrdenTrabajo(repair)} className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-orange-100 hover:text-orange-600 flex items-center justify-center transition-colors" title="Imprimir orden">
                               <Printer className="h-3.5 w-3.5" />
                             </button>
+                            <button onClick={() => { setHistorialRepair(repair); setHistorialOpen(true); }} className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-purple-100 hover:text-purple-600 flex items-center justify-center transition-colors" title="Historial de estados">
+                              <Clock className="h-3.5 w-3.5" />
+                            </button>
                             <button onClick={() => { setReparacionSeleccionada(repair); setFacturaDialogOpen(true); }} className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-blue-100 hover:text-blue-600 flex items-center justify-center transition-colors" title="Ver recibo">
                               <FileText className="h-3.5 w-3.5" />
                             </button>
@@ -1229,6 +1356,73 @@ export default function Reparaciones() {
             </div>
           )}
         </Card>
+
+        {/* Dialog de Historial de Estados */}
+        <Dialog open={historialOpen} onOpenChange={(v) => { setHistorialOpen(v); if (!v) setNotaCambioEstado(''); }}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-purple-600" />
+                Historial — {historialRepair?.codigo}
+              </DialogTitle>
+              <DialogDescription>{historialRepair?.cliente} · {historialRepair?.dispositivo}</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              {/* Cambiar estado rápido */}
+              <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                <p className="text-sm font-semibold text-gray-700">Cambiar Estado</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['pendiente','en_proceso','completada','entregada'] as const).map(est => {
+                    const labels: Record<string,string> = { pendiente:'Pendiente', en_proceso:'En Proceso', completada:'Completada', entregada:'Entregada' };
+                    const colors: Record<string,string> = { pendiente:'bg-gray-100 text-gray-700 hover:bg-gray-200', en_proceso:'bg-yellow-100 text-yellow-800 hover:bg-yellow-200', completada:'bg-green-100 text-green-800 hover:bg-green-200', entregada:'bg-blue-100 text-blue-800 hover:bg-blue-200' };
+                    const isActive = historialRepair?.estado === est;
+                    return (
+                      <button key={est}
+                        onClick={() => { if (!isActive) { handleUpdateEstado(historialRepair.id, est, notaCambioEstado || undefined); setHistorialRepair((p: any) => ({...p, estado: est})); refetchLog(); } }}
+                        className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${colors[est]} ${isActive ? 'ring-2 ring-offset-1 ring-current' : ''}`}
+                      >
+                        {isActive ? '✓ ' : ''}{labels[est]}
+                      </button>
+                    );
+                  })}
+                </div>
+                <input
+                  value={notaCambioEstado}
+                  onChange={e => setNotaCambioEstado(e.target.value)}
+                  placeholder="Nota opcional (ej: esperando pieza, listo para recoger...)"
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-300"
+                />
+              </div>
+              {/* Timeline de historial */}
+              <div className="space-y-1 max-h-64 overflow-y-auto">
+                <p className="text-sm font-semibold text-gray-700 mb-2">Historial de Cambios</p>
+                {(statusLog as any[]).length === 0 ? (
+                  <p className="text-sm text-gray-400 text-center py-4">Sin cambios registrados aún</p>
+                ) : (
+                  (statusLog as any[]).map((log: any) => {
+                    const estadoColors: Record<string,string> = { pendiente:'bg-gray-400', en_proceso:'bg-yellow-500', completada:'bg-green-500', entregada:'bg-blue-500' };
+                    const estadoLabels: Record<string,string> = { pendiente:'Pendiente', en_proceso:'En Proceso', completada:'Completada', entregada:'Entregada' };
+                    return (
+                      <div key={log.id} className="flex gap-3 items-start py-2 border-b border-gray-100 last:border-0">
+                        <div className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${estadoColors[log.estadoNuevo] || 'bg-gray-400'}`} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {log.estadoAnterior && <span className="text-xs text-gray-400">{estadoLabels[log.estadoAnterior] || log.estadoAnterior}</span>}
+                            {log.estadoAnterior && <span className="text-xs text-gray-300">→</span>}
+                            <span className="text-xs font-semibold text-gray-700">{estadoLabels[log.estadoNuevo] || log.estadoNuevo}</span>
+                            {log.usuario && <span className="text-xs text-gray-400">por {log.usuario}</span>}
+                          </div>
+                          {log.nota && <p className="text-xs text-gray-500 mt-0.5 italic">"{log.nota}"</p>}
+                          <p className="text-xs text-gray-400 mt-0.5">{new Date(log.createdAt).toLocaleString('es-MX', { dateStyle:'short', timeStyle:'short' })}</p>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Dialog de Factura */}
         <Dialog open={facturaDialogOpen} onOpenChange={setFacturaDialogOpen}>
