@@ -845,17 +845,32 @@ export const appRouter = router({
         await db.updateRepair(input.id, updateData);
 
         // Registrar en el log
-        await db.addRepairStatusLog({
+                await db.addRepairStatusLog({
           repairId: input.id,
           estadoAnterior,
           estadoNuevo: input.estadoNuevo,
           nota: input.nota,
           usuario,
         });
-
+        // Enviar notificación SMS/WhatsApp si el cliente tiene teléfono
+        if (repair?.telefono && repair?.cliente) {
+          try {
+            const { sendRepairNotification } = await import('./notifications');
+            await sendRepairNotification({
+              telefono: repair.telefono,
+              nombre: repair.cliente,
+              dispositivo: repair.dispositivo || 'dispositivo',
+              codigo: repair.codigo,
+              tienda: repair.tienda || 'Fixopolis',
+              estado: input.estadoNuevo,
+              canal: 'ambos',
+            });
+          } catch (notifError: any) {
+            console.error('[Notificación] Error al enviar:', notifError.message);
+          }
+        }
         return { success: true };
       }),
-
     // Obtener historial de estados
     getStatusLog: publicProcedure
       .input(z.object({ repairId: z.number() }))
@@ -1340,6 +1355,44 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         return await db.deleteTechnician(input.id);
+      }),
+  }),
+
+  // ==================== PORTAL PÚBLICO DEL CLIENTE ====================
+  track: router({
+    byCode: publicProcedure
+      .input(z.object({ codigo: z.string() }))
+      .query(async ({ input }) => {
+        const repairs = await db.getRepairs({});
+        const repair = (repairs as any[]).find((r: any) =>
+          r.codigo?.toLowerCase() === input.codigo.toLowerCase()
+        );
+        if (!repair) return null;
+        // Devolver solo datos públicos (sin código de desbloqueo ni datos internos)
+        return {
+          codigo: repair.codigo,
+          cliente: repair.cliente,
+          dispositivo: repair.dispositivo,
+          problema: repair.problema,
+          estado: repair.estado,
+          fechaIngreso: repair.fechaIngreso,
+          fechaCompletado: repair.fechaCompletado,
+          fechaEntrega: repair.fechaEntrega,
+          garantiaDias: repair.garantiaDias,
+          garantiaVence: repair.garantiaVence,
+          tecnico: repair.tecnico,
+          tienda: repair.tienda,
+        };
+      }),
+    statusLog: publicProcedure
+      .input(z.object({ codigo: z.string() }))
+      .query(async ({ input }) => {
+        const repairs = await db.getRepairs({});
+        const repair = (repairs as any[]).find((r: any) =>
+          r.codigo?.toLowerCase() === input.codigo.toLowerCase()
+        );
+        if (!repair) return [];
+        return await db.getRepairStatusLog(repair.id);
       }),
   }),
 });

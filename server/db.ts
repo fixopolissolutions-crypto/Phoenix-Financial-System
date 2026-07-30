@@ -1035,7 +1035,28 @@ export async function createRepair(data: InsertRepair & { partes?: { partId: num
       ]
     );
     const repairId = Number((result as any).insertId);
-    await connection.end();
+        await connection.end();
+
+    // Auto-registro en CRM: si el teléfono no existe en customers, crear el cliente automáticamente
+    if (repairData.telefono && repairData.cliente) {
+      try {
+        const crmConn = await mysql.createConnection(process.env.DATABASE_URL!);
+        const [existing] = await crmConn.execute(
+          `SELECT id FROM customers WHERE telefono = ? AND tienda = ? LIMIT 1`,
+          [repairData.telefono, repairData.tienda]
+        ) as any[];
+        if (existing.length === 0) {
+          await crmConn.execute(
+            `INSERT INTO customers (nombre, telefono, fuenteAdquisicion, tienda) VALUES (?, ?, ?, ?)`,
+            [repairData.cliente, repairData.telefono, 'Reparación', repairData.tienda]
+          );
+          console.log(`[CRM] Cliente auto-registrado: ${repairData.cliente} (${repairData.telefono})`);
+        }
+        await crmConn.end();
+      } catch (crmError: any) {
+        console.error('[CRM] Error al auto-registrar cliente:', crmError.message);
+      }
+    }
 
     // Agregar partes si se proporcionan (conexión separada dentro de addRepairParts)
     if (data.partes && data.partes.length > 0) {
