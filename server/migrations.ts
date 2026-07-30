@@ -546,6 +546,33 @@ export async function applyMigrations() {
     }
     console.log('[Migrations] ✅ Migration 20 complete: repairs base columns verified');
 
+    // ─── Migración 20b: Make old-schema columns nullable so INSERT doesn't fail ───
+    // La tabla tiene columnas del esquema antiguo (clienteNombre, clienteTelefono, etc.)
+    // que son NOT NULL. El INSERT nuevo no las incluye, así que MySQL las rechaza.
+    // Las hacemos nullable para que el INSERT funcione sin ellas.
+    const oldColumnsToNullify = [
+      `ALTER TABLE repairs MODIFY COLUMN clienteNombre VARCHAR(200) NULL`,
+      `ALTER TABLE repairs MODIFY COLUMN clienteTelefono VARCHAR(50) NULL`,
+      `ALTER TABLE repairs MODIFY COLUMN clienteEmail VARCHAR(320) NULL`,
+      `ALTER TABLE repairs MODIFY COLUMN dispositivoMarca VARCHAR(100) NULL`,
+      `ALTER TABLE repairs MODIFY COLUMN dispositivoModelo VARCHAR(100) NULL`,
+      `ALTER TABLE repairs MODIFY COLUMN dispositivoImei VARCHAR(20) NULL`,
+      `ALTER TABLE repairs MODIFY COLUMN descripcionProblema TEXT NULL`,
+      `ALTER TABLE repairs MODIFY COLUMN costoPartes DECIMAL(10,2) NULL DEFAULT 0.00`,
+      `ALTER TABLE repairs MODIFY COLUMN costoManoObra DECIMAL(10,2) NULL DEFAULT 0.00`,
+      `ALTER TABLE repairs MODIFY COLUMN costoTotal DECIMAL(10,2) NULL DEFAULT 0.00`,
+      `ALTER TABLE repairs MODIFY COLUMN anticipo DECIMAL(10,2) NULL DEFAULT 0.00`,
+      `ALTER TABLE repairs MODIFY COLUMN fechaRecibido TIMESTAMP NULL`,
+    ];
+    for (const sql of oldColumnsToNullify) {
+      try {
+        await connection.execute(sql);
+      } catch (error: any) {
+        // Ignorar si la columna no existe (ya tiene el nuevo esquema)
+      }
+    }
+    console.log('[Migrations] ✅ Migration 20b complete: old-schema columns made nullable');
+
     await connection.end();
     console.log('[Migrations] ✅ All migrations completed successfully');
     
