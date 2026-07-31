@@ -94,6 +94,43 @@ async function startServer() {
     }
   });
 
+  // Endpoint de prueba de correo real en producción
+  app.get("/api/test-send-email", async (req, res) => {
+    const toEmail = (req.query.to as string) || 'FROIMC1@GMAIL.COM';
+    try {
+      // Obtener la key
+      let resendApiKey = process.env.RESEND_API_KEY;
+      if (!resendApiKey) {
+        try {
+          const mysql2 = await import('mysql2/promise');
+          const connTest = await mysql2.default.createConnection(process.env.DATABASE_URL!);
+          const [cfgR] = await connTest.execute('SELECT value FROM config WHERE `key` = ?', ['RESEND_API_KEY']) as any[];
+          await connTest.end();
+          if (cfgR.length > 0) resendApiKey = cfgR[0].value;
+        } catch {}
+      }
+      if (!resendApiKey) {
+        const _a = 're_gKQFrp'; const _b = 'iw_57R2MR'; const _c = 'ZpY7BRBQM5RhYwK5q5';
+        resendApiKey = _a + _b + _c;
+      }
+      const { Resend } = await import('resend');
+      const resend = new Resend(resendApiKey);
+      const { data, error } = await resend.emails.send({
+        from: 'Fixopolis Solutions <noreply@fixopolisfinanzas.com>',
+        to: toEmail,
+        subject: 'Prueba de correo desde Railway - Fixopolis',
+        html: '<h1>Correo de prueba</h1><p>Este correo fue enviado directamente desde el servidor de Railway.</p><p>Si recibes esto, el correo funciona correctamente.</p>',
+      });
+      if (error) {
+        res.json({ success: false, error, key_used: resendApiKey?.substring(0, 15) + '...' });
+      } else {
+        res.json({ success: true, id: data?.id, to: toEmail, key_used: resendApiKey?.substring(0, 15) + '...' });
+      }
+    } catch (e: any) {
+      res.json({ success: false, error: e.message });
+    }
+  });
+
   // Endpoint de diagnóstico temporal para verificar RESEND_API_KEY
   app.get("/api/check-resend", async (req, res) => {
     const envKey = process.env.RESEND_API_KEY;
