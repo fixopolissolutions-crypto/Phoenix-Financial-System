@@ -70,7 +70,8 @@ export async function sendRepairNotification(data: NotificationData): Promise<{
   const token = process.env.TWILIO_AUTH_TOKEN;
   const fromSms = process.env.TWILIO_PHONE_NUMBER;
   const fromWa = process.env.TWILIO_WHATSAPP_FROM;
-  const twilioEnabled = !!(sid && token && fromSms);
+  const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID; // A2P 10DLC Messaging Service
+  const twilioEnabled = !!(sid && token && (fromSms || messagingServiceSid));
 
   // Normalizar teléfono: agregar +1 si es número de 10 dígitos sin código de país
   let toPhone = data.telefono.replace(/\D/g, '');
@@ -83,9 +84,16 @@ export async function sendRepairNotification(data: NotificationData): Promise<{
     if (twilioEnabled) {
       try {
         const twilio = require('twilio')(sid, token);
-        const msg = await twilio.messages.create({ body, from: fromSms, to: toPhone });
+        // Usar Messaging Service (A2P 10DLC) si está disponible, sino usar número directo
+        const msgParams: any = { body, to: toPhone };
+        if (messagingServiceSid) {
+          msgParams.messagingServiceSid = messagingServiceSid;
+        } else {
+          msgParams.from = fromSms;
+        }
+        const msg = await twilio.messages.create(msgParams);
         resultado.sms = { success: true, sid: msg.sid };
-        console.log(`[SMS] Enviado a ${toPhone}: ${msg.sid}`);
+        console.log(`[SMS] Enviado a ${toPhone} via ${messagingServiceSid ? 'Messaging Service' : 'número directo'}: ${msg.sid}`);
       } catch (err: any) {
         resultado.sms = { success: false, error: err.message };
         console.error(`[SMS] Error al enviar a ${toPhone}:`, err.message);
