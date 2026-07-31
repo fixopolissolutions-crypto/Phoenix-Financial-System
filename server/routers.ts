@@ -713,7 +713,7 @@ export const appRouter = router({
             ...input,
             tienda,
             fechaIngreso: new Date(input.fechaIngreso),
-          });
+          } as any);
           console.log('Reparación creada exitosamente:', result);
           return result;
         } catch (error) {
@@ -799,7 +799,7 @@ export const appRouter = router({
           
           // Generar PDF usando pdfkit
           console.log('[PDF] Generando PDF...');
-          const pdfBuffer = await generateReceiptPDF(repair, storeInfo);
+          const pdfBuffer = await generateReceiptPDF(repair, storeInfo as any);
           console.log('[PDF] PDF generado, tamaño:', pdfBuffer.length, 'bytes');
           
           // Convertir a base64 para enviar al cliente
@@ -829,7 +829,7 @@ export const appRouter = router({
         const repairs = await db.getRepairs({});
         const repair = (repairs as any[]).find((r: any) => r.id === input.id);
         const estadoAnterior = repair?.estado || null;
-        const usuario = input.usuario || ctx.user?.nombre || ctx.user?.username || 'Sistema';
+        const usuario = input.usuario || (ctx.user as any)?.nombre || (ctx.user as any)?.username || ctx.user?.name || 'Sistema';
 
         // Actualizar estado
         const updateData: any = { estado: input.estadoNuevo };

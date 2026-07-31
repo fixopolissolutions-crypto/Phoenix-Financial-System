@@ -321,8 +321,8 @@ export default function Reparaciones() {
         tecnico: (variables as any).tecnico || '',
         precioTotal: parseFloat(variables.precioTotal),
         manoDeObra: parseFloat(variables.precioManoObra),
-        fechaIngreso: variables.fechaIngreso instanceof Date
-          ? variables.fechaIngreso.toISOString().split('T')[0]
+        fechaIngreso: (variables.fechaIngreso as any) instanceof Date
+          ? (variables.fechaIngreso as any).toISOString().split('T')[0]
           : String(variables.fechaIngreso),
         garantiaDias: (variables as any).garantiaDias || 30,
         checklistComponentes: (variables as any).checklistComponentes || '',

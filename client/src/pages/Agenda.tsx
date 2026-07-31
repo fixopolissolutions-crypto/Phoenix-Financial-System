@@ -150,7 +150,7 @@ export default function Agenda() {
       return;
     }
     if (editingAppointment) {
-      updateMutation.mutate({ id: editingAppointment.id, ...form });
+      updateMutation.mutate({ id: editingAppointment.id, ...form, estado: form.estado as 'programada'|'confirmada'|'completada'|'cancelada'|'no_asistio' });
     } else {
       createMutation.mutate(form as any);
     }

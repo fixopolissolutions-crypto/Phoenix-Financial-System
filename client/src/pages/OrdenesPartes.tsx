@@ -195,7 +195,7 @@ export default function OrdenesPartes() {
                   </div>
                 )}
                 <div className="flex gap-2 pt-2">
-                  <Button type="submit" className="flex-1 bg-orange-500 hover:bg-orange-600 text-white" disabled={createMutation.isLoading || updateMutation.isLoading}>
+                  <Button type="submit" className="flex-1 bg-orange-500 hover:bg-orange-600 text-white" disabled={createMutation.isPending || updateMutation.isPending}>
                     {editingOrder ? 'Guardar Cambios' : 'Crear Orden'}
                   </Button>
                   <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>

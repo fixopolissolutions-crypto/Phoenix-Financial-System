@@ -225,7 +225,7 @@ async function saveWeeklyHistory() {
             tienda: tiendaNombres[tienda],
             weekStart: weekDates.start,
             weekEnd: weekDates.end,
-                      });
+          } as any);
           
           // Marcar como enviado
           await db.updateWeeklyHistoryEmailStatus(pdfPath, 1);
