@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { trpc } from '../utils/trpc';
+import { trpc } from '@/lib/trpc';
 import { Search, Wrench, CheckCircle, Package, Clock, Truck, AlertCircle, Shield, Calendar } from 'lucide-react';
 
 const ESTADO_CONFIG: Record<string, { label: string; color: string; bg: string; icon: any; step: number }> = {
