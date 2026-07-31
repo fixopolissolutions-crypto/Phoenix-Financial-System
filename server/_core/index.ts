@@ -98,17 +98,25 @@ async function startServer() {
   app.get("/api/check-resend", async (req, res) => {
     const envKey = process.env.RESEND_API_KEY;
     let dbKey = null;
+    let dbError = null;
+    let dbUrl = process.env.DATABASE_URL || 'NOT_SET';
     try {
       const mysql = await import('mysql2/promise');
-      const conn = await mysql.default.createConnection(process.env.DATABASE_URL!);
+      const conn = await mysql.default.createConnection(dbUrl);
       const [rows] = await conn.execute('SELECT value FROM config WHERE `key` = ?', ['RESEND_API_KEY']) as any[];
       await conn.end();
       if (rows.length > 0) dbKey = rows[0].value?.substring(0, 15) + '...';
-    } catch (e: any) { dbKey = 'ERROR: ' + e.message; }
+      else dbKey = 'KEY_NOT_IN_DB';
+    } catch (e: any) { dbError = e.message; }
+    // Also try to send a test email if key found
+    let testSend = null;
+    const keyToUse = envKey || (dbKey && !dbKey.startsWith('KEY_NOT') && !dbKey.startsWith('ERROR') ? dbKey : null);
     res.json({
       env_key: envKey ? envKey.substring(0, 15) + '...' : 'NOT_SET',
       db_key: dbKey,
-      will_send: !!(envKey || dbKey)
+      db_error: dbError,
+      db_url_host: dbUrl.replace(/:[^:@]+@/, ':***@').substring(0, 50),
+      will_send: !!(envKey || (dbKey && dbKey !== 'KEY_NOT_IN_DB'))
     });
   });
 
