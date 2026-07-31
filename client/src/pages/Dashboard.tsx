@@ -229,7 +229,7 @@ export default function Dashboard() {
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
             Panel de Turno Rápido
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <button
               onClick={() => setLocation('/reparaciones')}
               className="group flex items-center gap-4 p-5 rounded-xl text-left transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
@@ -278,7 +278,7 @@ export default function Dashboard() {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3">
           {/* Ingresos Efectivo */}
           <Card className="p-4 border-0 shadow-sm bg-white col-span-1">
             <div className="flex items-start justify-between mb-3">
@@ -721,7 +721,7 @@ export default function Dashboard() {
               <AlertTriangle className="w-4 h-4 text-amber-600" />
               <h3 className="text-sm font-semibold text-amber-800">Alertas de Stock Bajo ({stockBajo.length})</h3>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
               {stockBajo.map((item: any, i: number) => (
                 <div key={i} className="flex items-center gap-2 bg-white rounded-lg p-2.5 border border-amber-100">
                   <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">

@@ -688,7 +688,7 @@ export default function Reparaciones() {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                       <div className="space-y-2">
                         <Label className="text-sm font-semibold text-gray-700">Nombre Completo *</Label>
                         <Input
@@ -709,7 +709,7 @@ export default function Reparaciones() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                       <div className="space-y-2">
                         <Label className="text-sm font-semibold text-gray-700">Fecha de Ingreso</Label>
                         <Input
@@ -790,7 +790,7 @@ export default function Reparaciones() {
                       <p className="text-sm text-gray-500">Registra el equipo y su estado al ingreso</p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                       <div className="space-y-2">
                         <Label className="text-sm font-semibold text-gray-700">Modelo del Dispositivo *</Label>
                         <Input
@@ -848,7 +848,7 @@ export default function Reparaciones() {
                         </div>
                       </div>
                       <p className="text-xs text-gray-500">Marca el estado de cada componente al recibir el dispositivo. Protege al negocio de reclamos futuros.</p>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         {CHECKLIST_ITEMS.map(item => {
                           const estado = checklist.find(c => c.id === item.id)?.estado || 'no_aplica';
                           return (
@@ -899,7 +899,7 @@ export default function Reparaciones() {
                         </label>
                       </div>
                       {imagenesDispositivo.length > 0 ? (
-                        <div className="grid grid-cols-4 gap-2">
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                           {imagenesDispositivo.map((url, idx) => (
                             <div key={idx} className="relative group">
                               <img src={url} alt={`Foto ${idx + 1}`} className="w-full h-20 object-cover rounded-xl border-2 border-gray-200" />
@@ -1062,7 +1062,7 @@ export default function Reparaciones() {
                         </div>
                         <p className="text-xs text-gray-400">Puedes ajustar el total manualmente si es necesario</p>
                       </div>
-                      <div className="grid grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
                           <p className="text-xs text-gray-500 mb-1">Costo Partes</p>
                           <p className="text-lg font-bold text-gray-800">${costoTotalPartes.toFixed(2)}</p>
