@@ -1690,7 +1690,68 @@ export const appRouter = router({
               tienda, input.tokenAprobacion || null,
             ]
           ) as any[];
-          return { id: (result as any).insertId, ...input };
+          const insertId = (result as any).insertId;
+
+          // ── Enviar SMS y correo si el estado es 'enviado' y hay token ────────────────────
+          if (input.estado === 'enviado' && input.tokenAprobacion) {
+            const appUrl = process.env.APP_URL || 'https://fixopolisfinanzas.com';
+            const enlace = `${appUrl}/cotizacion/${input.tokenAprobacion}`;
+            const dispositivo = [input.dispositivoMarca, input.dispositivoModelo].filter(Boolean).join(' ') || 'su dispositivo';
+            const nombreCliente = input.clienteNombre || 'Cliente';
+
+            // ─ SMS (Twilio) ───────────────────────────────────────────────────────────────────────────────────
+            if (input.clienteTelefono) {
+              try {
+                const sid = process.env.TWILIO_ACCOUNT_SID;
+                const token = process.env.TWILIO_AUTH_TOKEN;
+                const fromSms = process.env.TWILIO_PHONE_NUMBER;
+                const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
+                if (sid && token && (fromSms || messagingServiceSid)) {
+                  let toPhone = input.clienteTelefono.replace(/\D/g, '');
+                  if (toPhone.length === 10) toPhone = '+1' + toPhone;
+                  else if (!toPhone.startsWith('+')) toPhone = '+' + toPhone;
+                  const twilio = require('twilio')(sid, token);
+                  const smsBody = `Hola ${nombreCliente}, le enviamos una cotizacion de ${dispositivo} por $${input.total}. Revisela y apruebela aqui: ${enlace} - Fixopolis Solutions`;
+                  const msgParams: any = { body: smsBody, to: toPhone };
+                  if (messagingServiceSid) msgParams.messagingServiceSid = messagingServiceSid;
+                  else msgParams.from = fromSms;
+                  const twClient = require('twilio')(sid, token);
+                  const msg = await twClient.messages.create(msgParams);
+                  console.log(`[Presupuesto SMS] Enviado a ${toPhone}: ${msg.sid}`);
+                } else {
+                  console.log(`[Presupuesto SMS SIMULADO] -> ${input.clienteTelefono}\nEnlace: ${enlace}`);
+                }
+              } catch (smsErr: any) {
+                console.error('[Presupuesto SMS] Error:', smsErr.message);
+              }
+            }
+
+            // ─ Correo (Resend) ──────────────────────────────────────────────────────────────────────────────
+            if (input.clienteEmail) {
+              try {
+                const resendApiKey = process.env.RESEND_API_KEY;
+                if (resendApiKey) {
+                  const { Resend } = await import('resend');
+                  const resend = new Resend(resendApiKey);
+                  const emailHtml = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;background:#f4f4f4;margin:0;padding:20px}.container{max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1)}.header{background:#1e293b;color:#fff;padding:24px 30px}.header h1{margin:0;font-size:22px}.header p{margin:6px 0 0;font-size:14px;opacity:.8}.body{padding:30px}.body p{color:#374151;font-size:15px;line-height:1.6}.detail-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:16px 20px;margin:20px 0}.detail-box p{margin:6px 0;font-size:14px;color:#4b5563}.detail-box strong{color:#1e293b}.btn{display:inline-block;background:#f97316;color:#fff;text-decoration:none;padding:14px 28px;border-radius:6px;font-weight:700;font-size:16px;margin:20px 0}.footer{background:#f8fafc;padding:16px 30px;text-align:center;font-size:12px;color:#9ca3af;border-top:1px solid #e5e7eb}</style></head><body><div class="container"><div class="header"><h1>Cotizacion de Reparacion</h1><p>Fixopolis Solutions</p></div><div class="body"><p>Hola <strong>${nombreCliente}</strong>,</p><p>Hemos preparado una cotizacion para la reparacion de su <strong>${dispositivo}</strong>. Por favor revisela y diganos si desea proceder.</p><div class="detail-box"><p><strong>Codigo:</strong> ${input.codigo}</p><p><strong>Dispositivo:</strong> ${dispositivo}</p><p><strong>Total:</strong> $${input.total}</p>${input.validoHasta ? `<p><strong>Valida hasta:</strong> ${new Date(input.validoHasta).toLocaleDateString('es-ES')}</p>` : ''}</div><p style="text-align:center"><a href="${enlace}" class="btn">Ver y Aprobar Cotizacion</a></p><p style="font-size:13px;color:#6b7280">O copie este enlace en su navegador:<br><a href="${enlace}" style="color:#f97316">${enlace}</a></p></div><div class="footer"><p>Fixopolis Solutions &mdash; Reparacion de Dispositivos</p><p>Este correo fue enviado automaticamente. No responda a este mensaje.</p></div></div></body></html>`;
+                  const { error: emailError } = await resend.emails.send({
+                    from: 'Fixopolis Solutions <noreply@fixopolisfinanzas.com>',
+                    to: input.clienteEmail,
+                    subject: `Cotizacion ${input.codigo} - ${dispositivo} - $${input.total}`,
+                    html: emailHtml,
+                  });
+                  if (emailError) console.error('[Presupuesto Email] Error:', emailError);
+                  else console.log(`[Presupuesto Email] Enviado a ${input.clienteEmail}`);
+                } else {
+                  console.log(`[Presupuesto Email SIMULADO] -> ${input.clienteEmail}\nEnlace: ${enlace}`);
+                }
+              } catch (emailErr: any) {
+                console.error('[Presupuesto Email] Error:', emailErr.message);
+              }
+            }
+          }
+
+          return { id: insertId, ...input };
         } finally { conn.end(); }
       }),
 

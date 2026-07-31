@@ -319,32 +319,57 @@ export function generateReceiptPDF(repair: any, storeInfo: StoreConfig): Promise
       doc.moveDown(1.2);
       
       const signatureY = doc.y;
-      
-      // Firma del cliente
-      doc.moveTo(80, signatureY)
-         .lineTo(250, signatureY)
-         .lineWidth(0.5)
-         .strokeColor('#000000')
-         .stroke();
-      
-      doc.fontSize(7.5)
-         .fillColor('#666666')
-         .text('Customer Signature / Firma del Cliente', 80, signatureY + 5, {
-           width: 170,
-           align: 'center'
-         });
 
-      // Firma del técnico
+      // ── Firma del cliente ──────────────────────────────────────────────────
+      if (repair.firmaCliente && typeof repair.firmaCliente === 'string' && repair.firmaCliente.startsWith('data:image')) {
+        // Hay firma digital capturada: incrustarla como imagen
+        try {
+          const base64Data = repair.firmaCliente.replace(/^data:image\/\w+;base64,/, '');
+          const imgBuffer = Buffer.from(base64Data, 'base64');
+          // Caja con borde para la firma
+          doc.rect(60, signatureY - 5, 210, 60)
+             .lineWidth(0.5)
+             .strokeColor('#9ca3af')
+             .stroke();
+          // Imagen de la firma dentro de la caja
+          doc.image(imgBuffer, 65, signatureY - 2, { width: 200, height: 52, fit: [200, 52] });
+          // Etiqueta debajo
+          doc.fontSize(7)
+             .fillColor('#6b7280')
+             .text('Customer Signature / Firma del Cliente', 60, signatureY + 57, {
+               width: 210,
+               align: 'center'
+             });
+        } catch (_imgErr) {
+          // Fallback: línea vacía si la imagen falla
+          doc.moveTo(80, signatureY)
+             .lineTo(270, signatureY)
+             .lineWidth(0.5).strokeColor('#000000').stroke();
+          doc.fontSize(7.5).fillColor('#666666')
+             .text('Customer Signature / Firma del Cliente', 80, signatureY + 5, { width: 190, align: 'center' });
+        }
+      } else {
+        // Sin firma digital: línea vacía para firma manual
+        doc.moveTo(80, signatureY)
+           .lineTo(270, signatureY)
+           .lineWidth(0.5).strokeColor('#000000').stroke();
+        doc.fontSize(7.5).fillColor('#666666')
+           .text('Customer Signature / Firma del Cliente', 80, signatureY + 5, { width: 190, align: 'center' });
+      }
+
+      // ── Firma del técnico (siempre línea vacía) ────────────────────────────
       doc.moveTo(345, signatureY)
          .lineTo(515, signatureY)
          .lineWidth(0.5)
          .strokeColor('#000000')
          .stroke();
       
-      doc.text('Technician Signature / Firma del Tecnico', 345, signatureY + 5, {
-        width: 170,
-        align: 'center'
-      });
+      doc.fontSize(7.5)
+         .fillColor('#666666')
+         .text('Technician Signature / Firma del Tecnico', 345, signatureY + 5, {
+           width: 170,
+           align: 'center'
+         });
 
       // Línea inferior negra
       doc.rect(0, 792, 595, 3)

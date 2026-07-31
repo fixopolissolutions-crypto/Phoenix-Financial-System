@@ -249,7 +249,17 @@ export function FacturaReparacion({ repair }: FacturaReparacionProps) {
             {/* Firmas */}
             <div className="signatures">
               <div className="signature-box">
-                <div className="signature-line"></div>
+                {repair.firmaCliente && repair.firmaCliente.startsWith('data:image') ? (
+                  <div className="signature-image-box">
+                    <img
+                      src={repair.firmaCliente}
+                      alt="Firma del cliente"
+                      className="signature-image"
+                    />
+                  </div>
+                ) : (
+                  <div className="signature-line"></div>
+                )}
                 <p className="signature-label">Firma del Cliente</p>
               </div>
               <div className="signature-box">
@@ -572,6 +582,25 @@ export function FacturaReparacion({ repair }: FacturaReparacionProps) {
           text-align: center;
           font-size: 13px;
           color: #6b7280;
+        }
+
+        .signature-image-box {
+          border: 1.5px solid #d1d5db;
+          border-radius: 6px;
+          overflow: hidden;
+          background: #fff;
+          margin-bottom: 6px;
+          min-height: 70px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .signature-image {
+          width: 100%;
+          max-height: 80px;
+          object-fit: contain;
+          display: block;
         }
 
         /* Estilos de impresión */
