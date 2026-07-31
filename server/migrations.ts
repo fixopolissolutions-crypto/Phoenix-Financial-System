@@ -688,6 +688,20 @@ export async function applyMigrations() {
       }
     }
 
+    // Migración 25: Corregir ENUM de estado en repairs (valores legacy -> nuevos)
+    try {
+      // Migrar datos existentes con valores legacy al nuevo formato
+      await connection.execute(`UPDATE repairs SET estado = 'pendiente' WHERE estado IN ('recibido','diagnostico','esperando_partes')`);
+      await connection.execute(`UPDATE repairs SET estado = 'en_proceso' WHERE estado = 'en_reparacion'`);
+      await connection.execute(`UPDATE repairs SET estado = 'completada' WHERE estado = 'listo'`);
+      await connection.execute(`UPDATE repairs SET estado = 'entregada' WHERE estado = 'entregado'`);
+      // Modificar el ENUM para aceptar los nuevos valores
+      await connection.execute(`ALTER TABLE repairs MODIFY COLUMN estado ENUM('pendiente','en_proceso','completada','entregada','cancelada') NOT NULL DEFAULT 'pendiente'`);
+      console.log('[Migrations] ✅ Migration 25 complete: repairs.estado ENUM updated to new values');
+    } catch (error: any) {
+      console.log('[Migrations] ⚠️  Migration 25 (repairs estado ENUM):', error.message);
+    }
+
     await connection.end();
     console.log('[Migrations] ✅ All migrations completed successfully');
   } catch (error) {
