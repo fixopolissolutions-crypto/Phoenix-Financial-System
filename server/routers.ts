@@ -1730,6 +1730,7 @@ export const appRouter = router({
             if (input.clienteEmail) {
               try {
                 const resendApiKey = process.env.RESEND_API_KEY;
+                console.log(`[Presupuesto Email] email=${input.clienteEmail} key=${resendApiKey ? 'SET('+resendApiKey.substring(0,10)+'...)' : 'NOT_SET'}`);
                 if (resendApiKey) {
                   const { Resend } = await import('resend');
                   const resend = new Resend(resendApiKey);
