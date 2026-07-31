@@ -1729,7 +1729,16 @@ export const appRouter = router({
             // ─ Correo (Resend) ──────────────────────────────────────────────────────────────────────────────
             if (input.clienteEmail) {
               try {
-                const resendApiKey = process.env.RESEND_API_KEY;
+                // Leer RESEND_API_KEY desde env o desde la BD como fallback
+                let resendApiKey = process.env.RESEND_API_KEY;
+                if (!resendApiKey) {
+                  try {
+                    const connCfg = await (await import('mysql2/promise')).createConnection(process.env.DATABASE_URL!);
+                    const [cfgRows] = await connCfg.execute('SELECT value FROM config WHERE `key` = ?', ['RESEND_API_KEY']) as any[];
+                    await connCfg.end();
+                    if (cfgRows.length > 0) resendApiKey = cfgRows[0].value;
+                  } catch {}
+                }
                 console.log(`[Presupuesto Email] email=${input.clienteEmail} key=${resendApiKey ? 'SET('+resendApiKey.substring(0,10)+'...)' : 'NOT_SET'}`);
                 if (resendApiKey) {
                   const { Resend } = await import('resend');
