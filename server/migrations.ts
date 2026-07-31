@@ -656,6 +656,38 @@ export async function applyMigrations() {
       }
     }
 
+    // Migración 24: Crear tabla appointments (agenda de citas)
+    try {
+      await connection.execute(`
+        CREATE TABLE IF NOT EXISTS appointments (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          titulo VARCHAR(200) NOT NULL,
+          cliente VARCHAR(200) NULL,
+          telefono VARCHAR(50) NULL,
+          dispositivo VARCHAR(200) NULL,
+          descripcion TEXT NULL,
+          tecnico VARCHAR(200) NULL,
+          fecha DATE NOT NULL,
+          horaInicio TIME NOT NULL,
+          horaFin TIME NULL,
+          estado ENUM('programada','confirmada','completada','cancelada','no_asistio') NOT NULL DEFAULT 'programada',
+          color VARCHAR(20) NULL DEFAULT '#f97316',
+          notas TEXT NULL,
+          repairId INT NULL,
+          tienda VARCHAR(50) NOT NULL DEFAULT 'admin',
+          createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      console.log('[Migrations] ✅ Created appointments table');
+    } catch (error: any) {
+      if (error.code === 'ER_TABLE_EXISTS_ERROR') {
+        console.log('[Migrations] ⏭️  appointments table already exists');
+      } else {
+        console.log('[Migrations] ⚠️  Could not create appointments:', error.message);
+      }
+    }
+
     await connection.end();
     console.log('[Migrations] ✅ All migrations completed successfully');
   } catch (error) {

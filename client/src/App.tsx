@@ -29,6 +29,7 @@ import Servicios from './pages/Servicios';
 import Clientes from './pages/Clientes';
 import TrackRepair from './pages/TrackRepair';
 import OrdenesPartes from './pages/OrdenesPartes';
+import Agenda from './pages/Agenda';
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -120,6 +121,9 @@ function Router() {
       </Route>
       <Route path="/clientes">
         {() => <ProtectedRoute component={Clientes} />}
+      </Route>
+      <Route path="/agenda">
+        {() => <ProtectedRoute component={Agenda} />}
       </Route>
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />

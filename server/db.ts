@@ -1037,26 +1037,33 @@ export async function createRepair(data: InsertRepair & { partes?: { partId: num
     const repairId = Number((result as any).insertId);
         await connection.end();
 
-    // Auto-registro en CRM: si el teléfono no existe en customers, crear el cliente automáticamente
+    // Auto-registro en CRM: upsert por teléfono — crea si no existe, actualiza si ya existe
+    let clienteNuevoEnCRM = false;
     if (repairData.telefono && repairData.cliente) {
       try {
         const crmConn = await mysql.createConnection(process.env.DATABASE_URL!);
         const [existing] = await crmConn.execute(
-          `SELECT id FROM customers WHERE telefono = ? AND tienda = ? LIMIT 1`,
+          `SELECT id, nombre FROM customers WHERE telefono = ? AND tienda = ? LIMIT 1`,
           [repairData.telefono, repairData.tienda]
         ) as any[];
         if (existing.length === 0) {
+          // Cliente nuevo: insertar en CRM
           await crmConn.execute(
-            `INSERT INTO customers (nombre, telefono, fuenteAdquisicion, tienda) VALUES (?, ?, ?, ?)`,
-            [repairData.cliente, repairData.telefono, 'Reparación', repairData.tienda]
+            `INSERT INTO customers (nombre, telefono, fuenteAdquisicion, tienda) VALUES (?, ?, 'Reparación', ?)`,
+            [repairData.cliente, repairData.telefono, repairData.tienda]
           );
-          console.log(`[CRM] Cliente auto-registrado: ${repairData.cliente} (${repairData.telefono})`);
+          clienteNuevoEnCRM = true;
+          console.log(`[CRM] ✅ Cliente nuevo auto-registrado: ${repairData.cliente} (${repairData.telefono})`);
+        } else {
+          // Cliente existente: actualizar última visita (updatedAt se actualiza solo)
+          console.log(`[CRM] ⏭️ Cliente ya existe en CRM: ${existing[0].nombre} (id: ${existing[0].id})`);
         }
         await crmConn.end();
       } catch (crmError: any) {
         console.error('[CRM] Error al auto-registrar cliente:', crmError.message);
       }
     }
+    (repairData as any).clienteNuevoEnCRM = clienteNuevoEnCRM;
 
     // Agregar partes si se proporcionan (conexión separada dentro de addRepairParts)
     if (data.partes && data.partes.length > 0) {
@@ -1068,7 +1075,7 @@ export async function createRepair(data: InsertRepair & { partes?: { partId: num
       }
     }
 
-    return { id: repairId, ...repairData };
+    return { id: repairId, ...repairData, clienteNuevoEnCRM };
   } catch (error) {
     try { await connection.end(); } catch {}
     throw error;
@@ -2048,6 +2055,92 @@ export async function getNextPartOrderCode(tienda: string) {
     const last = (rows[0] as any).codigo as string;
     const num = parseInt(last.split('-').pop() || '0', 10);
     return `${prefix}-${String(num + 1).padStart(3, '0')}`;
+  } finally {
+    await connection.end();
+  }
+}
+
+// ─── APPOINTMENTS (Agenda de Citas) ────────────────────────────────────────
+
+export async function getAppointments(filters: { tienda: string; fecha?: string; fechaInicio?: string; fechaFin?: string }) {
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  try {
+    let query = `SELECT * FROM appointments WHERE tienda = ?`;
+    const params: any[] = [filters.tienda];
+    if (filters.fecha) {
+      query += ` AND fecha = ?`;
+      params.push(filters.fecha);
+    } else if (filters.fechaInicio && filters.fechaFin) {
+      query += ` AND fecha BETWEEN ? AND ?`;
+      params.push(filters.fechaInicio, filters.fechaFin);
+    }
+    query += ` ORDER BY fecha ASC, horaInicio ASC`;
+    const [rows] = await connection.execute(query, params) as any[];
+    return rows;
+  } finally {
+    await connection.end();
+  }
+}
+
+export async function createAppointment(data: {
+  titulo: string;
+  cliente?: string;
+  telefono?: string;
+  dispositivo?: string;
+  descripcion?: string;
+  tecnico?: string;
+  fecha: string;
+  horaInicio: string;
+  horaFin?: string;
+  estado?: string;
+  color?: string;
+  notas?: string;
+  repairId?: number;
+  tienda: string;
+}) {
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  try {
+    const [result] = await connection.execute(
+      `INSERT INTO appointments (titulo, cliente, telefono, dispositivo, descripcion, tecnico, fecha, horaInicio, horaFin, estado, color, notas, repairId, tienda)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        data.titulo, data.cliente || null, data.telefono || null, data.dispositivo || null,
+        data.descripcion || null, data.tecnico || null, data.fecha, data.horaInicio,
+        data.horaFin || null, data.estado || 'programada', data.color || '#f97316',
+        data.notas || null, data.repairId || null, data.tienda,
+      ]
+    ) as any[];
+    return { id: Number(result.insertId), ...data };
+  } finally {
+    await connection.end();
+  }
+}
+
+export async function updateAppointment(id: number, data: Partial<{
+  titulo: string; cliente: string; telefono: string; dispositivo: string;
+  descripcion: string; tecnico: string; fecha: string; horaInicio: string;
+  horaFin: string; estado: string; color: string; notas: string; repairId: number;
+}>) {
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  try {
+    const fields = Object.keys(data).map(k => `${k} = ?`).join(', ');
+    const values = [...Object.values(data), id];
+    await connection.execute(`UPDATE appointments SET ${fields} WHERE id = ?`, values);
+    return { id, ...data };
+  } finally {
+    await connection.end();
+  }
+}
+
+export async function deleteAppointment(id: number) {
+  if (!process.env.DATABASE_URL) throw new Error("Database not available");
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
+  try {
+    await connection.execute(`DELETE FROM appointments WHERE id = ?`, [id]);
+    return { success: true };
   } finally {
     await connection.end();
   }

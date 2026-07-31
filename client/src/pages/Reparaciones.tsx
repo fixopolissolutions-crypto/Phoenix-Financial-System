@@ -335,6 +335,15 @@ export default function Reparaciones() {
       refetch();
       refetchNextCode();
       toast.success('Reparación registrada exitosamente');
+      // Notificar si el cliente fue agregado automáticamente al CRM
+      if ((result as any).clienteNuevoEnCRM) {
+        setTimeout(() => {
+          toast.success(`✅ Cliente "${variables.cliente}" agregado automáticamente al CRM`, {
+            description: 'Puedes ver su perfil completo en la sección Clientes.',
+            duration: 5000,
+          });
+        }, 800);
+      }
     },
     onError: (error) => toast.error('Error al registrar: ' + error.message),
   });

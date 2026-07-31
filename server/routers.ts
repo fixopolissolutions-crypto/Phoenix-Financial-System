@@ -1456,5 +1456,70 @@ export const appRouter = router({
         return await db.getRepairStatusLog(repair.id);
       }),
   }),
+
+  // ==================== APPOINTMENTS (AGENDA) ====================
+  appointments: router({
+    list: publicProcedure
+      .input(z.object({
+        fecha: z.string().optional(),
+        fechaInicio: z.string().optional(),
+        fechaFin: z.string().optional(),
+      }).optional())
+      .query(async ({ input, ctx }) => {
+        const tienda = ctx.user?.tienda || 'admin';
+        return await db.getAppointments({
+          tienda,
+          fecha: input?.fecha,
+          fechaInicio: input?.fechaInicio,
+          fechaFin: input?.fechaFin,
+        });
+      }),
+    create: publicProcedure
+      .input(z.object({
+        titulo: z.string(),
+        cliente: z.string().optional(),
+        telefono: z.string().optional(),
+        dispositivo: z.string().optional(),
+        descripcion: z.string().optional(),
+        tecnico: z.string().optional(),
+        fecha: z.string(),
+        horaInicio: z.string(),
+        horaFin: z.string().optional(),
+        estado: z.enum(['programada','confirmada','completada','cancelada','no_asistio']).optional(),
+        color: z.string().optional(),
+        notas: z.string().optional(),
+        repairId: z.number().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const tienda = ctx.user?.tienda || 'admin';
+        return await db.createAppointment({ ...input, tienda });
+      }),
+    update: publicProcedure
+      .input(z.object({
+        id: z.number(),
+        titulo: z.string().optional(),
+        cliente: z.string().optional(),
+        telefono: z.string().optional(),
+        dispositivo: z.string().optional(),
+        descripcion: z.string().optional(),
+        tecnico: z.string().optional(),
+        fecha: z.string().optional(),
+        horaInicio: z.string().optional(),
+        horaFin: z.string().optional(),
+        estado: z.enum(['programada','confirmada','completada','cancelada','no_asistio']).optional(),
+        color: z.string().optional(),
+        notas: z.string().optional(),
+        repairId: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        return await db.updateAppointment(id, data);
+      }),
+    delete: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return await db.deleteAppointment(input.id);
+      }),
+  }),
 });
 export type AppRouter = typeof appRouter;

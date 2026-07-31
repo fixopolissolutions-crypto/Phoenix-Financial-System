@@ -28,6 +28,7 @@ import {
   Sun,
   Moon,
   Truck,
+  CalendarDays,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
@@ -46,6 +47,7 @@ const navGroups = [
       { name: 'Reparaciones', href: '/reparaciones', icon: Wrench, adminOnly: true },
       { name: 'Clientes', href: '/clientes', icon: Users, adminOnly: true },
       { name: 'Órdenes de Partes', href: '/ordenes-partes', icon: Truck, adminOnly: true },
+      { name: 'Agenda', href: '/agenda', icon: CalendarDays, adminOnly: true },
       { name: 'Servidor', href: '/servidor', icon: Server, adminOnly: true },
       { name: 'Punto de Venta', href: '/pos', icon: ShoppingCart },
       { name: 'Historial POS', href: '/pos/historial', icon: Receipt },
