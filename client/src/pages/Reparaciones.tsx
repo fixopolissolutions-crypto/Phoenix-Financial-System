@@ -26,9 +26,10 @@ import {
   Wrench, Plus, DollarSign, Clock, CheckCircle, Package, Trash2,
   FileText, Search, X, User, Phone, Smartphone, Shield, ShieldOff,
   Printer, UserCog, Lock, Camera, ImageIcon, AlertTriangle,
-  ChevronRight, ChevronLeft, CheckSquare, ArrowRight
+  ChevronRight, ChevronLeft, CheckSquare, ArrowRight, QrCode
 } from 'lucide-react';
 import { FacturaReparacion } from '@/components/FacturaReparacion';
+import { EtiquetaQR } from '@/components/EtiquetaQR';
 import { toast } from 'sonner';
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
@@ -287,6 +288,8 @@ export default function Reparaciones() {
   const [imagenesDispositivo, setImagenesDispositivo] = useState<string[]>([]);
   const [subiendoImagen, setSubiendoImagen] = useState(false);
   const [lineasManoObra, setLineasManoObra] = useState<{descripcion: string; precio: number}[]>([{ descripcion: '', precio: 0 }]);
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [qrRepair, setQrRepair] = useState<any>(null);
 
   // Queries
   const { data: repairs = [], refetch } = trpc.repairs.list.useQuery();
@@ -1334,6 +1337,9 @@ export default function Reparaciones() {
                             <button onClick={() => imprimirOrdenTrabajo(repair)} className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-orange-100 hover:text-orange-600 flex items-center justify-center transition-colors" title="Imprimir orden">
                               <Printer className="h-3.5 w-3.5" />
                             </button>
+                            <button onClick={() => { setQrRepair(repair); setQrDialogOpen(true); }} className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-green-100 hover:text-green-600 flex items-center justify-center transition-colors" title="Etiqueta QR">
+                              <QrCode className="h-3.5 w-3.5" />
+                            </button>
                             <button onClick={() => { setHistorialRepair(repair); setHistorialOpen(true); }} className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-purple-100 hover:text-purple-600 flex items-center justify-center transition-colors" title="Historial de estados">
                               <Clock className="h-3.5 w-3.5" />
                             </button>
@@ -1356,6 +1362,15 @@ export default function Reparaciones() {
             </div>
           )}
         </Card>
+
+        {/* Dialog Etiqueta QR */}
+        {qrRepair && (
+          <EtiquetaQR
+            open={qrDialogOpen}
+            onClose={() => { setQrDialogOpen(false); setQrRepair(null); }}
+            repair={qrRepair}
+          />
+        )}
 
         {/* Dialog de Historial de Estados */}
         <Dialog open={historialOpen} onOpenChange={(v) => { setHistorialOpen(v); if (!v) setNotaCambioEstado(''); }}>
