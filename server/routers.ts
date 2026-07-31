@@ -743,6 +743,7 @@ export const appRouter = router({
         codigoDesbloqueo: z.string().optional(),
         checklistComponentes: z.string().optional(),
         imagenesDispositivo: z.string().optional(),
+        firmaCliente: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
         const updateData: any = { ...input };
@@ -750,6 +751,22 @@ export const appRouter = router({
         if (input.fechaEntrega) updateData.fechaEntrega = new Date(input.fechaEntrega);
         if (input.garantiaVence) updateData.garantiaVence = new Date(input.garantiaVence);
         return await db.updateRepair(input.id, updateData);
+      }),
+
+    saveFirma: publicProcedure
+      .input(z.object({
+        id: z.number(),
+        firmaCliente: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        const mysql = await import('mysql2/promise');
+        const conn = await mysql.createConnection(process.env.DATABASE_URL!);
+        try {
+          await conn.execute('UPDATE repairs SET firmaCliente = ? WHERE id = ?', [input.firmaCliente, input.id]);
+          return { success: true };
+        } finally {
+          conn.end();
+        }
       }),
 
     addParts: publicProcedure
@@ -1198,6 +1215,103 @@ export const appRouter = router({
           conn.end();
         }
       }),
+
+    repairStats: publicProcedure
+      .input(z.object({ tienda: z.string().optional() }).optional())
+      .query(async ({ input, ctx }) => {
+        const tienda = input?.tienda || (ctx.user as any)?.tienda || 'admin';
+        const mysql = await import('mysql2/promise');
+        const conn = await mysql.createConnection(process.env.DATABASE_URL!);
+        try {
+          // Totales por estado
+          const [porEstado] = await conn.execute(
+            `SELECT estado, COUNT(*) as total FROM repairs WHERE tienda = ? GROUP BY estado`,
+            [tienda]
+          ) as any[];
+          // Reparaciones por semana (últimas 8 semanas)
+          const [porSemana] = await conn.execute(
+            `SELECT YEARWEEK(createdAt, 1) as semana,
+             DATE_FORMAT(MIN(createdAt), '%d %b') as label,
+             COUNT(*) as total,
+             SUM(CASE WHEN estado IN ('completada','entregada') THEN 1 ELSE 0 END) as completadas,
+             SUM(ganancia) as ganancia
+             FROM repairs WHERE tienda = ? AND createdAt >= DATE_SUB(NOW(), INTERVAL 8 WEEK)
+             GROUP BY YEARWEEK(createdAt, 1)
+             ORDER BY semana ASC`,
+            [tienda]
+          ) as any[];
+          // Top técnicos
+          const [topTecnicos] = await conn.execute(
+            `SELECT tecnico, COUNT(*) as total,
+             SUM(CASE WHEN estado IN ('completada','entregada') THEN 1 ELSE 0 END) as completadas,
+             SUM(ganancia) as gananciaTotal
+             FROM repairs WHERE tienda = ? AND tecnico IS NOT NULL AND tecnico != ''
+             GROUP BY tecnico ORDER BY total DESC LIMIT 5`,
+            [tienda]
+          ) as any[];
+          // Tiempo promedio de reparación (en horas)
+          const [tiempoPromedio] = await conn.execute(
+            `SELECT AVG(TIMESTAMPDIFF(HOUR, fechaIngreso, fechaCompletado)) as horasPromedio
+             FROM repairs WHERE tienda = ? AND estado IN ('completada','entregada') AND fechaCompletado IS NOT NULL`,
+            [tienda]
+          ) as any[];
+          // Reparaciones este mes vs mes anterior
+          const [esteMes] = await conn.execute(
+            `SELECT COUNT(*) as total, SUM(ganancia) as ganancia
+             FROM repairs WHERE tienda = ? AND MONTH(createdAt) = MONTH(NOW()) AND YEAR(createdAt) = YEAR(NOW())`,
+            [tienda]
+          ) as any[];
+          const [mesPasado] = await conn.execute(
+            `SELECT COUNT(*) as total, SUM(ganancia) as ganancia
+             FROM repairs WHERE tienda = ? AND MONTH(createdAt) = MONTH(DATE_SUB(NOW(), INTERVAL 1 MONTH)) AND YEAR(createdAt) = YEAR(DATE_SUB(NOW(), INTERVAL 1 MONTH))`,
+            [tienda]
+          ) as any[];
+          // Reparaciones pendientes con más de 3 días sin cambio
+          const [demoradas] = await conn.execute(
+            `SELECT id, codigo, cliente, dispositivo, estado, createdAt,
+             DATEDIFF(NOW(), updatedAt) as diasSinCambio
+             FROM repairs WHERE tienda = ? AND estado IN ('pendiente','en_proceso')
+             AND DATEDIFF(NOW(), updatedAt) >= 3
+             ORDER BY diasSinCambio DESC LIMIT 10`,
+            [tienda]
+          ) as any[];
+          return {
+            porEstado: (porEstado as any[]).reduce((acc: any, r: any) => { acc[r.estado] = Number(r.total); return acc; }, {}),
+            porSemana: (porSemana as any[]).map((r: any) => ({
+              semana: r.semana,
+              label: r.label,
+              total: Number(r.total),
+              completadas: Number(r.completadas),
+              ganancia: parseFloat(r.ganancia || '0'),
+            })),
+            topTecnicos: (topTecnicos as any[]).map((r: any) => ({
+              tecnico: r.tecnico,
+              total: Number(r.total),
+              completadas: Number(r.completadas),
+              gananciaTotal: parseFloat(r.gananciaTotal || '0'),
+            })),
+            tiempoPromedioHoras: parseFloat((tiempoPromedio as any[])[0]?.horasPromedio || '0'),
+            esteMes: {
+              total: Number((esteMes as any[])[0]?.total || 0),
+              ganancia: parseFloat((esteMes as any[])[0]?.ganancia || '0'),
+            },
+            mesPasado: {
+              total: Number((mesPasado as any[])[0]?.total || 0),
+              ganancia: parseFloat((mesPasado as any[])[0]?.ganancia || '0'),
+            },
+            demoradas: (demoradas as any[]).map((r: any) => ({
+              id: r.id,
+              codigo: r.codigo,
+              cliente: r.cliente,
+              dispositivo: r.dispositivo,
+              estado: r.estado,
+              diasSinCambio: Number(r.diasSinCambio),
+            })),
+          };
+        } finally {
+          conn.end();
+        }
+      }),
   }),
 
   posServices: router({
@@ -1519,6 +1633,125 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         return await db.deleteAppointment(input.id);
+      }),
+  }),
+
+  // ==================== PRESUPUESTOS ====================
+  presupuestos: router({
+    list: publicProcedure
+      .input(z.object({ tienda: z.string().optional() }).optional())
+      .query(async ({ input, ctx }) => {
+        const tienda = input?.tienda || ctx.user?.tienda || 'admin';
+        const mysql = await import('mysql2/promise');
+        const conn = await mysql.createConnection(process.env.DATABASE_URL!);
+        try {
+          const [rows] = await conn.execute(
+            'SELECT * FROM presupuestos WHERE tienda = ? ORDER BY createdAt DESC',
+            [tienda]
+          ) as any[];
+          return rows as any[];
+        } finally { conn.end(); }
+      }),
+
+    create: publicProcedure
+      .input(z.object({
+        codigo: z.string(),
+        clienteNombre: z.string().optional(),
+        clienteTelefono: z.string().optional(),
+        clienteEmail: z.string().optional(),
+        dispositivoMarca: z.string().optional(),
+        dispositivoModelo: z.string().optional(),
+        descripcionProblema: z.string().optional(),
+        items: z.string(),
+        subtotal: z.string(),
+        impuesto: z.string(),
+        total: z.string(),
+        estado: z.enum(['borrador','enviado','aprobado','rechazado','expirado']).default('borrador'),
+        notas: z.string().optional(),
+        validoHasta: z.string().optional(),
+        tokenAprobacion: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const tienda = ctx.user?.tienda || 'admin';
+        const mysql = await import('mysql2/promise');
+        const conn = await mysql.createConnection(process.env.DATABASE_URL!);
+        try {
+          const [result] = await conn.execute(
+            `INSERT INTO presupuestos (codigo, clienteNombre, clienteTelefono, clienteEmail,
+             dispositivoMarca, dispositivoModelo, descripcionProblema, items,
+             subtotal, impuesto, total, estado, notas, validoHasta, tienda, tokenAprobacion)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              input.codigo, input.clienteNombre || null, input.clienteTelefono || null,
+              input.clienteEmail || null, input.dispositivoMarca || null, input.dispositivoModelo || null,
+              input.descripcionProblema || null, input.items, input.subtotal, input.impuesto,
+              input.total, input.estado, input.notas || null,
+              input.validoHasta ? new Date(input.validoHasta) : null,
+              tienda, input.tokenAprobacion || null,
+            ]
+          ) as any[];
+          return { id: (result as any).insertId, ...input };
+        } finally { conn.end(); }
+      }),
+
+    updateEstado: publicProcedure
+      .input(z.object({
+        id: z.number(),
+        estado: z.enum(['borrador','enviado','aprobado','rechazado','expirado']),
+      }))
+      .mutation(async ({ input }) => {
+        const mysql = await import('mysql2/promise');
+        const conn = await mysql.createConnection(process.env.DATABASE_URL!);
+        try {
+          const extra = input.estado === 'aprobado' ? ', fechaAprobacion = NOW()' : '';
+          await conn.execute(
+            `UPDATE presupuestos SET estado = ?${extra} WHERE id = ?`,
+            [input.estado, input.id]
+          );
+          return { success: true };
+        } finally { conn.end(); }
+      }),
+
+    getByToken: publicProcedure
+      .input(z.object({ token: z.string() }))
+      .query(async ({ input }) => {
+        const mysql = await import('mysql2/promise');
+        const conn = await mysql.createConnection(process.env.DATABASE_URL!);
+        try {
+          const [rows] = await conn.execute(
+            'SELECT * FROM presupuestos WHERE tokenAprobacion = ? LIMIT 1',
+            [input.token]
+          ) as any[];
+          return (rows as any[])[0] || null;
+        } finally { conn.end(); }
+      }),
+
+    aprobarPorToken: publicProcedure
+      .input(z.object({
+        token: z.string(),
+        accion: z.enum(['aprobado','rechazado']),
+      }))
+      .mutation(async ({ input }) => {
+        const mysql = await import('mysql2/promise');
+        const conn = await mysql.createConnection(process.env.DATABASE_URL!);
+        try {
+          await conn.execute(
+            `UPDATE presupuestos SET estado = ?, fechaAprobacion = NOW() WHERE tokenAprobacion = ? AND estado = 'enviado'`,
+            [input.accion, input.token]
+          );
+          return { success: true };
+        } finally { conn.end(); }
+      }),
+
+    delete: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const mysql = await import('mysql2/promise');
+        const conn = await mysql.createConnection(process.env.DATABASE_URL!);
+        try {
+          await conn.execute('DELETE FROM presupuestos WHERE id = ?', [input.id]);
+          return { success: true };
+        } finally { conn.end(); }
       }),
   }),
 });

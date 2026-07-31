@@ -30,6 +30,10 @@ import Clientes from './pages/Clientes';
 import TrackRepair from './pages/TrackRepair';
 import OrdenesPartes from './pages/OrdenesPartes';
 import Agenda from './pages/Agenda';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import Terms from './pages/Terms';
+import Presupuestos from './pages/Presupuestos';
+import CotizacionPublica from './pages/CotizacionPublica';
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -113,6 +117,9 @@ function Router() {
       </Route>
       <Route path="/pos/display" component={POSDisplay} />
       <Route path="/track" component={TrackRepair} />
+      <Route path="/privacy-policy" component={PrivacyPolicy} />
+      <Route path="/terms" component={Terms} />
+      <Route path="/cotizacion/:token" component={CotizacionPublica} />
       <Route path="/ordenes-partes">
         {() => <ProtectedRoute component={OrdenesPartes} />}
       </Route>
@@ -121,6 +128,9 @@ function Router() {
       </Route>
       <Route path="/clientes">
         {() => <ProtectedRoute component={Clientes} />}
+      </Route>
+      <Route path="/presupuestos">
+        {() => <ProtectedRoute component={Presupuestos} />}
       </Route>
       <Route path="/agenda">
         {() => <ProtectedRoute component={Agenda} />}

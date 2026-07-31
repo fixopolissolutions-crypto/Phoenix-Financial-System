@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { FacturaReparacion } from '@/components/FacturaReparacion';
 import { EtiquetaQR } from '@/components/EtiquetaQR';
+import FirmaDigital from '@/components/FirmaDigital';
 import { toast } from 'sonner';
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
@@ -365,6 +366,16 @@ export default function Reparaciones() {
   const updateMutation = trpc.repairs.update.useMutation({
     onSuccess: () => { toast.success('Reparación actualizada'); refetch(); },
     onError: (error) => toast.error('Error al actualizar: ' + error.message),
+  });
+
+  const saveFirmaMutation = trpc.repairs.saveFirma.useMutation({
+    onSuccess: () => {
+      toast.success('✅ Firma del cliente guardada');
+      refetch();
+      // Actualizar el repair en el historial
+      setHistorialRepair((prev: any) => prev ? { ...prev, firmaCliente: 'saved' } : prev);
+    },
+    onError: (e) => toast.error('Error al guardar firma: ' + e.message),
   });
 
   const deleteMutation = trpc.repairs.delete.useMutation({
@@ -1444,6 +1455,18 @@ export default function Reparaciones() {
                   })
                 )}
               </div>
+              {/* Firma Digital del Cliente — solo cuando está entregada */}
+              {historialRepair?.estado === 'entregada' && (
+                <div className="border-t border-gray-100 pt-4 mt-2">
+                  <FirmaDigital
+                    nombreCliente={historialRepair?.cliente}
+                    firmaExistente={historialRepair?.firmaCliente || null}
+                    onFirmaGuardada={(firmaBase64) => {
+                      saveFirmaMutation.mutate({ id: historialRepair.id, firmaCliente: firmaBase64 });
+                    }}
+                  />
+                </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>

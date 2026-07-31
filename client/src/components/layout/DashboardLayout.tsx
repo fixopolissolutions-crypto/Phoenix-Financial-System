@@ -45,6 +45,7 @@ const navGroups = [
     items: [
       { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, adminOnly: true },
       { name: 'Reparaciones', href: '/reparaciones', icon: Wrench, adminOnly: true },
+      { name: 'Presupuestos', href: '/presupuestos', icon: FileText, adminOnly: true },
       { name: 'Clientes', href: '/clientes', icon: Users, adminOnly: true },
       { name: 'Órdenes de Partes', href: '/ordenes-partes', icon: Truck, adminOnly: true },
       { name: 'Agenda', href: '/agenda', icon: CalendarDays, adminOnly: true },

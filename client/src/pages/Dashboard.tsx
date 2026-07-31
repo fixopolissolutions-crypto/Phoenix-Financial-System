@@ -5,6 +5,7 @@ import {
   DollarSign, TrendingUp, TrendingDown, Activity, Receipt, Landmark,
   Loader2, Wallet, Wrench, Plus, Minus, ArrowUpRight, ArrowDownRight,
   ChevronRight, AlertTriangle, Package, UserCog, ShoppingCart,
+  Clock, CheckCircle2, Timer, BarChart2,
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { useMemo, useEffect, useState } from 'react';
@@ -42,6 +43,7 @@ export default function Dashboard() {
   const { data: topProducts = [] } = trpc.dashboardStats.topProducts.useQuery({ limit: 8 });
   const { data: topTechnicians = [] } = trpc.dashboardStats.topTechnicians.useQuery();
   const { data: stockBajo = [] } = trpc.dashboardStats.stockBajo.useQuery();
+  const { data: repairStats } = trpc.dashboardStats.repairStats.useQuery();
 
   useEffect(() => {
     const checkMidnight = setInterval(() => {
@@ -582,6 +584,135 @@ export default function Dashboard() {
             )}
           </Card>
         </div>
+
+        {/* ═══ MÉTRICAS DE REPARACIONES ═══ */}
+        {repairStats && (
+          <>
+            {/* KPIs de reparaciones */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card className="p-5 border-0 shadow-sm bg-white">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center">
+                    <Wrench className="w-4 h-4 text-orange-600" />
+                  </div>
+                  {repairStats.esteMes.total > repairStats.mesPasado.total ? (
+                    <span className="text-xs text-green-600 font-medium flex items-center gap-0.5">
+                      <ArrowUpRight className="w-3 h-3" />
+                      {repairStats.mesPasado.total > 0 ? Math.round(((repairStats.esteMes.total - repairStats.mesPasado.total) / repairStats.mesPasado.total) * 100) : 100}%
+                    </span>
+                  ) : (
+                    <span className="text-xs text-red-500 font-medium flex items-center gap-0.5">
+                      <ArrowDownRight className="w-3 h-3" />
+                      {repairStats.mesPasado.total > 0 ? Math.round(((repairStats.mesPasado.total - repairStats.esteMes.total) / repairStats.mesPasado.total) * 100) : 0}%
+                    </span>
+                  )}
+                </div>
+                <p className="text-2xl font-bold text-gray-900">{repairStats.esteMes.total}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Reparaciones este mes</p>
+              </Card>
+              <Card className="p-5 border-0 shadow-sm bg-white">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-9 h-9 rounded-xl bg-yellow-100 flex items-center justify-center">
+                    <Clock className="w-4 h-4 text-yellow-600" />
+                  </div>
+                </div>
+                <p className="text-2xl font-bold text-gray-900">
+                  {(repairStats.porEstado['pendiente'] || 0) + (repairStats.porEstado['en_proceso'] || 0)}
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5">En espera / proceso</p>
+              </Card>
+              <Card className="p-5 border-0 shadow-sm bg-white">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-9 h-9 rounded-xl bg-green-100 flex items-center justify-center">
+                    <DollarSign className="w-4 h-4 text-green-600" />
+                  </div>
+                </div>
+                <p className="text-2xl font-bold text-gray-900">${repairStats.esteMes.ganancia.toFixed(0)}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Ganancia reparaciones</p>
+              </Card>
+              <Card className="p-5 border-0 shadow-sm bg-white">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <Timer className="w-4 h-4 text-blue-600" />
+                  </div>
+                </div>
+                <p className="text-2xl font-bold text-gray-900">
+                  {repairStats.tiempoPromedioHoras > 0
+                    ? repairStats.tiempoPromedioHoras < 24
+                      ? `${Math.round(repairStats.tiempoPromedioHoras)}h`
+                      : `${Math.round(repairStats.tiempoPromedioHoras / 24)}d`
+                    : '—'}
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5">Tiempo promedio</p>
+              </Card>
+            </div>
+
+            {/* Gráfica semanal + Reparaciones demoradas */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* Gráfica de reparaciones por semana */}
+              <Card className="lg:col-span-2 p-5 border-0 shadow-sm bg-white">
+                <div className="flex items-center gap-2 mb-4">
+                  <BarChart2 className="w-4 h-4 text-gray-600" />
+                  <h3 className="text-sm font-semibold text-gray-700">Reparaciones Últimas 8 Semanas</h3>
+                </div>
+                {repairStats.porSemana.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center py-8">Sin datos de reparaciones aún</p>
+                ) : (
+                  <div className="h-[200px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={repairStats.porSemana} barSize={18}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
+                        <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+                        <Tooltip
+                          formatter={(value: number, name: string) => [value, name === 'total' ? 'Total' : 'Completadas']}
+                          contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', fontSize: '11px' }}
+                        />
+                        <Bar dataKey="total" name="total" fill="#F97316" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="completadas" name="completadas" fill="#10B981" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </Card>
+
+              {/* Reparaciones demoradas */}
+              <Card className="p-5 border-0 shadow-sm bg-white">
+                <div className="flex items-center gap-2 mb-4">
+                  <AlertTriangle className="w-4 h-4 text-red-500" />
+                  <h3 className="text-sm font-semibold text-gray-700">Reparaciones Demoradas</h3>
+                </div>
+                {repairStats.demoradas.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 gap-2">
+                    <CheckCircle2 className="w-8 h-8 text-green-400" />
+                    <p className="text-xs text-gray-400">Sin reparaciones demoradas</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                    {repairStats.demoradas.map((r: any) => (
+                      <div key={r.id} className="flex items-start gap-2 p-2.5 bg-red-50 rounded-lg border border-red-100">
+                        <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Clock className="w-3 h-3 text-red-500" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold text-gray-800 truncate">{r.codigo}</p>
+                          <p className="text-xs text-gray-500 truncate">{r.cliente || 'Sin nombre'}</p>
+                          <p className="text-xs text-red-600 font-medium">{r.diasSinCambio} días sin cambio</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <button
+                  onClick={() => setLocation('/reparaciones')}
+                  className="mt-3 w-full text-xs text-orange-600 hover:text-orange-700 font-medium flex items-center justify-center gap-1"
+                >
+                  Ver todas <ChevronRight className="w-3 h-3" />
+                </button>
+              </Card>
+            </div>
+          </>
+        )}
 
         {/* Alertas de Stock Bajo */}
         {stockBajo.length > 0 && (
