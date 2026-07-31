@@ -94,6 +94,24 @@ async function startServer() {
     }
   });
 
+  // Endpoint de diagnóstico temporal para verificar RESEND_API_KEY
+  app.get("/api/check-resend", async (req, res) => {
+    const envKey = process.env.RESEND_API_KEY;
+    let dbKey = null;
+    try {
+      const mysql = await import('mysql2/promise');
+      const conn = await mysql.default.createConnection(process.env.DATABASE_URL!);
+      const [rows] = await conn.execute('SELECT value FROM config WHERE `key` = ?', ['RESEND_API_KEY']) as any[];
+      await conn.end();
+      if (rows.length > 0) dbKey = rows[0].value?.substring(0, 15) + '...';
+    } catch (e: any) { dbKey = 'ERROR: ' + e.message; }
+    res.json({
+      env_key: envKey ? envKey.substring(0, 15) + '...' : 'NOT_SET',
+      db_key: dbKey,
+      will_send: !!(envKey || dbKey)
+    });
+  });
+
   app.get("/api/setup-database", async (req, res) => {
     try {
       const mysql = await import("mysql2/promise");
