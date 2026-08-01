@@ -697,6 +697,7 @@ export const appRouter = router({
         codigoDesbloqueo: z.string().optional(),
         checklistComponentes: z.string().optional(), // JSON serializado
         imagenesDispositivo: z.string().optional(), // JSON array de URLs
+        smsConsent: z.boolean().optional(), // Consentimiento opt-in para SMS (A2P 10DLC)
         partes: z.array(z.object({
           partId: z.number().optional(), // Opcional para partes externas
           cantidad: z.number(),
@@ -869,8 +870,8 @@ export const appRouter = router({
           nota: input.nota,
           usuario,
         });
-        // Enviar notificación SMS/WhatsApp si el cliente tiene teléfono
-        if (repair?.telefono && repair?.cliente) {
+        // Enviar notificación SMS/WhatsApp solo si el cliente dio consentimiento (A2P 10DLC)
+        if (repair?.telefono && repair?.cliente && repair?.smsConsent) {
           try {
             const { sendRepairNotification } = await import('./notifications');
             await sendRepairNotification({

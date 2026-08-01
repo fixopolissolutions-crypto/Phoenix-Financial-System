@@ -702,6 +702,14 @@ export async function applyMigrations() {
       console.log('[Migrations] ⚠️  Migration 25 (repairs estado ENUM):', error.message);
     }
 
+    // Migración 26: Agregar columna smsConsent a repairs (opt-in A2P 10DLC)
+    try {
+      await connection.execute(`ALTER TABLE repairs ADD COLUMN smsConsent INT NOT NULL DEFAULT 0 COMMENT 'Cliente acepta recibir SMS: 1=sí, 0=no'`);
+      console.log('[Migrations] ✅ Added smsConsent column to repairs');
+    } catch (error: any) {
+      console.log('[Migrations] ⏭️  smsConsent column already exists:', error.message);
+    }
+
     await connection.end();
     console.log('[Migrations] ✅ All migrations completed successfully');
   } catch (error) {

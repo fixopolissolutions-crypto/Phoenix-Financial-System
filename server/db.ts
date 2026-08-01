@@ -1012,6 +1012,7 @@ export async function createRepair(data: InsertRepair & { partes?: { partId: num
     codigoDesbloqueo: (data as any).codigoDesbloqueo ?? null,
     checklistComponentes: (data as any).checklistComponentes ?? null,
     imagenesDispositivo: (data as any).imagenesDispositivo ?? null,
+    smsConsent: (data as any).smsConsent ? 1 : 0,
   };
 
   // Usar mysql2 directamente
@@ -1023,15 +1024,16 @@ export async function createRepair(data: InsertRepair & { partes?: { partId: num
         codigo, cliente, telefono, dispositivo, problema, diagnostico,
         precioManoObra, precioTotal, costoPartes, ganancia,
         fechaIngreso, tienda, notas,
-        tecnico, garantiaDias, codigoDesbloqueo, checklistComponentes, imagenesDispositivo
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        tecnico, garantiaDias, codigoDesbloqueo, checklistComponentes, imagenesDispositivo, smsConsent
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         repairData.codigo, repairData.cliente, repairData.telefono,
         repairData.dispositivo, repairData.problema, repairData.diagnostico,
         repairData.precioManoObra, repairData.precioTotal, repairData.costoPartes,
         repairData.ganancia, repairData.fechaIngreso, repairData.tienda,
         repairData.notas, repairData.tecnico, repairData.garantiaDias,
-        repairData.codigoDesbloqueo, repairData.checklistComponentes, repairData.imagenesDispositivo
+        repairData.codigoDesbloqueo, repairData.checklistComponentes, repairData.imagenesDispositivo,
+        (repairData as any).smsConsent
       ]
     );
     const repairId = Number((result as any).insertId);

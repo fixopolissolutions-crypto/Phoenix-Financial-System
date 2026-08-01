@@ -267,6 +267,7 @@ export default function Reparaciones() {
     dispositivo: '', codigoDesbloqueo: '', tecnico: '', garantiaDias: '30',
     fechaIngreso: new Date().toISOString().split('T')[0],
   });
+  const [smsConsent, setSmsConsent] = useState(false);
 
   // Otros estados
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'pendiente' | 'en_proceso' | 'completada' | 'entregada'>('todos');
@@ -395,6 +396,7 @@ export default function Reparaciones() {
     setChecklist(CHECKLIST_ITEMS.map(item => ({ id: item.id, estado: 'no_aplica' as ChecklistEstado })));
     setImagenesDispositivo([]);
     setLineasManoObra([{ descripcion: '', precio: 0 }]);
+    setSmsConsent(false);
   };
 
   const updateField = (field: string, value: string) => {
@@ -495,6 +497,7 @@ export default function Reparaciones() {
       checklistComponentes: checklistFiltrado.length > 0 ? JSON.stringify(checklistFiltrado) : undefined,
       imagenesDispositivo: imagenesDispositivo.length > 0 ? JSON.stringify(imagenesDispositivo) : undefined,
       partes: partesParaBackend.length > 0 ? partesParaBackend : undefined,
+      smsConsent: smsConsent,
     });
   };
 
@@ -754,6 +757,27 @@ export default function Reparaciones() {
                             </span>
                           </div>
                         )}
+                      </div>
+                    </div>
+
+                    {/* ─── Checkbox de consentimiento SMS (A2P 10DLC) ─── */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          id="smsConsent"
+                          checked={smsConsent}
+                          onChange={(e) => setSmsConsent(e.target.checked)}
+                          className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 cursor-pointer flex-shrink-0"
+                        />
+                        <label htmlFor="smsConsent" className="text-sm text-blue-800 cursor-pointer leading-relaxed">
+                          <span className="font-semibold">Acepto recibir mensajes de texto (SMS)</span> con actualizaciones sobre el estado de mi reparación de parte de Fixopolis Solutions.
+                          <span className="block text-xs text-blue-600 mt-1">
+                            Opcional — La frecuencia de mensajes varía. Pueden aplicar tarifas de mensajes y datos. Responde STOP para cancelar.
+                            <a href="/privacy-policy" target="_blank" className="underline ml-1">Política de Privacidad</a> ·
+                            <a href="/terms" target="_blank" className="underline ml-1">Términos de Servicio</a>
+                          </span>
+                        </label>
                       </div>
                     </div>
 
