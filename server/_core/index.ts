@@ -94,68 +94,7 @@ async function startServer() {
     }
   });
 
-  // Endpoint de prueba de correo real en producción
-  app.get("/api/test-send-email", async (req, res) => {
-    const toEmail = (req.query.to as string) || 'FROIMC1@GMAIL.COM';
-    try {
-      // Obtener la key
-      let resendApiKey = process.env.RESEND_API_KEY;
-      if (!resendApiKey) {
-        try {
-          const mysql2 = await import('mysql2/promise');
-          const connTest = await mysql2.default.createConnection(process.env.DATABASE_URL!);
-          const [cfgR] = await connTest.execute('SELECT value FROM config WHERE `key` = ?', ['RESEND_API_KEY']) as any[];
-          await connTest.end();
-          if (cfgR.length > 0) resendApiKey = cfgR[0].value;
-        } catch {}
-      }
-      if (!resendApiKey) {
-        const _a = 're_gKQFrp'; const _b = 'iw_57R2MR'; const _c = 'ZpY7BRBQM5RhYwK5q5';
-        resendApiKey = _a + _b + _c;
-      }
-      const { Resend } = await import('resend');
-      const resend = new Resend(resendApiKey);
-      const { data, error } = await resend.emails.send({
-        from: 'Fixopolis Solutions <noreply@fixopolisfinanzas.com>',
-        to: toEmail,
-        subject: 'Prueba de correo desde Railway - Fixopolis',
-        html: '<h1>Correo de prueba</h1><p>Este correo fue enviado directamente desde el servidor de Railway.</p><p>Si recibes esto, el correo funciona correctamente.</p>',
-      });
-      if (error) {
-        res.json({ success: false, error, key_used: resendApiKey?.substring(0, 15) + '...' });
-      } else {
-        res.json({ success: true, id: data?.id, to: toEmail, key_used: resendApiKey?.substring(0, 15) + '...' });
-      }
-    } catch (e: any) {
-      res.json({ success: false, error: e.message });
-    }
-  });
-
-  // Endpoint de diagnóstico temporal para verificar RESEND_API_KEY
-  app.get("/api/check-resend", async (req, res) => {
-    const envKey = process.env.RESEND_API_KEY;
-    let dbKey = null;
-    let dbError = null;
-    let dbUrl = process.env.DATABASE_URL || 'NOT_SET';
-    try {
-      const mysql = await import('mysql2/promise');
-      const conn = await mysql.default.createConnection(dbUrl);
-      const [rows] = await conn.execute('SELECT value FROM config WHERE `key` = ?', ['RESEND_API_KEY']) as any[];
-      await conn.end();
-      if (rows.length > 0) dbKey = rows[0].value?.substring(0, 15) + '...';
-      else dbKey = 'KEY_NOT_IN_DB';
-    } catch (e: any) { dbError = e.message; }
-    // Also try to send a test email if key found
-    let testSend = null;
-    const keyToUse = envKey || (dbKey && !dbKey.startsWith('KEY_NOT') && !dbKey.startsWith('ERROR') ? dbKey : null);
-    res.json({
-      env_key: envKey ? envKey.substring(0, 15) + '...' : 'NOT_SET',
-      db_key: dbKey,
-      db_error: dbError,
-      db_url_host: dbUrl.replace(/:[^:@]+@/, ':***@').substring(0, 50),
-      will_send: !!(envKey || (dbKey && dbKey !== 'KEY_NOT_IN_DB'))
-    });
-  });
+  // (Endpoints de diagnóstico eliminados - correo funciona correctamente)
 
   app.get("/api/setup-database", async (req, res) => {
     try {
