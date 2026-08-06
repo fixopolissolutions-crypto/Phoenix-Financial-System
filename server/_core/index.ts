@@ -97,7 +97,7 @@ async function startServer() {
   // (Endpoints de diagnóstico eliminados - correo funciona correctamente)
 
   // Página pública de opt-in SMS para revisores de Twilio A2P 10DLC (no requiere login)
-  app.get("/sms-consent", (req, res) => {
+  app.get("/api/sms-consent", (req, res) => {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(`<!DOCTYPE html>
 <html lang="en">
