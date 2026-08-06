@@ -96,6 +96,143 @@ async function startServer() {
 
   // (Endpoints de diagnóstico eliminados - correo funciona correctamente)
 
+  // Página pública de opt-in SMS para revisores de Twilio A2P 10DLC (no requiere login)
+  app.get("/sms-consent", (req, res) => {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SMS Opt-In Consent - Fixopolis Solutions</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; padding: 20px; }
+    .container { max-width: 700px; margin: 40px auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); overflow: hidden; }
+    .header { background: #1a1a2e; color: #fff; padding: 24px 32px; }
+    .header h1 { font-size: 22px; font-weight: 700; }
+    .header p { font-size: 13px; color: #aaa; margin-top: 4px; }
+    .badge { display: inline-block; background: #e8f5e9; color: #2e7d32; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; margin-top: 8px; }
+    .content { padding: 32px; }
+    .section { margin-bottom: 28px; }
+    .section h2 { font-size: 16px; font-weight: 600; color: #1a1a2e; margin-bottom: 12px; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; }
+    .section p { font-size: 14px; line-height: 1.6; color: #555; margin-bottom: 8px; }
+    .form-demo { background: #fafafa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 24px; margin-top: 12px; }
+    .form-demo h3 { font-size: 15px; font-weight: 600; margin-bottom: 16px; color: #333; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 500; color: #555; margin-bottom: 6px; }
+    .form-group input[type=text], .form-group input[type=tel] { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; background: #fff; }
+    .consent-box { background: #fff8e1; border: 1px solid #ffe082; border-radius: 8px; padding: 16px; margin-top: 16px; }
+    .consent-box label { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 13px; line-height: 1.5; color: #444; }
+    .consent-box input[type=checkbox] { width: 16px; height: 16px; margin-top: 2px; flex-shrink: 0; accent-color: #1a1a2e; }
+    .consent-box .optional-tag { display: inline-block; background: #e3f2fd; color: #1565c0; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-left: 6px; }
+    .consent-box .sub-text { font-size: 12px; color: #777; margin-top: 8px; margin-left: 26px; line-height: 1.5; }
+    .consent-box .links a { color: #1565c0; text-decoration: none; }
+    .info-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .info-table th { background: #f0f0f0; text-align: left; padding: 8px 12px; font-weight: 600; color: #444; }
+    .info-table td { padding: 8px 12px; border-bottom: 1px solid #eee; color: #555; }
+    .info-table tr:last-child td { border-bottom: none; }
+    .highlight { background: #fff3e0; border-left: 4px solid #ff9800; padding: 12px 16px; border-radius: 4px; font-size: 13px; color: #555; margin-top: 12px; }
+    .footer { background: #f9f9f9; border-top: 1px solid #eee; padding: 16px 32px; font-size: 12px; color: #888; text-align: center; }
+    .footer a { color: #1565c0; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Fixopolis Solutions — SMS Opt-In Documentation</h1>
+      <p>This page documents the SMS consent mechanism for Twilio A2P 10DLC compliance review.</p>
+      <span class="badge">Public Compliance Page — No Login Required</span>
+    </div>
+    <div class="content">
+
+      <div class="section">
+        <h2>Business Information</h2>
+        <table class="info-table">
+          <tr><th>Business Name</th><td>Fixopolis Solutions</td></tr>
+          <tr><th>Business Type</th><td>Cell Phone Repair Shop (LLC)</td></tr>
+          <tr><th>Website</th><td><a href="https://fixopolisolutions.com" target="_blank">fixopolisolutions.com</a></td></tr>
+          <tr><th>System URL</th><td><a href="https://fixopolisfinanzas.com" target="_blank">fixopolisfinanzas.com</a></td></tr>
+          <tr><th>Privacy Policy</th><td><a href="https://fixopolisfinanzas.com/privacy-policy" target="_blank">fixopolisfinanzas.com/privacy-policy</a></td></tr>
+          <tr><th>Terms of Service</th><td><a href="https://fixopolisfinanzas.com/terms" target="_blank">fixopolisfinanzas.com/terms</a></td></tr>
+        </table>
+      </div>
+
+      <div class="section">
+        <h2>How Customers Opt In to SMS Notifications</h2>
+        <p>When a customer brings a device to Fixopolis Solutions for repair, a staff member opens a new repair intake form in the internal management system. The form includes an <strong>optional, unchecked checkbox</strong> for SMS consent — shown below exactly as it appears in the system.</p>
+        <p>The checkbox is <strong>not pre-checked</strong> and is clearly labeled as <strong>Optional</strong>. Customers who do not check the box receive full repair service with no difference in treatment. Consent to receive SMS messages is <strong>never required</strong> as a condition of service.</p>
+
+        <div class="form-demo">
+          <h3>New Repair Intake Form — Step 1 of 3: Customer Information</h3>
+          <div class="form-group">
+            <label>Full Name *</label>
+            <input type="text" placeholder="e.g. John Smith" disabled>
+          </div>
+          <div class="form-group">
+            <label>Phone Number *</label>
+            <input type="tel" placeholder="e.g. 555-123-4567" disabled>
+          </div>
+
+          <div class="consent-box">
+            <label>
+              <input type="checkbox">
+              <span>
+                I agree to receive SMS text message updates about my repair status from Fixopolis Solutions.
+                <span class="optional-tag">OPTIONAL</span>
+              </span>
+            </label>
+            <div class="sub-text">
+              Message frequency varies. Msg &amp; data rates may apply. Reply STOP to opt out.
+              <br>
+              <span class="links">
+                <a href="https://fixopolisfinanzas.com/privacy-policy" target="_blank">Privacy Policy</a> ·
+                <a href="https://fixopolisfinanzas.com/terms" target="_blank">Terms of Service</a>
+              </span>
+            </div>
+          </div>
+
+          <div class="highlight" style="margin-top:16px;">
+            ✅ The checkbox above is <strong>unchecked by default</strong>. Customers must actively check it to opt in. The repair service proceeds normally whether or not the customer opts in.
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Opt-In Process Summary</h2>
+        <table class="info-table">
+          <tr><th>Opt-In Method</th><td>Optional checkbox on paper/digital repair intake form at point of service</td></tr>
+          <tr><th>Checkbox Default State</th><td>Unchecked (customer must actively check to opt in)</td></tr>
+          <tr><th>Required for Service?</th><td>No — service is provided regardless of consent</td></tr>
+          <tr><th>Message Types</th><td>Repair status updates (e.g., "Your repair is ready for pickup")</td></tr>
+          <tr><th>Message Frequency</th><td>Varies — typically 1–5 messages per repair order</td></tr>
+          <tr><th>Opt-Out Method</th><td>Reply STOP to any message</td></tr>
+          <tr><th>Consent Records</th><td>Stored in the repair management database per customer</td></tr>
+        </table>
+      </div>
+
+      <div class="section">
+        <h2>Sample SMS Messages Sent</h2>
+        <table class="info-table">
+          <tr><th>Trigger</th><th>Sample Message</th></tr>
+          <tr><td>Status: In Progress</td><td>Hi [Name], your [Device] repair at Fixopolis Solutions is now In Progress. We'll notify you when it's ready. Reply STOP to opt out.</td></tr>
+          <tr><td>Status: Completed</td><td>Hi [Name], great news! Your [Device] repair is complete and ready for pickup at Fixopolis Solutions. Reply STOP to opt out.</td></tr>
+          <tr><td>Status: Delivered</td><td>Hi [Name], your [Device] has been delivered. Thank you for choosing Fixopolis Solutions! Reply STOP to opt out.</td></tr>
+        </table>
+      </div>
+
+    </div>
+    <div class="footer">
+      This page is provided for Twilio A2P 10DLC compliance review purposes. &nbsp;|
+      <a href="https://fixopolisfinanzas.com/privacy-policy">Privacy Policy</a> &nbsp;|
+      <a href="https://fixopolisfinanzas.com/terms">Terms of Service</a> &nbsp;|
+      &copy; 2026 Fixopolis Solutions LLC
+    </div>
+  </div>
+</body>
+</html>`);
+  });
+
   app.get("/api/setup-database", async (req, res) => {
     try {
       const mysql = await import("mysql2/promise");
